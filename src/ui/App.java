@@ -10,7 +10,7 @@ public class App {
         DatabaseHelper.createTables();
 
         javax.swing.SwingUtilities.invokeLater(() -> {
-            openMainApplication(); // Diretso na bubukas ang main dashboard
+            openMainApplication(); 
         });
     }
 
