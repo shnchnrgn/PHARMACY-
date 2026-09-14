@@ -4,5 +4,6 @@
     "java.project.referencedLibraries": [
         "lib/**/*.jar",
         "c:\\Users\\ACER\\Downloads\\sqlite-jdbc-3.36.0.3.jar"
-    ]
+    ],
+    "java.debug.settings.onBuildFailureProceed": true
 }
