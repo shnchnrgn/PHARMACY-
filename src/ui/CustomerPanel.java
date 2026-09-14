@@ -10,49 +10,57 @@ import java.util.List;
 public class CustomerPanel extends JPanel {
     private JTable table;
     private DefaultTableModel tableModel;
-    private JTextField txtName, txtContact, txtDate;
+    private JTextField txtDays;
 
     public CustomerPanel() {
         setLayout(new BorderLayout());
 
+        JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        txtDays = new JTextField("30", 5);
+        JButton btnFilterInactive = new JButton("Filter Inactive");
+        JButton btnShowAll = new JButton("Show All");
+
+        filterPanel.add(new JLabel("Inactive (Days):"));
+        filterPanel.add(txtDays);
+        filterPanel.add(btnFilterInactive);
+        filterPanel.add(btnShowAll);
+
+        add(filterPanel, BorderLayout.NORTH);
+
         String[] columns = {"ID", "Name", "Contact", "Last Purchase Date"};
         tableModel = new DefaultTableModel(columns, 0);
         table = new JTable(tableModel);
-        loadTableData();
-
         add(new JScrollPane(table), BorderLayout.CENTER);
 
-        JPanel formPanel = new JPanel(new FlowLayout());
-        txtName = new JTextField(10);
-        txtContact = new JTextField(10);
-        txtDate = new JTextField(8);
-        JButton btnAdd = new JButton("Add Customer");
+        loadAllCustomers();
 
-        formPanel.add(new JLabel("Name:"));
-        formPanel.add(txtName);
-        formPanel.add(new JLabel("Contact:"));
-        formPanel.add(txtContact);
-        formPanel.add(new JLabel("Last Purchase (YYYY-MM-DD):"));
-        formPanel.add(txtDate);
-        formPanel.add(btnAdd);
-
-        add(formPanel, BorderLayout.SOUTH);
-
-        btnAdd.addActionListener(e -> {
-            Customer cust = new Customer(txtName.getText(), txtContact.getText(), txtDate.getText());
-            CustomerDAO.insertCustomer(cust);
-            loadTableData();
-            txtName.setText("");
-            txtContact.setText("");
-            txtDate.setText("");
+        btnFilterInactive.addActionListener(e -> {
+            try {
+                int days = Integer.parseInt(txtDays.getText().trim());
+                List<Customer> inactiveList = CustomerDAO.getInactiveCustomers(days);
+                populateTable(inactiveList);
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, "Mangyaring maglagay ng valid na numero.", "Error", JOptionPane.ERROR_MESSAGE);
+            }
         });
+
+        btnShowAll.addActionListener(e -> loadAllCustomers());
     }
 
-    public void loadTableData() {
+    public void loadAllCustomers() {
+        List<Customer> allCustomers = CustomerDAO.getAllCustomers();
+        populateTable(allCustomers);
+    }
+
+    private void populateTable(List<Customer> list) {
         tableModel.setRowCount(0);
-        List<Customer> list = CustomerDAO.getAllCustomers();
         for (Customer c : list) {
-            tableModel.addRow(new Object[]{c.getId(), c.getName(), c.getContact(), c.getLastPurchaseDate()});
+            tableModel.addRow(new Object[]{
+                c.getId(),
+                c.getName(),
+                c.getContact(),
+                c.getLastPurchaseDate()
+            });
         }
     }
 }

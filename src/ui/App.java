@@ -1,7 +1,8 @@
 package ui;
-import db.DatabaseHelper;
-import java.awt.*;
+
 import javax.swing.*;
+import java.awt.*;
+import db.DatabaseHelper;
 
 public class App {
     public static void main(String[] args) {
@@ -9,7 +10,7 @@ public class App {
         DatabaseHelper.createTables();
 
         javax.swing.SwingUtilities.invokeLater(() -> {
-            new LoginFrame().setVisible(true);
+            openMainApplication(); // Diretso na bubukas ang main dashboard
         });
     }
 
@@ -52,3 +53,6 @@ public class App {
         frame.setVisible(true);
     }
 }
+
+
+

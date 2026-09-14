@@ -6,15 +6,19 @@ public class Customer {
     private String contact;
     private String lastPurchaseDate;
 
-    public Customer() {}
-
     public Customer(String name, String contact, String lastPurchaseDate) {
         this.name = name;
         this.contact = contact;
         this.lastPurchaseDate = lastPurchaseDate;
     }
 
-    // Getters and Setters
+    public Customer(int id, String name, String contact, String lastPurchaseDate) {
+        this.id = id;
+        this.name = name;
+        this.contact = contact;
+        this.lastPurchaseDate = lastPurchaseDate;
+    }
+
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
 
