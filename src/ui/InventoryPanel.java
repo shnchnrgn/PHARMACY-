@@ -21,7 +21,6 @@ public class InventoryPanel extends JPanel {
     public InventoryPanel() {
         setLayout(new BorderLayout());
 
-        
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         txtSearch = new JTextField(15);
         JButton btnSearch = new JButton("Search");
@@ -39,7 +38,6 @@ public class InventoryPanel extends JPanel {
 
         add(searchPanel, BorderLayout.NORTH);
 
-       
         String[] columns = {"ID", "Name", "Price", "Stock"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
@@ -50,7 +48,6 @@ public class InventoryPanel extends JPanel {
         table = new JTable(tableModel);
         table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-       
         DefaultTableCellRenderer lowStockRenderer = new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable tbl, Object value, boolean isSelected,
@@ -73,7 +70,6 @@ public class InventoryPanel extends JPanel {
 
         add(new JScrollPane(table), BorderLayout.CENTER);
 
-       
         JPanel formPanel = new JPanel(new FlowLayout());
         txtName = new JTextField(10);
         txtPrice = new JTextField(6);
@@ -98,7 +94,6 @@ public class InventoryPanel extends JPanel {
 
         loadTableData();
 
-        
         table.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && table.getSelectedRow() != -1) {
                 int row = table.getSelectedRow();
@@ -109,12 +104,11 @@ public class InventoryPanel extends JPanel {
             }
         });
 
-        
         btnAdd.addActionListener(e -> {
             try {
                 String name = txtName.getText().trim();
                 if (name.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Pakilagay ang pangalan ng gamot.");
+                    JOptionPane.showMessageDialog(this, "Please enter the medicine name.");
                     return;
                 }
                 double price = Double.parseDouble(txtPrice.getText().trim());
@@ -130,16 +124,15 @@ public class InventoryPanel extends JPanel {
             }
         });
 
-        
         btnUpdate.addActionListener(e -> {
             if (selectedId == -1) {
-                JOptionPane.showMessageDialog(this, "Pumili muna ng gamot sa listahan na ie-edit.");
+                JOptionPane.showMessageDialog(this, "Please select a medicine from the list to edit.");
                 return;
             }
             try {
                 String name = txtName.getText().trim();
                 if (name.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Pakilagay ang pangalan ng gamot.");
+                    JOptionPane.showMessageDialog(this, "Please enter the medicine name.");
                     return;
                 }
                 double price = Double.parseDouble(txtPrice.getText().trim());
@@ -156,22 +149,21 @@ public class InventoryPanel extends JPanel {
                     loadTableData();
                     clearForm();
                 } else {
-                    JOptionPane.showMessageDialog(this, "Hindi na-update ang gamot.");
+                    JOptionPane.showMessageDialog(this, "Failed to update the medicine.");
                 }
             } catch (NumberFormatException ex) {
                 JOptionPane.showMessageDialog(this, "Please enter valid values!");
             }
         });
 
-        
         btnDelete.addActionListener(e -> {
             if (selectedId == -1) {
-                JOptionPane.showMessageDialog(this, "Pumili muna ng gamot sa listahan na tatanggalin.");
+                JOptionPane.showMessageDialog(this, "Please select a medicine from the list to delete.");
                 return;
             }
             int confirm = JOptionPane.showConfirmDialog(this,
-                    "Sigurado ka bang gusto mong tanggalin ang gamot na ito?",
-                    "Kumpirmahin ang Pagtanggal", JOptionPane.YES_NO_OPTION);
+                    "Are you sure you want to delete this medicine?",
+                    "Confirm Deletion", JOptionPane.YES_NO_OPTION);
             if (confirm == JOptionPane.YES_OPTION) {
                 MedicineDAO.deleteMedicine(selectedId);
                 loadTableData();
@@ -179,10 +171,8 @@ public class InventoryPanel extends JPanel {
             }
         });
 
-        
         btnClear.addActionListener(e -> clearForm());
 
-        
         btnSearch.addActionListener(e -> {
             String keyword = txtSearch.getText().trim();
             List<Medicine> results = keyword.isEmpty()
@@ -211,7 +201,7 @@ public class InventoryPanel extends JPanel {
             }
         }
         if (lowStockCount > 0) {
-            lblLowStock.setText("\u26A0 " + lowStockCount + " gamot ang mababa na ang stock!");
+            lblLowStock.setText("\u26A0 " + lowStockCount + " medicine(s) have low stock!");
         } else {
             lblLowStock.setText(" ");
         }

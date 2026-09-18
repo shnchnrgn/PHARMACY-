@@ -30,18 +30,17 @@ public class App {
         inventoryAndCustomerSplit.add(inventoryPanel);
         inventoryAndCustomerSplit.add(customerPanel);
 
-        JPanel posPlaceholder = new JPanel();
-        posPlaceholder.add(new JLabel("POS & Sales Module (Under Development)"));
-
         mainContentPanel.add(inventoryAndCustomerSplit, "INVENTORY");
-        mainContentPanel.add(posPlaceholder, "POS");
 
         JPanel navPanel = new JPanel();
         JButton btnInventory = new JButton("Inventory & Customers");
         JButton btnPOS = new JButton("POS & Sales");
 
         btnInventory.addActionListener(e -> cardLayout.show(mainContentPanel, "INVENTORY"));
-        btnPOS.addActionListener(e -> cardLayout.show(mainContentPanel, "POS"));
+        btnPOS.addActionListener(e -> {
+            POSFrame posWindow = new POSFrame();
+            posWindow.setVisible(true);
+        });
 
         navPanel.add(btnInventory);
         navPanel.add(btnPOS);
@@ -53,6 +52,3 @@ public class App {
         frame.setVisible(true);
     }
 }
-
-
-
