@@ -1,5 +1,8 @@
 package ui;
 
+import db.MedicineDAO;
+import models.Medicine;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
@@ -8,31 +11,19 @@ import java.awt.event.ActionEvent;
 import java.util.ArrayList;
 import java.util.List;
 
-
 public class POSFrame extends JFrame {
 
-    static class Product {
-        String id, name;
-        double price;
-
-        public Product(String id, String name, double price) {
-            this.id = id;
-            this.name = name;
-            this.price = price;
-        }
-    }
-
     static class CartItem {
-        Product product;
+        Medicine medicine;
         int quantity;
 
-        public CartItem(Product product, int quantity) {
-            this.product = product;
+        public CartItem(Medicine medicine, int quantity) {
+            this.medicine = medicine;
             this.quantity = quantity;
         }
 
         public double getTotal() {
-            return product.price * quantity;
+            return medicine.getPrice() * quantity;
         }
     }
 
@@ -44,10 +35,9 @@ public class POSFrame extends JFrame {
 
     public POSFrame() {
         setTitle("Pharmacy Management System - Point of Sale");
-        setSize(800, 600);
+        setSize(1000, 700);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
-
 
         cardLayout = new CardLayout();
         mainPanel = new JPanel(cardLayout);
@@ -58,107 +48,120 @@ public class POSFrame extends JFrame {
         JPanel productPanel = new JPanel(new BorderLayout());
         posPanel.add(productPanel, BorderLayout.CENTER);
 
-        String[] columns = {"Product ID", "Product Name", "Price", "Quantity"};
-        cartTableModel = new DefaultTableModel(columns, 0);
+        String[] columns = {"ID", "Name", "Price", "Qty", "Subtotal"};
+        cartTableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
 
-        totalLabel = new JLabel("Total: ₱0.00");
-        
+        totalLabel = new JLabel("Total Amount: ₱0.00");
+
         JPanel cartPanel = createCartPanel();
         posPanel.add(cartPanel, BorderLayout.EAST);
 
-        JPanel productGridPanel = createProductGridPanel();
-        productPanel.add(productGridPanel, BorderLayout.CENTER);
+        JScrollPane productScrollPane = new JScrollPane(createProductGridPanel());
+        productScrollPane.setBorder(BorderFactory.createTitledBorder("Available Medicines"));
+        productScrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        productPanel.add(productScrollPane, BorderLayout.CENTER);
 
-        mainPanel.add (posPanel, "pos");
+        mainPanel.add(posPanel, "pos");
 
         JPanel checkoutPanel = createCheckoutPanel();
         mainPanel.add(checkoutPanel, "checkout");
 
         add(mainPanel);
+    }
 
-    };
+    private JPanel createProductGridPanel() {
+        JPanel productGridPanel = new JPanel(new GridLayout(0, 3, 10, 10));
+        productGridPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
 
-private JPanel createProductGridPanel() {
-    JPanel productGridPanel = new JPanel(new GridLayout(0, 3, 10, 10));
-    productGridPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        List<Medicine> medicines = MedicineDAO.getAllMedicines();
 
-    Product [] products = {
-        new Product("P001", "Paracetamol", 50.0),
-        new Product("P002", "Ibuprofen", 75.0),
-        new Product("P003", "Amoxicillin", 120.0),
-        new Product("P004", "Cough Syrup", 90.0),
-        new Product("P005", "Vitamin C", 30.0),
-        new Product("P006", "Antacid", 40.0)
-    };
+        if (medicines.isEmpty()) {
+            productGridPanel.add(new JLabel("No medicines found in database."));
+        } else {
+            for (Medicine medicine : medicines) {
+                JButton productButton = new JButton(medicine.getName() + " - ₱" + String.format("%.2f", medicine.getPrice()) + " (Stock: " + medicine.getStock() + ")");
+                productButton.setHorizontalAlignment(SwingConstants.CENTER);
+                productButton.setVerticalAlignment(SwingConstants.CENTER);
 
-    for (Product product : products) {
-        JButton productButton = new JButton("<html>" + product.name + "<br/>₱" + product.price + "</html>");
-            productButton.addActionListener(e -> addToCart(product));
-            productGridPanel.add(productButton);
+                if (medicine.getStock() <= 0) {
+                    productButton.setEnabled(false);
+                }
+
+                productButton.addActionListener(e -> addToCart(medicine));
+                productGridPanel.add(productButton);
+            }
         }
         return productGridPanel;
-}
+    }
 
-private JPanel createCartPanel() {
+    private JPanel createCartPanel() {
+        JPanel panel = new JPanel(new BorderLayout(10, 10));
+        panel.setPreferredSize(new Dimension(380, 0));
+        panel.setBorder(BorderFactory.createTitledBorder("Current Order"));
 
-    JPanel panel = new JPanel(new BorderLayout(10, 10));
-    panel.setPreferredSize(new Dimension(380, 0));
-    panel.setBorder(BorderFactory.createTitledBorder("Current Order"));
+        JTable cartTable = new JTable(cartTableModel);
+        cartTable.setFillsViewportHeight(true);
 
-    JTable cartTable = new JTable(cartTableModel);
-    cartTable.setFillsViewportHeight(true);
-    cartTable.getColumnModel().getColumn(0).setPreferredWidth(140);
+        JPanel actionPanel = new JPanel(new GridLayout(1, 2, 5, 5));
+        JButton removeBtn = new JButton("Remove Item");
+        JButton clearBtn = new JButton("Clear Cart");
 
-    JPanel actionPanel = new JPanel(new GridLayout(1, 2, 5, 5));
-    JButton removeBtn = new JButton("Remove Selected");
-    JButton clearBtn = new JButton("Clear Cart");
+        removeBtn.addActionListener(e -> {
+            int selectedRow = cartTable.getSelectedRow();
+            if (selectedRow != -1) {
+                cart.remove(selectedRow);
+                updateCartUI();
+            }
+        });
 
-    removeBtn.addActionListener(e -> {
-        int selectedRow = cartTable.getSelectedRow();
-        if (selectedRow != -1){
-            cart.remove(selectedRow);
+        clearBtn.addActionListener(e -> {
+            cart.clear();
             updateCartUI();
-        }
-    });
+        });
 
-    clearBtn.addActionListener(e -> {
-        cart.clear();
-        updateCartUI();
-    });
+        actionPanel.add(removeBtn);
+        actionPanel.add(clearBtn);
 
-    actionPanel.add(removeBtn);
-    actionPanel.add(clearBtn);
+        JButton checkoutBtn = new JButton("Checkout");
+        checkoutBtn.setPreferredSize(new Dimension(0, 40));
+        checkoutBtn.addActionListener(this::processCheckout);
 
-    JPanel bottomContainer = new JPanel(new BorderLayout(5, 5));   
-    bottomContainer.add(actionPanel, BorderLayout.CENTER);
-    bottomContainer.add(totalLabel, BorderLayout.SOUTH);
+        JPanel bottomContainer = new JPanel(new BorderLayout(5, 5));
+        bottomContainer.add(actionPanel, BorderLayout.NORTH);
+        bottomContainer.add(totalLabel, BorderLayout.CENTER);
+        bottomContainer.add(checkoutBtn, BorderLayout.SOUTH);
 
-    JButton checkoutBtn = new JButton("Checkout");
-    checkoutBtn.setPreferredSize(new Dimension(0, 45));
-    checkoutBtn.addActionListener(this::processCheckout);
+        panel.add(new JScrollPane(cartTable), BorderLayout.CENTER);
+        panel.add(bottomContainer, BorderLayout.SOUTH);
 
-    panel.add(new JScrollPane(cartTable), BorderLayout.CENTER);
-    panel.add(bottomContainer, BorderLayout.SOUTH);
-
-    return panel;
-}
+        return panel;
+    }
 
     private JPanel createCheckoutPanel() {
-        JPanel panel = new JPanel(new BorderLayout(10, 10));
-        JLabel statusLabel = new JLabel("Processing checkout...");
+        JPanel panel = new JPanel(new GridBagLayout());
+        JLabel statusLabel = new JLabel("Processing transaction...");
         panel.add(statusLabel);
         return panel;
     }
 
-    private void addToCart(Product product) {
+    private void addToCart(Medicine medicine) {
         for (CartItem item : cart) {
-            if (item.product.id.equals(product.id)) {
-                item.quantity++;
-                updateCartUI();
+            if (item.medicine.getId() == medicine.getId()) {
+                if (item.quantity < medicine.getStock()) {
+                    item.quantity++;
+                    updateCartUI();
+                } else {
+                    JOptionPane.showMessageDialog(this, "Cannot add more. Reached available stock limit!");
+                }
                 return;
             }
         }
-        cart.add(new CartItem(product, 1));
+        cart.add(new CartItem(medicine, 1));
         updateCartUI();
     }
 
@@ -166,7 +169,13 @@ private JPanel createCartPanel() {
         cartTableModel.setRowCount(0);
         double total = 0.0;
         for (CartItem item : cart) {
-            cartTableModel.addRow(new Object[]{item.product.id, item.product.name, item.product.price, item.quantity});
+            cartTableModel.addRow(new Object[]{
+                item.medicine.getId(),
+                item.medicine.getName(),
+                String.format("₱%.2f", item.medicine.getPrice()),
+                item.quantity,
+                String.format("₱%.2f", item.getTotal())
+            });
             total += item.getTotal();
         }
         totalLabel.setText("Total: ₱" + String.format("%.2f", total));
@@ -180,18 +189,15 @@ private JPanel createCartPanel() {
 
         cardLayout.show(mainPanel, "checkout");
 
-        SwingUtilities.invokeLater(() -> {
-            try {
-                Thread.sleep(2000); 
-            } catch (InterruptedException ex) {
-                ex.printStackTrace();
-            }
+        Timer timer = new Timer(1500, evt -> {
             cart.clear();
             updateCartUI();
             cardLayout.show(mainPanel, "pos");
             JOptionPane.showMessageDialog(this, "Checkout successful!");
         });
-    } 
+        timer.setRepeats(false);
+        timer.start();
+    }
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> new POSFrame().setVisible(true));
