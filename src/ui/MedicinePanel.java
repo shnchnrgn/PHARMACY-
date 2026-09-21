@@ -2,255 +2,360 @@ package ui;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.TableModelEvent;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableCellEditor;
 import java.awt.*;
+import java.awt.datatransfer.StringSelection;
+import java.awt.Toolkit;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.PrintWriter;
 
 public class MedicinePanel extends JPanel {
 
     private JTable table;
-    private DefaultTableModel tableModel;
-    private JTextField txtSearch, txtId, txtName, txtCategory, txtPrice, txtStock, txtExpiry;
+    private JTextField txtSearch;
 
     public MedicinePanel() {
         setLayout(new BorderLayout(0, 15));
         setBackground(new Color(245, 247, 250));
         setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        JLabel lblTitle = new JLabel("Medicine Inventory Management");
+        JLabel lblTitle = new JLabel("Medicine List");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
         lblTitle.setForeground(new Color(40, 40, 40));
         add(lblTitle, BorderLayout.NORTH);
 
-        JPanel mainContent = new JPanel(new BorderLayout(15, 0));
-        mainContent.setOpaque(false);
-
-        JPanel leftContainer = new JPanel(new BorderLayout(0, 10));
-        leftContainer.setBackground(Color.WHITE);
-        leftContainer.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(220, 224, 230)),
-            new EmptyBorder(15, 15, 15, 15)
-        ));
-        leftContainer.setPreferredSize(new Dimension(340, 0));
-
-        JPanel leftForm = new JPanel(new GridLayout(6, 2, 5, 12));
-        leftForm.setOpaque(false);
-
-        txtId = new JTextField();
-        txtName = new JTextField();
-        txtCategory = new JTextField();
-        txtPrice = new JTextField();
-        txtStock = new JTextField();
-        txtExpiry = new JTextField();
-
-        leftForm.add(new JLabel("Medicine ID:"));
-        leftForm.add(txtId);
-        leftForm.add(new JLabel("Brand Name:"));
-        leftForm.add(txtName);
-        leftForm.add(new JLabel("Category:"));
-        leftForm.add(txtCategory);
-        leftForm.add(new JLabel("Price:"));
-        leftForm.add(txtPrice);
-        leftForm.add(new JLabel("Stock:"));
-        leftForm.add(txtStock);
-        leftForm.add(new JLabel("Expiry Date:"));
-        leftForm.add(txtExpiry);
-
-        leftContainer.add(leftForm, BorderLayout.CENTER);
-
-        JPanel btnFormPanel = new JPanel(new GridLayout(1, 3, 8, 0));
-        btnFormPanel.setOpaque(false);
-        JButton btnAdd = new JButton("Add");
-        JButton btnEdit = new JButton("Edit");
-        JButton btnDelete = new JButton("Delete");
-
-        btnAdd.setBackground(new Color(39, 174, 96));
-        btnAdd.setForeground(Color.WHITE);
-        btnAdd.setFocusPainted(false);
-        btnAdd.setFont(new Font("Segoe UI", Font.BOLD, 12));
-
-        btnEdit.setBackground(new Color(41, 128, 185));
-        btnEdit.setForeground(Color.WHITE);
-        btnEdit.setFocusPainted(false);
-        btnEdit.setFont(new Font("Segoe UI", Font.BOLD, 12));
-
-        btnDelete.setBackground(new Color(231, 76, 60));
-        btnDelete.setForeground(Color.WHITE);
-        btnDelete.setFocusPainted(false);
-        btnDelete.setFont(new Font("Segoe UI", Font.BOLD, 12));
-
-        btnFormPanel.add(btnAdd);
-        btnFormPanel.add(btnEdit);
-        btnFormPanel.add(btnDelete);
-
-        leftContainer.add(btnFormPanel, BorderLayout.SOUTH);
-
-        mainContent.add(leftContainer, BorderLayout.WEST);
-
-        JPanel rightTablePanel = new JPanel(new BorderLayout(0, 10));
-        rightTablePanel.setBackground(Color.WHITE);
-        rightTablePanel.setBorder(BorderFactory.createCompoundBorder(
+        JPanel contentPanel = new JPanel(new BorderLayout(0, 10));
+        contentPanel.setBackground(Color.WHITE);
+        contentPanel.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(220, 224, 230)),
             new EmptyBorder(15, 15, 15, 15)
         ));
 
-        JPanel searchBarPanel = new JPanel(new BorderLayout(10, 0));
-        searchBarPanel.setOpaque(false);
-        txtSearch = new JTextField();
-        JButton btnSearch = new JButton("Search");
-        searchBarPanel.add(new JLabel("Search Medicine:"), BorderLayout.WEST);
-        searchBarPanel.add(txtSearch, BorderLayout.CENTER);
-        searchBarPanel.add(btnSearch, BorderLayout.EAST);
-        rightTablePanel.add(searchBarPanel, BorderLayout.NORTH);
+        JPanel topBar = new JPanel(new BorderLayout());
+        topBar.setOpaque(false);
 
-        String[] columns = {"ID", "Brand Name", "Category", "Price", "Stock", "Expiry", "Status"};
-        Object[][] data = {
-            {"M001", "Biogesic", "Tablet", "5.00", "150", "2028-12-01", "Normal"},
-            {"M002", "Neozep", "Tablet", "7.50", "5", "2027-06-15", "Low Stock"},
-            {"M003", "Alaxan FR", "Capsule", "10.00", "45", "2027-09-20", "Normal"}
-        };
+        JPanel showPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        showPanel.setOpaque(false);
+        showPanel.add(new JLabel("Show"));
+        showPanel.add(new JComboBox<>(new String[]{"10", "25", "50", "100"}));
+        showPanel.add(new JLabel("entries"));
+        topBar.add(showPanel, BorderLayout.WEST);
 
-        tableModel = new DefaultTableModel(data, columns);
-        table = new JTable(tableModel);
+        JPanel rightTopPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        rightTopPanel.setOpaque(false);
         
-        table.setDefaultRenderer(Object.class, new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                String stockStr = (String) table.getValueAt(row, 4);
-                try {
-                    int stock = Integer.parseInt(stockStr);
-                    if (stock < 10) {
-                        table.setValueAt("Low Stock", row, 6);
-                        if (!isSelected) {
-                            c.setBackground(new Color(253, 237, 236));
-                            setForeground(new Color(192, 57, 43));
-                        }
-                    } else {
-                        table.setValueAt("Normal", row, 6);
-                        if (!isSelected) {
-                            c.setBackground(Color.WHITE);
-                            setForeground(Color.BLACK);
-                        }
+        JButton btnCopy = new JButton("Copy");
+        JButton btnCsv = new JButton("CSV");
+        JButton btnExcel = new JButton("Excel");
+        JButton btnPdf = new JButton("PDF");
+        JButton btnPrint = new JButton("Print");
+        
+        for (JButton b : new JButton[]{btnCopy, btnCsv, btnExcel, btnPdf, btnPrint}) {
+            b.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+            b.setFocusPainted(false);
+            b.setBackground(new Color(248, 249, 250));
+            b.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
+            b.setPreferredSize(new Dimension(55, 25));
+            b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        }
+
+        btnCopy.addActionListener(e -> {
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < table.getRowCount(); i++) {
+                for (int j = 0; j < table.getColumnCount() - 1; j++) {
+                    sb.append(table.getValueAt(i, j)).append("\t");
+                }
+                sb.append("\n");
+            }
+            StringSelection selection = new StringSelection(sb.toString());
+            Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, selection);
+            JOptionPane.showMessageDialog(this, "Table data copied to clipboard successfully!", "Copy Success", JOptionPane.INFORMATION_MESSAGE);
+        });
+
+        btnCsv.addActionListener(e -> {
+            try {
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setSelectedFile(new File("medicine_list.csv"));
+                if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                    File file = fileChooser.getSelectedFile();
+                    PrintWriter pw = new PrintWriter(new FileWriter(file));
+                    for (int i = 0; i < table.getColumnCount() - 1; i++) {
+                        pw.print(table.getColumnName(i).replace(" ↕", "") + (i == table.getColumnCount() - 2 ? "" : ","));
                     }
-                } catch (Exception e) {
+                    pw.println();
+                    for (int i = 0; i < table.getRowCount(); i++) {
+                        for (int j = 0; j < table.getColumnCount() - 1; j++) {
+                            pw.print(table.getValueAt(i, j) + (j == table.getColumnCount() - 2 ? "" : ","));
+                        }
+                        pw.println();
+                    }
+                    pw.close();
+                    JOptionPane.showMessageDialog(this, "CSV file exported successfully to: " + file.getAbsolutePath(), "CSV Export", JOptionPane.INFORMATION_MESSAGE);
                 }
-                if (isSelected) {
-                    c.setBackground(table.getSelectionBackground());
-                    c.setForeground(table.getSelectionForeground());
-                }
-                return c;
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error exporting to CSV: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
+
+        btnExcel.addActionListener(e -> {
+            try {
+                JFileChooser fileChooser = new JFileChooser();
+                fileChooser.setSelectedFile(new File("medicine_list.xls"));
+                if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
+                    File file = fileChooser.getSelectedFile();
+                    PrintWriter pw = new PrintWriter(new FileWriter(file));
+                    pw.println("<html xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\" xmlns=\"http://www.w3.org/TR/REC-html40\">");
+                    pw.println("<head><meta charset='UTF-8'></head><body>");
+                    pw.println("<table border='1'><tr>");
+                    for (int i = 0; i < table.getColumnCount() - 1; i++) {
+                        pw.println("<th>" + table.getColumnName(i).replace(" ↕", "") + "</th>");
+                    }
+                    pw.println("</tr>");
+                    for (int i = 0; i < table.getRowCount(); i++) {
+                        pw.println("<tr>");
+                        for (int j = 0; j < table.getColumnCount() - 1; j++) {
+                            pw.println("<td>" + table.getValueAt(i, j) + "</td>");
+                        }
+                        pw.println("</tr>");
+                    }
+                    pw.println("</table></body></html>");
+                    pw.close();
+                    JOptionPane.showMessageDialog(this, "Excel file exported successfully! You can open it in Microsoft Excel.", "Excel Export", JOptionPane.INFORMATION_MESSAGE);
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error exporting to Excel: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        btnPdf.addActionListener(e -> {
+            try {
+                boolean complete = table.print(JTable.PrintMode.FIT_WIDTH, null, null);
+                if (complete) {
+                    JOptionPane.showMessageDialog(this, "PDF/Document generated and sent to printer/PDF writer successfully!", "PDF Export", JOptionPane.INFORMATION_MESSAGE);
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Error generating PDF: " + ex.getMessage(), "PDF Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        btnPrint.addActionListener(e -> {
+            try {
+                boolean complete = table.print();
+                if (complete) {
+                    JOptionPane.showMessageDialog(this, "Printing completed successfully.", "Print Success", JOptionPane.INFORMATION_MESSAGE);
+                }
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Printing failed: " + ex.getMessage(), "Print Error", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        txtSearch = new JTextField(15);
+        rightTopPanel.add(btnCopy);
+        rightTopPanel.add(btnCsv);
+        rightTopPanel.add(btnExcel);
+        rightTopPanel.add(btnPdf);
+        rightTopPanel.add(btnPrint);
+        rightTopPanel.add(Box.createHorizontalStrut(10));
+        rightTopPanel.add(new JLabel("Search:"));
+        rightTopPanel.add(txtSearch);
+
+        topBar.add(rightTopPanel, BorderLayout.EAST);
+        contentPanel.add(topBar, BorderLayout.NORTH);
+
+        JPanel centerContainer = new JPanel(new BorderLayout(0, 10));
+        centerContainer.setOpaque(false);
+
+        String[] columns = {
+            "Medicine Name ↕", 
+            "Medicine Category ↕", 
+            "Buy Price ↕", 
+            "Sell Price ↕", 
+            "Quantity ↕", 
+            "Rack No ↕", 
+            "Company Name ↕", 
+            "Expire Date ↕", 
+            "Action ↕"
+        };
+        
+        SharedData.medicineTableModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column != 8;
+            }
+        };
+        
+        String[][] defaultData = {
+            {"Biogesic 500mg", "Tablet", "₱4.50", "₱6.00", "150", "1", "Unilab", "2028-10-15", ""},
+            {"Neozep Forte", "Tablet", "₱6.00", "₱7.50", "80", "2", "Unilab", "2027-06-20", ""},
+            {"Alaxan FR", "Capsule", "₱8.00", "₱10.00", "45", "3", "Unilab", "2027-09-10", ""},
+            {"Solmux 500mg", "Capsule", "₱9.00", "₱12.00", "60", "4", "Pascual Laboratories", "2028-01-12", ""},
+            {"Kremil-S", "Tablet", "₱7.00", "₱9.00", "90", "5", "Unilab", "2027-11-30", ""},
+            {"Decolgen Forte", "Tablet", "₱5.50", "₱7.00", "110", "6", "Pascual Laboratories", "2027-05-18", ""}
+        };
+        
+        if (SharedData.medicineList.isEmpty()) {
+            for (String[] row : defaultData) {
+                SharedData.medicineList.add(row);
+                SharedData.medicineTableModel.addRow(row);
+            }
+        } else {
+            for (String[] row : SharedData.medicineList) {
+                SharedData.medicineTableModel.addRow(row);
+            }
+        }
+
+        SharedData.medicineTableModel.addTableModelListener(e -> {
+            if (e.getType() == TableModelEvent.UPDATE) {
+                int row = e.getFirstRow();
+                int col = e.getColumn();
+                if (row >= 0 && row < SharedData.medicineList.size() && col != 8) {
+                    String updatedVal = (String) SharedData.medicineTableModel.getValueAt(row, col);
+                    String[] rowData = SharedData.medicineList.get(row);
+                    rowData[col] = updatedVal;
+                }
+            }
+        });
+
+        table = new JTable(SharedData.medicineTableModel);
+        table.getColumnModel().getColumn(8).setCellRenderer(new ActionButtonRenderer());
+        table.getColumnModel().getColumn(8).setCellEditor(new ActionButtonEditor(new JCheckBox(), table));
+        table.setRowHeight(38);
+        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
 
         JScrollPane scrollPane = new JScrollPane(table);
-        rightTablePanel.add(scrollPane, BorderLayout.CENTER);
+        centerContainer.add(scrollPane, BorderLayout.CENTER);
 
-        mainContent.add(rightTablePanel, BorderLayout.CENTER);
-        add(mainContent, BorderLayout.CENTER);
+        JPanel bottomBar = new JPanel(new BorderLayout());
+        bottomBar.setOpaque(false);
 
-        btnAdd.addActionListener(e -> {
-            String id = txtId.getText().trim();
-            String name = txtName.getText().trim();
-            String category = txtCategory.getText().trim();
-            String price = txtPrice.getText().trim();
-            String stockInput = txtStock.getText().trim();
-            String expiry = txtExpiry.getText().trim();
+        JLabel lblShowing = new JLabel("Showing 1 to " + table.getRowCount() + " of " + table.getRowCount() + " entries");
+        lblShowing.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        bottomBar.add(lblShowing, BorderLayout.WEST);
 
-            if (!id.isEmpty() && !name.isEmpty()) {
-                boolean found = false;
-                for (int i = 0; i < tableModel.getRowCount(); i++) {
-                    String existingId = (String) tableModel.getValueAt(i, 0);
-                    if (existingId.equalsIgnoreCase(id)) {
-                        try {
-                            int currentStock = Integer.parseInt((String) tableModel.getValueAt(i, 4));
-                            int addedStock = Integer.parseInt(stockInput);
-                            int totalStock = currentStock + addedStock;
-                            
-                            tableModel.setValueAt(String.valueOf(totalStock), i, 4);
-                            if (!price.isEmpty()) tableModel.setValueAt(price, i, 3);
-                            if (!expiry.isEmpty()) tableModel.setValueAt(expiry, i, 5);
-                            
-                            found = true;
-                            break;
-                        } catch (Exception ex) {
-                        }
-                    }
-                }
+        JPanel paginationPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
+        paginationPanel.setOpaque(false);
+        
+        JButton btnPrev = new JButton("Previous");
+        JButton btn1 = new JButton("1");
+        JButton btn2 = new JButton("2");
+        JButton btn3 = new JButton("3");
+        JButton btnNext = new JButton("Next");
+        
+        for (JButton b : new JButton[]{btnPrev, btn1, btn2, btn3, btnNext}) {
+            b.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+            b.setFocusPainted(false);
+            b.setBackground(Color.WHITE);
+            b.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
+            b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        }
+        btn1.setBackground(new Color(240, 240, 240));
 
-                if (!found) {
-                    String status = "Normal";
-                    try {
-                        if (Integer.parseInt(stockInput) < 10) {
-                            status = "Low Stock";
-                        }
-                    } catch (Exception ex) {
-                    }
-                    tableModel.addRow(new Object[]{id, name, category, price, stockInput, expiry, status});
-                }
+        paginationPanel.add(btnPrev);
+        paginationPanel.add(btn1);
+        paginationPanel.add(btn2);
+        paginationPanel.add(btn3);
+        paginationPanel.add(btnNext);
 
-                clearForm();
-                table.repaint();
-            } else {
-                JOptionPane.showMessageDialog(this, "Please fill in Medicine ID and Brand Name.");
-            }
-        });
+        bottomBar.add(paginationPanel, BorderLayout.EAST);
+        centerContainer.add(bottomBar, BorderLayout.SOUTH);
 
-        btnEdit.addActionListener(e -> {
-            int selectedRow = table.getSelectedRow();
-            if (selectedRow != -1) {
-                tableModel.setValueAt(txtId.getText(), selectedRow, 0);
-                tableModel.setValueAt(txtName.getText(), selectedRow, 1);
-                tableModel.setValueAt(txtCategory.getText(), selectedRow, 2);
-                tableModel.setValueAt(txtPrice.getText(), selectedRow, 3);
-                tableModel.setValueAt(txtStock.getText(), selectedRow, 4);
-                tableModel.setValueAt(txtExpiry.getText(), selectedRow, 5);
-                clearForm();
-            } else {
-                JOptionPane.showMessageDialog(this, "Please select a row to edit.");
-            }
-        });
-
-        btnDelete.addActionListener(e -> {
-            int selectedRow = table.getSelectedRow();
-            if (selectedRow != -1) {
-                tableModel.removeRow(selectedRow);
-                clearForm();
-            } else {
-                JOptionPane.showMessageDialog(this, "Please select a row to delete.");
-            }
-        });
-
-        btnSearch.addActionListener(e -> {
-            String keyword = txtSearch.getText().toLowerCase();
-            for (int i = 0; i < tableModel.getRowCount(); i++) {
-                String name = ((String) tableModel.getValueAt(i, 1)).toLowerCase();
-                if (name.contains(keyword)) {
-                    table.setRowSelectionInterval(i, i);
-                    break;
-                }
-            }
-        });
-
-        table.getSelectionModel().addListSelectionListener(e -> {
-            int selectedRow = table.getSelectedRow();
-            if (selectedRow != -1) {
-                txtId.setText((String) tableModel.getValueAt(selectedRow, 0));
-                txtName.setText((String) tableModel.getValueAt(selectedRow, 1));
-                txtCategory.setText((String) tableModel.getValueAt(selectedRow, 2));
-                txtPrice.setText((String) tableModel.getValueAt(selectedRow, 3));
-                txtStock.setText((String) tableModel.getValueAt(selectedRow, 4));
-                txtExpiry.setText((String) tableModel.getValueAt(selectedRow, 5));
-            }
-        });
+        contentPanel.add(centerContainer, BorderLayout.CENTER);
+        add(contentPanel, BorderLayout.CENTER);
     }
 
-    private void clearForm() {
-        txtId.setText("");
-        txtName.setText("");
-        txtCategory.setText("");
-        txtPrice.setText("");
-        txtStock.setText("");
-        txtExpiry.setText("");
+    class ActionButtonRenderer extends JPanel implements TableCellRenderer {
+        private JButton btnEdit, btnDelete;
+
+        public ActionButtonRenderer() {
+            setLayout(new FlowLayout(FlowLayout.CENTER, 4, 4));
+            setOpaque(true);
+            
+            btnEdit = new JButton("✏");
+            btnEdit.setBackground(new Color(51, 122, 183));
+            btnEdit.setForeground(Color.WHITE);
+            btnEdit.setFocusPainted(false);
+            btnEdit.setBorderPainted(false);
+            btnEdit.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            btnEdit.setPreferredSize(new Dimension(32, 26));
+
+            btnDelete = new JButton("🗑");
+            btnDelete.setBackground(new Color(217, 83, 79));
+            btnDelete.setForeground(Color.WHITE);
+            btnDelete.setFocusPainted(false);
+            btnDelete.setBorderPainted(false);
+            btnDelete.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            btnDelete.setPreferredSize(new Dimension(32, 26));
+
+            add(btnEdit);
+            add(btnDelete);
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
+            return this;
+        }
+    }
+
+    class ActionButtonEditor extends AbstractCellEditor implements TableCellEditor {
+        private JPanel panel;
+        private JButton btnEdit, btnDelete;
+        private JTable table;
+        private int currentRow;
+
+        public ActionButtonEditor(JCheckBox checkBox, JTable table) {
+            this.table = table;
+            panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 4));
+            panel.setOpaque(true);
+
+            btnEdit = new JButton("✏");
+            btnEdit.setBackground(new Color(51, 122, 183));
+            btnEdit.setForeground(Color.WHITE);
+            btnEdit.setFocusPainted(false);
+            btnEdit.setBorderPainted(false);
+            btnEdit.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            btnEdit.setPreferredSize(new Dimension(32, 26));
+
+            btnDelete = new JButton("🗑");
+            btnDelete.setBackground(new Color(217, 83, 79));
+            btnDelete.setForeground(Color.WHITE);
+            btnDelete.setFocusPainted(false);
+            btnDelete.setBorderPainted(false);
+            btnDelete.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            btnDelete.setPreferredSize(new Dimension(32, 26));
+
+            btnEdit.addActionListener(e -> {
+                fireEditingStopped();
+                JOptionPane.showMessageDialog(table, "Double-click any cell in row " + (currentRow + 1) + " to edit information directly.");
+            });
+
+            btnDelete.addActionListener(e -> {
+                fireEditingStopped();
+                int confirm = JOptionPane.showConfirmDialog(table, "Are you sure you want to delete this medicine?", "Confirm", JOptionPane.YES_NO_OPTION);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    ((DefaultTableModel) table.getModel()).removeRow(currentRow);
+                    SharedData.medicineList.remove(currentRow);
+                }
+            });
+
+            panel.add(btnEdit);
+            panel.add(btnDelete);
+        }
+
+        @Override
+        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
+            currentRow = row;
+            panel.setBackground(table.getSelectionBackground());
+            return panel;
+        }
+
+        @Override
+        public Object getCellEditorValue() {
+            return "";
+        }
     }
 }
