@@ -5,10 +5,11 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.event.TableModelEvent;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
-import javax.swing.table.TableCellEditor;
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
 import java.awt.Toolkit;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
@@ -24,8 +25,8 @@ public class MedicinePanel extends JPanel {
         setBorder(new EmptyBorder(20, 20, 20, 20));
 
         JLabel lblTitle = new JLabel("Medicine List");
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        lblTitle.setForeground(new Color(40, 40, 40));
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        lblTitle.setForeground(new Color(50, 50, 50));
         add(lblTitle, BorderLayout.NORTH);
 
         JPanel contentPanel = new JPanel(new BorderLayout(0, 10));
@@ -40,9 +41,16 @@ public class MedicinePanel extends JPanel {
 
         JPanel showPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         showPanel.setOpaque(false);
-        showPanel.add(new JLabel("Show"));
-        showPanel.add(new JComboBox<>(new String[]{"10", "25", "50", "100"}));
-        showPanel.add(new JLabel("entries"));
+        JLabel lblShow = new JLabel("Show");
+        lblShow.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        JComboBox<String> cmbEntries = new JComboBox<>(new String[]{"10", "25", "50", "100"});
+        cmbEntries.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        JLabel lblEntries = new JLabel("entries");
+        lblEntries.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        
+        showPanel.add(lblShow);
+        showPanel.add(cmbEntries);
+        showPanel.add(lblEntries);
         topBar.add(showPanel, BorderLayout.WEST);
 
         JPanel rightTopPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
@@ -59,7 +67,7 @@ public class MedicinePanel extends JPanel {
             b.setFocusPainted(false);
             b.setBackground(new Color(248, 249, 250));
             b.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
-            b.setPreferredSize(new Dimension(55, 25));
+            b.setPreferredSize(new Dimension(50, 25));
             b.setCursor(new Cursor(Cursor.HAND_CURSOR));
         }
 
@@ -94,7 +102,7 @@ public class MedicinePanel extends JPanel {
                         pw.println();
                     }
                     pw.close();
-                    JOptionPane.showMessageDialog(this, "CSV file exported successfully to: " + file.getAbsolutePath(), "CSV Export", JOptionPane.INFORMATION_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "CSV file exported successfully!", "CSV Export", JOptionPane.INFORMATION_MESSAGE);
                 }
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Error exporting to CSV: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -124,7 +132,7 @@ public class MedicinePanel extends JPanel {
                     }
                     pw.println("</table></body></html>");
                     pw.close();
-                    JOptionPane.showMessageDialog(this, "Excel file exported successfully! You can open it in Microsoft Excel.", "Excel Export", JOptionPane.INFORMATION_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Excel file exported successfully!", "Excel Export", JOptionPane.INFORMATION_MESSAGE);
                 }
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Error exporting to Excel: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -135,7 +143,7 @@ public class MedicinePanel extends JPanel {
             try {
                 boolean complete = table.print(JTable.PrintMode.FIT_WIDTH, null, null);
                 if (complete) {
-                    JOptionPane.showMessageDialog(this, "PDF/Document generated and sent to printer/PDF writer successfully!", "PDF Export", JOptionPane.INFORMATION_MESSAGE);
+                    JOptionPane.showMessageDialog(this, "Document sent to printer/PDF successfully!", "PDF Export", JOptionPane.INFORMATION_MESSAGE);
                 }
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Error generating PDF: " + ex.getMessage(), "PDF Error", JOptionPane.ERROR_MESSAGE);
@@ -154,13 +162,17 @@ public class MedicinePanel extends JPanel {
         });
 
         txtSearch = new JTextField(15);
+        txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        JLabel lblSearch = new JLabel("Search:");
+        lblSearch.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+
         rightTopPanel.add(btnCopy);
         rightTopPanel.add(btnCsv);
         rightTopPanel.add(btnExcel);
         rightTopPanel.add(btnPdf);
         rightTopPanel.add(btnPrint);
         rightTopPanel.add(Box.createHorizontalStrut(10));
-        rightTopPanel.add(new JLabel("Search:"));
+        rightTopPanel.add(lblSearch);
         rightTopPanel.add(txtSearch);
 
         topBar.add(rightTopPanel, BorderLayout.EAST);
@@ -189,12 +201,13 @@ public class MedicinePanel extends JPanel {
         };
         
         String[][] defaultData = {
-            {"Biogesic 500mg", "Tablet", "₱4.50", "₱6.00", "150", "1", "Unilab", "2028-10-15", ""},
-            {"Neozep Forte", "Tablet", "₱6.00", "₱7.50", "80", "2", "Unilab", "2027-06-20", ""},
-            {"Alaxan FR", "Capsule", "₱8.00", "₱10.00", "45", "3", "Unilab", "2027-09-10", ""},
-            {"Solmux 500mg", "Capsule", "₱9.00", "₱12.00", "60", "4", "Pascual Laboratories", "2028-01-12", ""},
-            {"Kremil-S", "Tablet", "₱7.00", "₱9.00", "90", "5", "Unilab", "2027-11-30", ""},
-            {"Decolgen Forte", "Tablet", "₱5.50", "₱7.00", "110", "6", "Pascual Laboratories", "2027-05-18", ""}
+            {"Ace Plus® 500mg", "Tablet", "₱2.00", "₱2.50", "24", "23", "Square Pharmaceuticals Ltd.", "05-Jan-2018", ""},
+            {"Adovas® 100ml", "Syrup", "₱40.00", "₱55.00", "16", "7", "Square Pharmaceuticals Ltd.", "05-Dec-2017", ""},
+            {"Alacot® 5ml", "Drop", "₱65.00", "₱80.00", "14", "6", "Green Pharmaceuticals Ltd.", "30-Aug-2017", ""},
+            {"Alatrol® 10mg", "Tablet", "₱3.00", "₱4.00", "135", "3", "Square Pharmaceuticals Ltd.", "10-Oct-2017", ""},
+            {"Angilock® 50mg", "Tablet", "₱5.00", "₱7.00", "50", "5", "Square Pharmaceuticals Ltd.", "01-Feb-2017", ""},
+            {"Anoxa 10® 10mg", "Tablet", "₱4.00", "₱6.00", "24", "12", "Square Pharmaceuticals Ltd.", "26-Sep-2017", ""},
+            {"Azicin 500mg", "Capsule", "₱8.00", "₱10.00", "97", "45", "Opsonin Pharma Limited", "06-Oct-2017", ""}
         };
         
         if (SharedData.medicineList.isEmpty()) {
@@ -222,9 +235,39 @@ public class MedicinePanel extends JPanel {
 
         table = new JTable(SharedData.medicineTableModel);
         table.getColumnModel().getColumn(8).setCellRenderer(new ActionButtonRenderer());
-        table.getColumnModel().getColumn(8).setCellEditor(new ActionButtonEditor(new JCheckBox(), table));
-        table.setRowHeight(38);
+        
+        // Direktang MouseListener para sa mabilis at sigaradong pag-click ng Action buttons
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mousePressed(MouseEvent e) {
+                int row = table.rowAtPoint(e.getPoint());
+                int col = table.columnAtPoint(e.getPoint());
+                
+                if (col == 8 && row >= 0) {
+                    Rectangle cellRect = table.getCellRect(row, col, false);
+                    int clickX = e.getX() - cellRect.x;
+                    
+                    // Hatiin sa gitna ang cell para malaman kung Edit o Delete ang pinindot
+                    if (clickX < cellRect.width / 2) {
+                        JOptionPane.showMessageDialog(table, "Edit medicine at row: " + (row + 1));
+                    } else {
+                        int confirm = JOptionPane.showConfirmDialog(table, "Are you sure you want to delete this medicine?", "Confirm Delete", JOptionPane.YES_NO_OPTION);
+                        if (confirm == JOptionPane.YES_OPTION) {
+                            ((DefaultTableModel) table.getModel()).removeRow(row);
+                            if (row < SharedData.medicineList.size()) {
+                                SharedData.medicineList.remove(row);
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        table.setRowHeight(36);
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        table.getTableHeader().setBackground(new Color(248, 249, 250));
+        table.getTableHeader().setForeground(new Color(50, 50, 50));
 
         JScrollPane scrollPane = new JScrollPane(table);
         centerContainer.add(scrollPane, BorderLayout.CENTER);
@@ -232,8 +275,9 @@ public class MedicinePanel extends JPanel {
         JPanel bottomBar = new JPanel(new BorderLayout());
         bottomBar.setOpaque(false);
 
-        JLabel lblShowing = new JLabel("Showing 1 to " + table.getRowCount() + " of " + table.getRowCount() + " entries");
+        JLabel lblShowing = new JLabel("Showing 1 to " + table.getRowCount() + " of 24 entries");
         lblShowing.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblShowing.setForeground(new Color(100, 100, 100));
         bottomBar.add(lblShowing, BorderLayout.WEST);
 
         JPanel paginationPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
@@ -280,7 +324,7 @@ public class MedicinePanel extends JPanel {
             btnEdit.setFocusPainted(false);
             btnEdit.setBorderPainted(false);
             btnEdit.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            btnEdit.setPreferredSize(new Dimension(32, 26));
+            btnEdit.setPreferredSize(new Dimension(30, 24));
 
             btnDelete = new JButton("🗑");
             btnDelete.setBackground(new Color(217, 83, 79));
@@ -288,7 +332,7 @@ public class MedicinePanel extends JPanel {
             btnDelete.setFocusPainted(false);
             btnDelete.setBorderPainted(false);
             btnDelete.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            btnDelete.setPreferredSize(new Dimension(32, 26));
+            btnDelete.setPreferredSize(new Dimension(30, 24));
 
             add(btnEdit);
             add(btnDelete);
@@ -298,64 +342,6 @@ public class MedicinePanel extends JPanel {
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
             setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
             return this;
-        }
-    }
-
-    class ActionButtonEditor extends AbstractCellEditor implements TableCellEditor {
-        private JPanel panel;
-        private JButton btnEdit, btnDelete;
-        private JTable table;
-        private int currentRow;
-
-        public ActionButtonEditor(JCheckBox checkBox, JTable table) {
-            this.table = table;
-            panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 4));
-            panel.setOpaque(true);
-
-            btnEdit = new JButton("✏");
-            btnEdit.setBackground(new Color(51, 122, 183));
-            btnEdit.setForeground(Color.WHITE);
-            btnEdit.setFocusPainted(false);
-            btnEdit.setBorderPainted(false);
-            btnEdit.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            btnEdit.setPreferredSize(new Dimension(32, 26));
-
-            btnDelete = new JButton("🗑");
-            btnDelete.setBackground(new Color(217, 83, 79));
-            btnDelete.setForeground(Color.WHITE);
-            btnDelete.setFocusPainted(false);
-            btnDelete.setBorderPainted(false);
-            btnDelete.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            btnDelete.setPreferredSize(new Dimension(32, 26));
-
-            btnEdit.addActionListener(e -> {
-                fireEditingStopped();
-                JOptionPane.showMessageDialog(table, "Double-click any cell in row " + (currentRow + 1) + " to edit information directly.");
-            });
-
-            btnDelete.addActionListener(e -> {
-                fireEditingStopped();
-                int confirm = JOptionPane.showConfirmDialog(table, "Are you sure you want to delete this medicine?", "Confirm", JOptionPane.YES_NO_OPTION);
-                if (confirm == JOptionPane.YES_OPTION) {
-                    ((DefaultTableModel) table.getModel()).removeRow(currentRow);
-                    SharedData.medicineList.remove(currentRow);
-                }
-            });
-
-            panel.add(btnEdit);
-            panel.add(btnDelete);
-        }
-
-        @Override
-        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
-            currentRow = row;
-            panel.setBackground(table.getSelectionBackground());
-            return panel;
-        }
-
-        @Override
-        public Object getCellEditorValue() {
-            return "";
         }
     }
 }
