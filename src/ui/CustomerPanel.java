@@ -8,36 +8,37 @@ import java.awt.*;
 import java.util.List;
 
 public class CustomerPanel extends JPanel {
-
-    private final JTable table;
-    private final DefaultTableModel tableModel;
-    private final JTextField txtDays;
-    private final JTextField txtName, txtContact, txtLastPurchase, txtSearch;
-    private int selectedId = -1;
+    private JTable table;
+    private DefaultTableModel tableModel;
+    private JTextField txtDays, txtSearch, txtName, txtContact;
+    private JButton btnFilterInactive, btnShowAll, btnSearch, btnAdd, btnEdit, btnDelete;
+    private int selectedCustomerId = -1;
 
     public CustomerPanel() {
-        setLayout(new BorderLayout());
+        setLayout(new BorderLayout(10, 10));
 
-        
+        JPanel topPanel = new JPanel(new GridLayout(2, 1, 5, 5));
+
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        txtSearch = new JTextField(15);
+        btnSearch = new JButton("Search");
+        searchPanel.add(new JLabel("Search Name:"));
+        searchPanel.add(txtSearch);
+        searchPanel.add(btnSearch);
+
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-        txtSearch = new JTextField(12);
-        JButton btnSearch = new JButton("Search");
         txtDays = new JTextField("30", 5);
-        JButton btnFilterInactive = new JButton("Filter Inactive");
-        JButton btnShowAll = new JButton("Show All");
-
-        filterPanel.add(new JLabel("Search Name/Contact:"));
-        filterPanel.add(txtSearch);
-        filterPanel.add(btnSearch);
-        filterPanel.add(Box.createHorizontalStrut(15));
+        btnFilterInactive = new JButton("Filter Inactive");
+        btnShowAll = new JButton("Show All");
         filterPanel.add(new JLabel("Inactive (Days):"));
         filterPanel.add(txtDays);
         filterPanel.add(btnFilterInactive);
         filterPanel.add(btnShowAll);
 
-        add(filterPanel, BorderLayout.NORTH);
+        topPanel.add(searchPanel);
+        topPanel.add(filterPanel);
+        add(topPanel, BorderLayout.NORTH);
 
-        
         String[] columns = {"ID", "Name", "Contact", "Last Purchase Date"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
@@ -46,120 +47,106 @@ public class CustomerPanel extends JPanel {
             }
         };
         table = new JTable(tableModel);
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         add(new JScrollPane(table), BorderLayout.CENTER);
 
-        
-        JPanel formPanel = new JPanel(new FlowLayout());
-        txtName = new JTextField(10);
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        txtName = new JTextField(12);
         txtContact = new JTextField(10);
-        txtLastPurchase = new JTextField(10);
-        JButton btnAdd = new JButton("Add Customer");
-        JButton btnUpdate = new JButton("Update");
-        JButton btnDelete = new JButton("Delete");
-        JButton btnClear = new JButton("Clear");
+        btnAdd = new JButton("Add Customer");
+        btnEdit = new JButton("Update");
+        btnDelete = new JButton("Delete");
 
-        formPanel.add(new JLabel("Name:"));
-        formPanel.add(txtName);
-        formPanel.add(new JLabel("Contact:"));
-        formPanel.add(txtContact);
-        formPanel.add(new JLabel("Last Purchase (YYYY-MM-DD):"));
-        formPanel.add(txtLastPurchase);
-        formPanel.add(btnAdd);
-        formPanel.add(btnUpdate);
-        formPanel.add(btnDelete);
-        formPanel.add(btnClear);
+        bottomPanel.add(new JLabel("Name:"));
+        bottomPanel.add(txtName);
+        bottomPanel.add(new JLabel("Contact:"));
+        bottomPanel.add(txtContact);
+        bottomPanel.add(btnAdd);
+        bottomPanel.add(btnEdit);
+        bottomPanel.add(btnDelete);
 
-        add(formPanel, BorderLayout.SOUTH);
+        add(bottomPanel, BorderLayout.SOUTH);
 
-        populateTable(CustomerDAO.getAllCustomers());
+        loadAllCustomers();
 
-        
         table.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && table.getSelectedRow() != -1) {
                 int row = table.getSelectedRow();
-                selectedId = Integer.parseInt(tableModel.getValueAt(row, 0).toString());
-                txtName.setText(tableModel.getValueAt(row, 1).toString());
-                txtContact.setText(tableModel.getValueAt(row, 2).toString());
-                Object lastPurchase = tableModel.getValueAt(row, 3);
-                txtLastPurchase.setText(lastPurchase == null ? "" : lastPurchase.toString());
+                selectedCustomerId = (int) tableModel.getValueAt(row, 0);
+                txtName.setText((String) tableModel.getValueAt(row, 1));
+                txtContact.setText((String) tableModel.getValueAt(row, 2));
             }
         });
 
-        
         btnAdd.addActionListener(e -> {
             String name = txtName.getText().trim();
             String contact = txtContact.getText().trim();
-            String lastPurchase = txtLastPurchase.getText().trim();
 
-            if (name.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Pakilagay ang pangalan ng customer.");
+            if (name.isEmpty() || contact.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please fill in all fields.", "Warning", JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
-            Customer c = new Customer(name, contact, lastPurchase);
-            boolean success = CustomerDAO.addCustomer(c);
-            if (success) {
-                populateTable(CustomerDAO.getAllCustomers());
-                clearForm();
-            } else {
-                JOptionPane.showMessageDialog(this, "Hindi na-add ang customer.");
-            }
+            Customer c = new Customer();
+            c.setName(name);
+            c.setContact(contact);
+            c.setLastPurchaseDate("N/A");
+            CustomerDAO.addCustomer(c);
+
+            clearForm();
+            loadAllCustomers();
+            JOptionPane.showMessageDialog(this, "Customer added successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
         });
 
-        
-        btnUpdate.addActionListener(e -> {
-            if (selectedId == -1) {
-                JOptionPane.showMessageDialog(this, "Pumili muna ng customer sa listahan na ie-edit.");
+        btnEdit.addActionListener(e -> {
+            if (selectedCustomerId == -1) {
+                JOptionPane.showMessageDialog(this, "Please select a customer to update.", "Warning", JOptionPane.WARNING_MESSAGE);
                 return;
             }
+
             String name = txtName.getText().trim();
-            if (name.isEmpty()) {
-                JOptionPane.showMessageDialog(this, "Pakilagay ang pangalan ng customer.");
-                return;
-            }
             String contact = txtContact.getText().trim();
-            String lastPurchase = txtLastPurchase.getText().trim();
 
-            Customer c = new Customer(selectedId, name, contact, lastPurchase);
-            boolean success = CustomerDAO.updateCustomer(c);
-            if (success) {
-                populateTable(CustomerDAO.getAllCustomers());
-                clearForm();
-            } else {
-                JOptionPane.showMessageDialog(this, "Hindi na-update ang customer.");
-            }
-        });
-
-        
-        btnDelete.addActionListener(e -> {
-            if (selectedId == -1) {
-                JOptionPane.showMessageDialog(this, "Pumili muna ng customer sa listahan na tatanggalin.");
+            if (name.isEmpty() || contact.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Please fill in all fields.", "Warning", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            int confirm = JOptionPane.showConfirmDialog(this,
-                    "Sigurado ka bang gusto mong tanggalin ang customer na ito?",
-                    "Kumpirmahin ang Pagtanggal", JOptionPane.YES_NO_OPTION);
+
+            Customer c = new Customer();
+            c.setId(selectedCustomerId);
+            c.setName(name);
+            c.setContact(contact);
+            CustomerDAO.updateCustomer(c);
+
+            clearForm();
+            loadAllCustomers();
+            JOptionPane.showMessageDialog(this, "Customer updated successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
+        });
+
+        btnDelete.addActionListener(e -> {
+            if (selectedCustomerId == -1) {
+                JOptionPane.showMessageDialog(this, "Please select a customer to delete.", "Warning", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            int confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to delete this customer?", "Confirmation", JOptionPane.YES_NO_OPTION);
             if (confirm == JOptionPane.YES_OPTION) {
-                CustomerDAO.deleteCustomer(selectedId);
-                populateTable(CustomerDAO.getAllCustomers());
+                CustomerDAO.deleteCustomer(selectedCustomerId);
                 clearForm();
+                loadAllCustomers();
+                JOptionPane.showMessageDialog(this, "Customer deleted successfully!", "Success", JOptionPane.INFORMATION_MESSAGE);
             }
         });
 
-        
-        btnClear.addActionListener(e -> clearForm());
-
-        
         btnSearch.addActionListener(e -> {
             String keyword = txtSearch.getText().trim();
-            List<Customer> results = keyword.isEmpty()
-                    ? CustomerDAO.getAllCustomers()
-                    : CustomerDAO.searchCustomers(keyword);
-            populateTable(results);
+            if (keyword.isEmpty()) {
+                loadAllCustomers();
+                return;
+            }
+            List<Customer> list = CustomerDAO.searchCustomers(keyword);
+            populateTable(list);
         });
 
-        
         btnFilterInactive.addActionListener(e -> {
             try {
                 int days = Integer.parseInt(txtDays.getText().trim());
@@ -172,8 +159,13 @@ public class CustomerPanel extends JPanel {
 
         btnShowAll.addActionListener(e -> {
             txtSearch.setText("");
-            populateTable(CustomerDAO.getAllCustomers());
+            loadAllCustomers();
         });
+    }
+
+    public void loadAllCustomers() {
+        List<Customer> allCustomers = CustomerDAO.getAllCustomers();
+        populateTable(allCustomers);
     }
 
     private void populateTable(List<Customer> list) {
@@ -189,10 +181,9 @@ public class CustomerPanel extends JPanel {
     }
 
     private void clearForm() {
-        selectedId = -1;
         txtName.setText("");
         txtContact.setText("");
-        txtLastPurchase.setText("");
+        selectedCustomerId = -1;
         table.clearSelection();
     }
 }

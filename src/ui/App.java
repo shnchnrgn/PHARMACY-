@@ -5,50 +5,68 @@ import java.awt.*;
 import db.DatabaseHelper;
 
 public class App {
+    private static InventoryPanel inventoryPanel;
+    private static CustomerPanel customerPanel;
+
     public static void main(String[] args) {
         DatabaseHelper.connect();
         DatabaseHelper.createTables();
 
-        javax.swing.SwingUtilities.invokeLater(() -> {
-            openMainApplication(); 
+        SwingUtilities.invokeLater(() -> {
+            openMainApplication();
         });
     }
 
     public static void openMainApplication() {
         JFrame frame = new JFrame("Pharmacy Management System - Bug Busters");
+        frame.setSize(950, 700);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(1000, 600);
-        frame.setLayout(new BorderLayout());
+        frame.setLocationRelativeTo(null);
 
-        CardLayout cardLayout = new CardLayout();
-        JPanel mainContentPanel = new JPanel(cardLayout);
-
-        InventoryPanel inventoryPanel = new InventoryPanel();
-        CustomerPanel customerPanel = new CustomerPanel();
-        
-        JPanel inventoryAndCustomerSplit = new JPanel(new GridLayout(2, 1));
-        inventoryAndCustomerSplit.add(inventoryPanel);
-        inventoryAndCustomerSplit.add(customerPanel);
-
-        mainContentPanel.add(inventoryAndCustomerSplit, "INVENTORY");
+        JPanel mainPanel = new JPanel(new BorderLayout());
 
         JPanel navPanel = new JPanel();
-        JButton btnInventory = new JButton("Inventory & Customers");
-        JButton btnPOS = new JButton("POS & Sales");
+        JButton inventoryButton = new JButton("Inventory & Customers");
+        JButton posButton = new JButton("POS & Sales");
 
-        btnInventory.addActionListener(e -> cardLayout.show(mainContentPanel, "INVENTORY"));
-        btnPOS.addActionListener(e -> {
-            POSFrame posWindow = new POSFrame();
-            posWindow.setVisible(true);
+        navPanel.add(inventoryButton);
+        navPanel.add(posButton);
+        mainPanel.add(navPanel, BorderLayout.NORTH);
+
+        JPanel containerPanel = new JPanel(new CardLayout());
+
+        inventoryPanel = new InventoryPanel();
+        customerPanel = new CustomerPanel();
+
+        JSplitPane mainDashboard = new JSplitPane(
+            JSplitPane.VERTICAL_SPLIT,
+            inventoryPanel,
+            customerPanel
+        );
+        mainDashboard.setDividerLocation(320);
+
+        containerPanel.add(mainDashboard, "MAIN_VIEW");
+        mainPanel.add(containerPanel, BorderLayout.CENTER);
+
+        inventoryButton.addActionListener(e -> {
+            if (inventoryPanel != null) {
+                inventoryPanel.loadTableData();
+            }
+            if (customerPanel != null) {
+                customerPanel.loadAllCustomers();
+            }
+            CardLayout cl = (CardLayout)(containerPanel.getLayout());
+            cl.show(containerPanel, "MAIN_VIEW");
+            frame.toFront();
+            frame.requestFocus();
         });
 
-        navPanel.add(btnInventory);
-        navPanel.add(btnPOS);
+        posButton.addActionListener(e -> {
+            POSFrame posFrame = new POSFrame();
+            posFrame.setVisible(true);
+        });
 
-        frame.add(navPanel, BorderLayout.NORTH);
-        frame.add(mainContentPanel, BorderLayout.CENTER);
-        
-        frame.setLocationRelativeTo(null);
+        frame.add(mainPanel);
         frame.setVisible(true);
     }
 }

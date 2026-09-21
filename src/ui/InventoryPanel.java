@@ -4,181 +4,150 @@ import db.MedicineDAO;
 import models.Medicine;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.DefaultTableCellRenderer;
 import java.awt.*;
 import java.util.List;
 
 public class InventoryPanel extends JPanel {
-
-    private static final int LOW_STOCK_THRESHOLD = MedicineDAO.LOW_STOCK_THRESHOLD;
-
-    private final JTable table;
-    private final DefaultTableModel tableModel;
-    private final JTextField txtName, txtPrice, txtStock, txtSearch;
-    private final JLabel lblLowStock;
-    private int selectedId = -1;
+    private JTable table;
+    private DefaultTableModel tableModel;
+    private JTextField txtName, txtPrice, txtStock, txtSearch;
+    private JButton btnAdd, btnEdit, btnDelete, btnSearch, btnShowAll;
+    private JLabel lblLowStock;
+    private int selectedMedicineId = -1;
 
     public InventoryPanel() {
-        setLayout(new BorderLayout());
+        setLayout(new BorderLayout(10, 10));
 
-        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JPanel topPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
         txtSearch = new JTextField(15);
-        JButton btnSearch = new JButton("Search");
-        JButton btnShowAll = new JButton("Show All");
-        lblLowStock = new JLabel(" ");
-        lblLowStock.setForeground(new Color(200, 0, 0));
-        lblLowStock.setFont(lblLowStock.getFont().deriveFont(Font.BOLD));
+        btnSearch = new JButton("Search");
+        btnShowAll = new JButton("Show All");
+        lblLowStock = new JLabel();
+        lblLowStock.setForeground(Color.RED);
 
-        searchPanel.add(new JLabel("Search Name:"));
-        searchPanel.add(txtSearch);
-        searchPanel.add(btnSearch);
-        searchPanel.add(btnShowAll);
-        searchPanel.add(Box.createHorizontalStrut(20));
-        searchPanel.add(lblLowStock);
-
-        add(searchPanel, BorderLayout.NORTH);
+        topPanel.add(new JLabel("Search Name:"));
+        topPanel.add(txtSearch);
+        topPanel.add(btnSearch);
+        topPanel.add(btnShowAll);
+        topPanel.add(lblLowStock);
+        add(topPanel, BorderLayout.NORTH);
 
         String[] columns = {"ID", "Name", "Price", "Stock"};
         tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return false; 
+                return false;
             }
         };
         table = new JTable(tableModel);
-        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-
-        DefaultTableCellRenderer lowStockRenderer = new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable tbl, Object value, boolean isSelected,
-                    boolean hasFocus, int row, int column) {
-                Component c = super.getTableCellRendererComponent(tbl, value, isSelected, hasFocus, row, column);
-                int stock = Integer.parseInt(tbl.getValueAt(row, 3).toString());
-                if (isSelected) {
-                    c.setBackground(tbl.getSelectionBackground());
-                } else if (stock <= LOW_STOCK_THRESHOLD) {
-                    c.setBackground(new Color(255, 205, 210)); // light red
-                } else {
-                    c.setBackground(Color.WHITE);
-                }
-                return c;
-            }
-        };
-        for (int i = 0; i < table.getColumnCount(); i++) {
-            table.getColumnModel().getColumn(i).setCellRenderer(lowStockRenderer);
-        }
-
         add(new JScrollPane(table), BorderLayout.CENTER);
 
-        JPanel formPanel = new JPanel(new FlowLayout());
-        txtName = new JTextField(10);
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        txtName = new JTextField(12);
         txtPrice = new JTextField(6);
         txtStock = new JTextField(6);
-        JButton btnAdd = new JButton("Add Medicine");
-        JButton btnUpdate = new JButton("Update");
-        JButton btnDelete = new JButton("Delete");
-        JButton btnClear = new JButton("Clear");
+        btnAdd = new JButton("Add Medicine");
+        btnEdit = new JButton("Update");
+        btnDelete = new JButton("Delete");
 
-        formPanel.add(new JLabel("Name:"));
-        formPanel.add(txtName);
-        formPanel.add(new JLabel("Price:"));
-        formPanel.add(txtPrice);
-        formPanel.add(new JLabel("Stock:"));
-        formPanel.add(txtStock);
-        formPanel.add(btnAdd);
-        formPanel.add(btnUpdate);
-        formPanel.add(btnDelete);
-        formPanel.add(btnClear);
+        bottomPanel.add(new JLabel("Name:"));
+        bottomPanel.add(txtName);
+        bottomPanel.add(new JLabel("Price:"));
+        bottomPanel.add(txtPrice);
+        bottomPanel.add(new JLabel("Stock:"));
+        bottomPanel.add(txtStock);
+        bottomPanel.add(btnAdd);
+        bottomPanel.add(btnEdit);
+        bottomPanel.add(btnDelete);
 
-        add(formPanel, BorderLayout.SOUTH);
+        add(bottomPanel, BorderLayout.SOUTH);
 
         loadTableData();
 
         table.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting() && table.getSelectedRow() != -1) {
                 int row = table.getSelectedRow();
-                selectedId = Integer.parseInt(tableModel.getValueAt(row, 0).toString());
-                txtName.setText(tableModel.getValueAt(row, 1).toString());
-                txtPrice.setText(tableModel.getValueAt(row, 2).toString());
-                txtStock.setText(tableModel.getValueAt(row, 3).toString());
+                selectedMedicineId = (int) tableModel.getValueAt(row, 0);
+                txtName.setText((String) tableModel.getValueAt(row, 1));
+                txtPrice.setText(String.valueOf(tableModel.getValueAt(row, 2)));
+                txtStock.setText(String.valueOf(tableModel.getValueAt(row, 3)));
             }
         });
 
         btnAdd.addActionListener(e -> {
             try {
                 String name = txtName.getText().trim();
-                if (name.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Please enter the medicine name.");
-                    return;
-                }
                 double price = Double.parseDouble(txtPrice.getText().trim());
                 int stock = Integer.parseInt(txtStock.getText().trim());
 
-                Medicine med = new Medicine(name, price, stock);
-                MedicineDAO.insertMedicine(med);
+                if (name.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Please enter medicine name.", "Warning", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
 
-                loadTableData();
+                Medicine m = new Medicine();
+                m.setName(name);
+                m.setPrice(price);
+                m.setStock(stock);
+                MedicineDAO.addMedicine(m);
+
                 clearForm();
+                loadTableData();
             } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Please enter valid values!");
+                JOptionPane.showMessageDialog(this, "Please enter valid numbers for price and stock.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
 
-        btnUpdate.addActionListener(e -> {
-            if (selectedId == -1) {
-                JOptionPane.showMessageDialog(this, "Please select a medicine from the list to edit.");
+        btnEdit.addActionListener(e -> {
+            if (selectedMedicineId == -1) {
+                JOptionPane.showMessageDialog(this, "Please select a medicine to update.", "Warning", JOptionPane.WARNING_MESSAGE);
                 return;
             }
             try {
                 String name = txtName.getText().trim();
-                if (name.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Please enter the medicine name.");
-                    return;
-                }
                 double price = Double.parseDouble(txtPrice.getText().trim());
                 int stock = Integer.parseInt(txtStock.getText().trim());
 
-                Medicine med = new Medicine();
-                med.setId(selectedId);
-                med.setName(name);
-                med.setPrice(price);
-                med.setStock(stock);
+                Medicine m = new Medicine();
+                m.setId(selectedMedicineId);
+                m.setName(name);
+                m.setPrice(price);
+                m.setStock(stock);
+                MedicineDAO.updateMedicine(m);
 
-                boolean success = MedicineDAO.updateMedicine(med);
-                if (success) {
-                    loadTableData();
-                    clearForm();
-                } else {
-                    JOptionPane.showMessageDialog(this, "Failed to update the medicine.");
-                }
+                clearForm();
+                loadTableData();
             } catch (NumberFormatException ex) {
-                JOptionPane.showMessageDialog(this, "Please enter valid values!");
+                JOptionPane.showMessageDialog(this, "Please enter valid numbers for price and stock.", "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
 
         btnDelete.addActionListener(e -> {
-            if (selectedId == -1) {
-                JOptionPane.showMessageDialog(this, "Please select a medicine from the list to delete.");
+            if (selectedMedicineId == -1) {
+                JOptionPane.showMessageDialog(this, "Please select a medicine to delete.", "Warning", JOptionPane.WARNING_MESSAGE);
                 return;
             }
-            int confirm = JOptionPane.showConfirmDialog(this,
-                    "Are you sure you want to delete this medicine?",
-                    "Confirm Deletion", JOptionPane.YES_NO_OPTION);
+            int confirm = JOptionPane.showConfirmDialog(this, "Are you sure you want to delete this medicine?", "Confirmation", JOptionPane.YES_NO_OPTION);
             if (confirm == JOptionPane.YES_OPTION) {
-                MedicineDAO.deleteMedicine(selectedId);
-                loadTableData();
+                MedicineDAO.deleteMedicine(selectedMedicineId);
                 clearForm();
+                loadTableData();
             }
         });
 
-        btnClear.addActionListener(e -> clearForm());
-
         btnSearch.addActionListener(e -> {
             String keyword = txtSearch.getText().trim();
-            List<Medicine> results = keyword.isEmpty()
-                    ? MedicineDAO.getAllMedicines()
-                    : MedicineDAO.searchMedicines(keyword);
-            populateTable(results);
+            if (keyword.isEmpty()) {
+                loadTableData();
+                return;
+            }
+            tableModel.setRowCount(0);
+            List<Medicine> list = MedicineDAO.getAllMedicines();
+            for (Medicine m : list) {
+                if (m.getName().toLowerCase().contains(keyword.toLowerCase())) {
+                    tableModel.addRow(new Object[]{m.getId(), m.getName(), m.getPrice(), m.getStock()});
+                }
+            }
         });
 
         btnShowAll.addActionListener(e -> {
@@ -187,31 +156,47 @@ public class InventoryPanel extends JPanel {
         });
     }
 
-    private void loadTableData() {
-        populateTable(MedicineDAO.getAllMedicines());
+    public void loadTableData() {
+        tableModel.setRowCount(0);
+        List<Medicine> list = MedicineDAO.getAllMedicines();
+
+        if (list == null || list.isEmpty()) {
+            addDefaultItem("Paracetamol", 50.0, 15);
+            addDefaultItem("Ibuprofen", 75.0, 7);
+            addDefaultItem("Amoxicillin", 120.0, 20);
+            list = MedicineDAO.getAllMedicines();
+        }
+
+        for (Medicine m : list) {
+            tableModel.addRow(new Object[]{
+                m.getId(),
+                m.getName(),
+                m.getPrice(),
+                m.getStock()
+            });
+        }
+
+        int lowStockCount = MedicineDAO.getLowStockCount();
+        if (lowStockCount > 0) {
+            lblLowStock.setText(" ⚠️ " + lowStockCount + " medicine(s) have low stock!");
+        } else {
+            lblLowStock.setText("");
+        }
     }
 
-    private void populateTable(List<Medicine> list) {
-        tableModel.setRowCount(0);
-        int lowStockCount = 0;
-        for (Medicine m : list) {
-            tableModel.addRow(new Object[]{m.getId(), m.getName(), m.getPrice(), m.getStock()});
-            if (m.getStock() <= LOW_STOCK_THRESHOLD) {
-                lowStockCount++;
-            }
-        }
-        if (lowStockCount > 0) {
-            lblLowStock.setText("\u26A0 " + lowStockCount + " medicine(s) have low stock!");
-        } else {
-            lblLowStock.setText(" ");
-        }
+    private void addDefaultItem(String name, double price, int stock) {
+        Medicine m = new Medicine();
+        m.setName(name);
+        m.setPrice(price);
+        m.setStock(stock);
+        MedicineDAO.addMedicine(m);
     }
 
     private void clearForm() {
-        selectedId = -1;
         txtName.setText("");
         txtPrice.setText("");
         txtStock.setText("");
+        selectedMedicineId = -1;
         table.clearSelection();
     }
 }
