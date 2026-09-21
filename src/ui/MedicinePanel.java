@@ -200,14 +200,15 @@ public class MedicinePanel extends JPanel {
             }
         };
         
+        // Updated default data na may mga pamilyar na gamot sa Pilipinas
         String[][] defaultData = {
-            {"Ace Plus® 500mg", "Tablet", "₱2.00", "₱2.50", "24", "23", "Square Pharmaceuticals Ltd.", "05-Jan-2018", ""},
-            {"Adovas® 100ml", "Syrup", "₱40.00", "₱55.00", "16", "7", "Square Pharmaceuticals Ltd.", "05-Dec-2017", ""},
-            {"Alacot® 5ml", "Drop", "₱65.00", "₱80.00", "14", "6", "Green Pharmaceuticals Ltd.", "30-Aug-2017", ""},
-            {"Alatrol® 10mg", "Tablet", "₱3.00", "₱4.00", "135", "3", "Square Pharmaceuticals Ltd.", "10-Oct-2017", ""},
-            {"Angilock® 50mg", "Tablet", "₱5.00", "₱7.00", "50", "5", "Square Pharmaceuticals Ltd.", "01-Feb-2017", ""},
-            {"Anoxa 10® 10mg", "Tablet", "₱4.00", "₱6.00", "24", "12", "Square Pharmaceuticals Ltd.", "26-Sep-2017", ""},
-            {"Azicin 500mg", "Capsule", "₱8.00", "₱10.00", "97", "45", "Opsonin Pharma Limited", "06-Oct-2017", ""}
+            {"Biogesic 500mg", "Tablet", "₱4.00", "₱6.00", "150", "1", "Unilab", "15-Aug-2028", ""},
+            {"Neozep Forte", "Tablet", "₱5.50", "₱7.75", "120", "2", "Unilab", "20-Nov-2027", ""},
+            {"Alaxan FR", "Capsule", "₱8.00", "₱11.00", "90", "3", "Unilab", "10-Jan-2027", ""},
+            {"Decolgen Fort", "Tablet", "₱5.00", "₱7.00", "100", "4", "Pascual Lab", "05-Dec-2027", ""},
+            {"Lagundi 600mg", "Tablet", "₱6.00", "₱8.50", "80", "5", "Pascual Lab", "12-Mar-2028", ""},
+            {"Ascorbic Acid (Ceelin) 100ml", "Syrup", "₱85.00", "₱110.00", "45", "6", "Unilab", "30-Jun-2027", ""},
+            {"Mefenamic Acid 500mg", "Capsule", "₱4.50", "₱6.50", "200", "7", "Ritemed", "18-Sep-2028", ""}
         };
         
         if (SharedData.medicineList.isEmpty()) {
@@ -236,7 +237,6 @@ public class MedicinePanel extends JPanel {
         table = new JTable(SharedData.medicineTableModel);
         table.getColumnModel().getColumn(8).setCellRenderer(new ActionButtonRenderer());
         
-        // Direktang MouseListener para sa mabilis at sigaradong pag-click ng Action buttons
         table.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
@@ -247,7 +247,6 @@ public class MedicinePanel extends JPanel {
                     Rectangle cellRect = table.getCellRect(row, col, false);
                     int clickX = e.getX() - cellRect.x;
                     
-                    // Hatiin sa gitna ang cell para malaman kung Edit o Delete ang pinindot
                     if (clickX < cellRect.width / 2) {
                         JOptionPane.showMessageDialog(table, "Edit medicine at row: " + (row + 1));
                     } else {
@@ -275,7 +274,7 @@ public class MedicinePanel extends JPanel {
         JPanel bottomBar = new JPanel(new BorderLayout());
         bottomBar.setOpaque(false);
 
-        JLabel lblShowing = new JLabel("Showing 1 to " + table.getRowCount() + " of 24 entries");
+        JLabel lblShowing = new JLabel("Showing 1 to " + table.getRowCount() + " of entries");
         lblShowing.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblShowing.setForeground(new Color(100, 100, 100));
         bottomBar.add(lblShowing, BorderLayout.WEST);
