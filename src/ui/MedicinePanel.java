@@ -5,7 +5,6 @@ import models.Medicine;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
-import javax.swing.event.TableModelEvent;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
@@ -28,35 +27,21 @@ public class MedicinePanel extends JPanel {
         setBorder(new EmptyBorder(20, 20, 20, 20));
 
         JLabel lblTitle = new JLabel("Medicine List");
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        lblTitle.setForeground(new Color(50, 50, 50));
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        lblTitle.setForeground(new Color(60, 65, 70));
         add(lblTitle, BorderLayout.NORTH);
 
         JPanel contentPanel = new JPanel(new BorderLayout(0, 10));
         contentPanel.setBackground(Color.WHITE);
         contentPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(220, 224, 230)),
+            BorderFactory.createLineBorder(new Color(210, 215, 220)),
             new EmptyBorder(15, 15, 15, 15)
         ));
 
         JPanel topBar = new JPanel(new BorderLayout());
         topBar.setOpaque(false);
 
-        JPanel showPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
-        showPanel.setOpaque(false);
-        JLabel lblShow = new JLabel("Show");
-        lblShow.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        JComboBox<String> cmbEntries = new JComboBox<>(new String[]{"10", "25", "50", "100"});
-        cmbEntries.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        JLabel lblEntries = new JLabel("entries");
-        lblEntries.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        
-        showPanel.add(lblShow);
-        showPanel.add(cmbEntries);
-        showPanel.add(lblEntries);
-        topBar.add(showPanel, BorderLayout.WEST);
-
-        JPanel rightTopPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        JPanel rightTopPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         rightTopPanel.setOpaque(false);
         
         JButton btnCopy = new JButton("Copy");
@@ -68,9 +53,10 @@ public class MedicinePanel extends JPanel {
         for (JButton b : new JButton[]{btnCopy, btnCsv, btnExcel, btnPdf, btnPrint}) {
             b.setFont(new Font("Segoe UI", Font.PLAIN, 11));
             b.setFocusPainted(false);
-            b.setBackground(new Color(248, 249, 250));
-            b.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
-            b.setPreferredSize(new Dimension(50, 25));
+            b.setBackground(new Color(240, 242, 245));
+            b.setForeground(new Color(70, 75, 80));
+            b.setBorder(BorderFactory.createLineBorder(new Color(190, 195, 200)));
+            b.setPreferredSize(new Dimension(55, 26));
             b.setCursor(new Cursor(Cursor.HAND_CURSOR));
         }
 
@@ -166,8 +152,14 @@ public class MedicinePanel extends JPanel {
 
         txtSearch = new JTextField(15);
         txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        txtSearch.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(200, 205, 210)),
+            BorderFactory.createEmptyBorder(4, 6, 4, 6)
+        ));
+        
         JLabel lblSearch = new JLabel("Search:");
         lblSearch.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblSearch.setForeground(new Color(90, 95, 100));
 
         rightTopPanel.add(btnCopy);
         rightTopPanel.add(btnCsv);
@@ -191,7 +183,6 @@ public class MedicinePanel extends JPanel {
             "Buy Price ↕", 
             "Sell Price ↕", 
             "Quantity ↕", 
-            "Rack No ↕", 
             "Company Name ↕", 
             "Expire Date ↕", 
             "Action ↕"
@@ -200,7 +191,7 @@ public class MedicinePanel extends JPanel {
         DefaultTableModel tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column != 9;
+                return column != 8;
             }
         };
 
@@ -211,7 +202,7 @@ public class MedicinePanel extends JPanel {
         table.setShowVerticalLines(false);
         table.setShowHorizontalLines(true);
         table.setGridColor(new Color(235, 238, 242));
-        table.getColumnModel().getColumn(9).setCellRenderer(new ActionButtonRenderer());
+        table.getColumnModel().getColumn(8).setCellRenderer(new ActionButtonRenderer());
         
         table.addMouseListener(new MouseAdapter() {
             @Override
@@ -219,7 +210,7 @@ public class MedicinePanel extends JPanel {
                 int row = table.rowAtPoint(e.getPoint());
                 int col = table.columnAtPoint(e.getPoint());
                 
-                if (col == 9 && row >= 0) {
+                if (col == 8 && row >= 0) {
                     Rectangle cellRect = table.getCellRect(row, col, false);
                     int clickX = e.getX() - cellRect.x;
                     int medicineId = Integer.parseInt(table.getValueAt(row, 0).toString());
@@ -240,49 +231,12 @@ public class MedicinePanel extends JPanel {
         table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         table.getTableHeader().setBackground(new Color(248, 249, 250));
-        table.getTableHeader().setForeground(new Color(50, 50, 50));
+        table.getTableHeader().setForeground(new Color(80, 85, 90));
 
         JScrollPane scrollPane = new JScrollPane(table);
         scrollPane.getViewport().setBackground(Color.WHITE);
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(220, 224, 230)));
         centerContainer.add(scrollPane, BorderLayout.CENTER);
-
-        JPanel bottomBar = new JPanel(new BorderLayout());
-        bottomBar.setOpaque(false);
-
-        JLabel lblShowing = new JLabel("Showing 1 to " + table.getRowCount() + " of entries");
-        lblShowing.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblShowing.setForeground(new Color(100, 100, 100));
-
-        tableModel.addTableModelListener(e -> {
-            lblShowing.setText("Showing 1 to " + table.getRowCount() + " of entries");
-        });
-
-        JPanel paginationPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
-        paginationPanel.setOpaque(false);
-        
-        JButton btnPrev = new JButton("Previous");
-        JButton btn1 = new JButton("1");
-        JButton btn2 = new JButton("2");
-        JButton btn3 = new JButton("3");
-        JButton btnNext = new JButton("Next");
-        
-        for (JButton b : new JButton[]{btnPrev, btn1, btn2, btn3, btnNext}) {
-            b.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-            b.setFocusPainted(false);
-            b.setBackground(Color.WHITE);
-            b.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
-            b.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        }
-        btn1.setBackground(new Color(240, 240, 240));
-
-        paginationPanel.add(btnPrev);
-        paginationPanel.add(btn1);
-        paginationPanel.add(btn2);
-        paginationPanel.add(btn3);
-        paginationPanel.add(btnNext);
-
-        bottomBar.add(paginationPanel, BorderLayout.EAST);
-        centerContainer.add(bottomBar, BorderLayout.SOUTH);
 
         contentPanel.add(centerContainer, BorderLayout.CENTER);
         add(contentPanel, BorderLayout.CENTER);
@@ -299,7 +253,6 @@ public class MedicinePanel extends JPanel {
                 "₱" + m.getPrice(),
                 "₱" + m.getPrice(),
                 m.getStock(),
-                "1",
                 "Unilab",
                 "2027-01-01",
                 ""
@@ -323,7 +276,7 @@ public class MedicinePanel extends JPanel {
             setOpaque(true);
             
             btnEdit = new JButton("✏");
-            btnEdit.setBackground(new Color(51, 122, 183));
+            btnEdit.setBackground(new Color(51, 122, 183)); // Asul para sa Edit
             btnEdit.setForeground(Color.WHITE);
             btnEdit.setFocusPainted(false);
             btnEdit.setBorderPainted(false);
@@ -331,7 +284,7 @@ public class MedicinePanel extends JPanel {
             btnEdit.setPreferredSize(new Dimension(30, 24));
 
             btnDelete = new JButton("🗑");
-            btnDelete.setBackground(new Color(217, 83, 79));
+            btnDelete.setBackground(new Color(220, 53, 69)); // Pula para sa Delete
             btnDelete.setForeground(Color.WHITE);
             btnDelete.setFocusPainted(false);
             btnDelete.setBorderPainted(false);

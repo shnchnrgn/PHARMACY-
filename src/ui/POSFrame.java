@@ -22,7 +22,7 @@ public class POSFrame extends JPanel {
 
         JLabel lblTitle = new JLabel("Point of Sales (POS)");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        lblTitle.setForeground(new Color(40, 40, 40));
+        lblTitle.setForeground(new Color(60, 65, 70));
         add(lblTitle, BorderLayout.NORTH);
 
         JPanel contentPanel = new JPanel(new GridLayout(1, 2, 15, 0));
@@ -32,15 +32,34 @@ public class POSFrame extends JPanel {
         JPanel leftPanel = new JPanel(new BorderLayout());
         leftPanel.setBackground(Color.WHITE);
         leftPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(220, 224, 230)),
-            new EmptyBorder(10, 10, 10, 10)
+            BorderFactory.createLineBorder(new Color(210, 215, 220)),
+            new EmptyBorder(12, 12, 12, 12)
         ));
 
-        JPanel searchPanel = new JPanel(new BorderLayout(5, 0));
+        JPanel searchPanel = new JPanel(new BorderLayout(8, 0));
         searchPanel.setOpaque(false);
+        searchPanel.setBorder(new EmptyBorder(0, 0, 12, 0));
+        
+        JLabel lblSearch = new JLabel("Search Medicine: ");
+        lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblSearch.setForeground(new Color(70, 75, 80));
+        
         searchField = new JTextField();
+        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        searchField.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(200, 205, 210)),
+            BorderFactory.createEmptyBorder(6, 8, 6, 8)
+        ));
+        
         JButton btnSearch = new JButton("Search");
-        searchPanel.add(new JLabel("Search Medicine: "), BorderLayout.WEST);
+        btnSearch.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnSearch.setBackground(new Color(240, 242, 245));
+        btnSearch.setForeground(new Color(70, 75, 80));
+        btnSearch.setFocusPainted(false);
+        btnSearch.setBorder(BorderFactory.createLineBorder(new Color(190, 195, 200)));
+        btnSearch.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        searchPanel.add(lblSearch, BorderLayout.WEST);
         searchPanel.add(searchField, BorderLayout.CENTER);
         searchPanel.add(btnSearch, BorderLayout.EAST);
         leftPanel.add(searchPanel, BorderLayout.NORTH);
@@ -64,28 +83,37 @@ public class POSFrame extends JPanel {
         medicineTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         medicineTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         medicineTable.getTableHeader().setBackground(new Color(248, 249, 250));
-        medicineTable.getTableHeader().setForeground(new Color(50, 50, 50));
+        medicineTable.getTableHeader().setForeground(new Color(80, 85, 90));
 
         JScrollPane medScroll = new JScrollPane(medicineTable);
         medScroll.getViewport().setBackground(Color.WHITE);
+        medScroll.setBorder(BorderFactory.createLineBorder(new Color(220, 224, 230)));
         leftPanel.add(medScroll, BorderLayout.CENTER);
 
         JButton btnAddToCart = new JButton("Add to Cart");
-        btnAddToCart.setBackground(new Color(41, 128, 185));
+        btnAddToCart.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnAddToCart.setBackground(new Color(51, 122, 183));
         btnAddToCart.setForeground(Color.WHITE);
         btnAddToCart.setFocusPainted(false);
+        btnAddToCart.setBorder(new EmptyBorder(10, 0, 10, 0));
         btnAddToCart.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        leftPanel.add(btnAddToCart, BorderLayout.SOUTH);
+        
+        JPanel btnAddWrapper = new JPanel(new BorderLayout());
+        btnAddWrapper.setOpaque(false);
+        btnAddWrapper.setBorder(new EmptyBorder(10, 0, 0, 0));
+        btnAddWrapper.add(btnAddToCart, BorderLayout.CENTER);
+        leftPanel.add(btnAddWrapper, BorderLayout.SOUTH);
 
         JPanel rightPanel = new JPanel(new BorderLayout());
         rightPanel.setBackground(Color.WHITE);
         rightPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(220, 224, 230)),
-            new EmptyBorder(10, 10, 10, 10)
+            BorderFactory.createLineBorder(new Color(210, 215, 220)),
+            new EmptyBorder(12, 12, 12, 12)
         ));
 
         JLabel lblCartTitle = new JLabel("Current Cart & Checkout");
         lblCartTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblCartTitle.setForeground(new Color(70, 75, 80));
         lblCartTitle.setBorder(new EmptyBorder(0, 0, 10, 0));
         rightPanel.add(lblCartTitle, BorderLayout.NORTH);
 
@@ -99,10 +127,11 @@ public class POSFrame extends JPanel {
         cartTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         cartTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         cartTable.getTableHeader().setBackground(new Color(248, 249, 250));
-        cartTable.getTableHeader().setForeground(new Color(50, 50, 50));
+        cartTable.getTableHeader().setForeground(new Color(80, 85, 90));
 
         JScrollPane cartScroll = new JScrollPane(cartTable);
         cartScroll.getViewport().setBackground(Color.WHITE);
+        cartScroll.setBorder(BorderFactory.createLineBorder(new Color(220, 224, 230)));
         rightPanel.add(cartScroll, BorderLayout.CENTER);
 
         JPanel bottomCartPanel = new JPanel(new BorderLayout());
@@ -113,25 +142,31 @@ public class POSFrame extends JPanel {
         subtotalPanel.setOpaque(false);
         JLabel lblSubtotalText = new JLabel("Subtotal: ");
         lblSubtotalText.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblSubtotalText.setForeground(new Color(90, 95, 100));
         lblSubtotalVal = new JLabel("₱ 0.00");
         lblSubtotalVal.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        lblSubtotalVal.setForeground(new Color(39, 174, 96));
+        lblSubtotalVal.setForeground(new Color(40, 167, 69));
         subtotalPanel.add(lblSubtotalText);
         subtotalPanel.add(lblSubtotalVal);
         bottomCartPanel.add(subtotalPanel, BorderLayout.NORTH);
 
         JPanel actionButtons = new JPanel(new GridLayout(1, 2, 10, 0));
         actionButtons.setOpaque(false);
+        
         JButton btnRemove = new JButton("Remove Item");
-        btnRemove.setBackground(new Color(231, 76, 60));
+        btnRemove.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnRemove.setBackground(new Color(220, 53, 69));
         btnRemove.setForeground(Color.WHITE);
         btnRemove.setFocusPainted(false);
+        btnRemove.setBorder(new EmptyBorder(10, 0, 10, 0));
         btnRemove.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         JButton btnCheckout = new JButton("Checkout");
-        btnCheckout.setBackground(new Color(39, 174, 96));
+        btnCheckout.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnCheckout.setBackground(new Color(40, 167, 69));
         btnCheckout.setForeground(Color.WHITE);
         btnCheckout.setFocusPainted(false);
+        btnCheckout.setBorder(new EmptyBorder(10, 0, 10, 0));
         btnCheckout.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         actionButtons.add(btnRemove);
