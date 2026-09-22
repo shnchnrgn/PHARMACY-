@@ -31,6 +31,7 @@ public class App extends JFrame {
         mainContentPanel.add(new AddMedicinePanel(), "ADD_MEDICINE");
         mainContentPanel.add(new MedicineCategoryPanel(), "MEDICINE_CATEGORY");
         mainContentPanel.add(new CustomerPanel(), "CUSTOMERS");
+        mainContentPanel.add(new InventoryPanel(), "INVENTORY");
 
         add(mainContentPanel, BorderLayout.CENTER);
     }
@@ -50,6 +51,7 @@ public class App extends JFrame {
 
         sb.add(createStyledNavButton("Dashboard", e -> cardLayout.show(mainContentPanel, "DASHBOARD")));
         sb.add(createStyledNavButton("Point Of Sales", e -> cardLayout.show(mainContentPanel, "POS")));
+        sb.add(createStyledNavButton("Inventory", e -> cardLayout.show(mainContentPanel, "INVENTORY")));
 
         sb.add(createMedicineDropdownButton());
 

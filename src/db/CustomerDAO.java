@@ -10,7 +10,7 @@ public class CustomerDAO {
 
     public static void addCustomer(Customer customer) {
         String sql = "INSERT INTO customers (name, contact, last_purchase_date) VALUES (?, ?, ?)";
-        try (Connection conn = DatabaseHelper.getConnection();
+        try (Connection conn = Database.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, customer.getName());
             pstmt.setString(2, customer.getContact());
@@ -23,7 +23,7 @@ public class CustomerDAO {
 
     public static void updateCustomer(Customer customer) {
         String sql = "UPDATE customers SET name = ?, contact = ? WHERE id = ?";
-        try (Connection conn = DatabaseHelper.getConnection();
+        try (Connection conn = Database.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, customer.getName());
             pstmt.setString(2, customer.getContact());
@@ -36,7 +36,7 @@ public class CustomerDAO {
 
     public static void deleteCustomer(int id) {
         String sql = "DELETE FROM customers WHERE id = ?";
-        try (Connection conn = DatabaseHelper.getConnection();
+        try (Connection conn = Database.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, id);
             pstmt.executeUpdate();
@@ -48,7 +48,7 @@ public class CustomerDAO {
     public static List<Customer> getAllCustomers() {
         List<Customer> customers = new ArrayList<>();
         String sql = "SELECT * FROM customers";
-        try (Connection conn = DatabaseHelper.getConnection();
+        try (Connection conn = Database.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             while (rs.next()) {
@@ -68,7 +68,7 @@ public class CustomerDAO {
     public static List<Customer> searchCustomers(String keyword) {
         List<Customer> customers = new ArrayList<>();
         String sql = "SELECT * FROM customers WHERE name LIKE ?";
-        try (Connection conn = DatabaseHelper.getConnection();
+        try (Connection conn = Database.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, "%" + keyword + "%");
             try (ResultSet rs = pstmt.executeQuery()) {
@@ -91,7 +91,7 @@ public class CustomerDAO {
         List<Customer> customers = new ArrayList<>();
         LocalDate thresholdDate = LocalDate.now().minusDays(days);
         String sql = "SELECT * FROM customers WHERE last_purchase_date IS NULL OR last_purchase_date = 'N/A' OR last_purchase_date <= ?";
-        try (Connection conn = DatabaseHelper.getConnection();
+        try (Connection conn = Database.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setString(1, thresholdDate.toString());
             try (ResultSet rs = pstmt.executeQuery()) {

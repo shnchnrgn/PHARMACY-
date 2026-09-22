@@ -7,7 +7,6 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
-import java.awt.Toolkit;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
@@ -280,7 +279,10 @@ public class MedicinePanel extends JPanel {
         JLabel lblShowing = new JLabel("Showing 1 to " + table.getRowCount() + " of entries");
         lblShowing.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblShowing.setForeground(new Color(100, 100, 100));
-        bottomBar.add(lblShowing, BorderLayout.WEST);
+
+        SharedData.medicineTableModel.addTableModelListener(e -> {
+        lblShowing.setText("Showing 1 to " + table.getRowCount() + " of entries");
+        });
 
         JPanel paginationPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
         paginationPanel.setOpaque(false);
