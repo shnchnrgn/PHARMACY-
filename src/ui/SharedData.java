@@ -13,7 +13,6 @@ public class SharedData {
     public static DefaultTableModel medicineTableModel;
 
     public static void addMedicine(String[] newMed) {
-        
         medicineList.add(newMed);
 
         if (medicineTableModel != null) {
@@ -22,7 +21,6 @@ public class SharedData {
     }
 
     public static void addSale(String orderNo, String date, String amount, String customerName) {
-        totalSalesToday += Double.parseDouble(amount);
         String[] saleEntry = {orderNo, date, "₱ " + amount, customerName};
         latestSalesList.add(0, saleEntry);
 
@@ -32,5 +30,20 @@ public class SharedData {
                 dashboardSalesModel.addRow(sale);
             }
         }
+        
+        recomputeTotalSales();
+    }
+
+    public static void recomputeTotalSales() {
+        double total = 0.0;
+        for (String[] sale : latestSalesList) {
+            try {
+                String cleanAmount = sale[2].replace("₱", "").replace(",", "").trim();
+                total += Double.parseDouble(cleanAmount);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        totalSalesToday = total;
     }
 }

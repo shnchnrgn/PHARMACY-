@@ -83,4 +83,19 @@ public class MedicineDAO {
         }
         return count;
     }
+
+    public static int getExpiredCount() {
+        int count = 0;
+        String sql = "SELECT COUNT(*) FROM medicines WHERE expiry_date < DATE('now')";
+        try (Connection conn = Database.getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(sql)) {
+            if (rs.next()) {
+                count = rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return count;
+    }
 }

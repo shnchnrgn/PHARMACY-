@@ -1,5 +1,6 @@
 package ui;
 
+import db.MedicineDAO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
@@ -9,6 +10,8 @@ public class DashboardPanel extends JPanel {
 
     private static JLabel lblSalesVal;
     private static JLabel lblSalesCountVal;
+    private static JLabel lblMedicinesVal;
+    private static JLabel lblExpiredVal;
     private static DefaultTableModel tableModel;
 
     public DashboardPanel() {
@@ -23,8 +26,12 @@ public class DashboardPanel extends JPanel {
         lblSalesVal = new JLabel("₱ " + String.format("%.2f", SharedData.totalSalesToday));
         cardsPanel.add(createCard("Sales", lblSalesVal, "Total Sales Today", new Color(41, 128, 185)));
         cardsPanel.add(createCard("Expenses", "₱ 0.00", "Total Expenses Today", new Color(39, 174, 96)));
-        cardsPanel.add(createCard("Medicines", "24", "Total Medicine In Store", new Color(230, 126, 34)));
-        cardsPanel.add(createCard("Expired", "3", "Medicines Expired", new Color(231, 76, 60)));
+        
+        lblMedicinesVal = new JLabel(String.valueOf(MedicineDAO.getAllMedicines().size()));
+        cardsPanel.add(createCard("Medicines", lblMedicinesVal, "Total Medicine In Store", new Color(230, 126, 34)));
+
+        lblExpiredVal = new JLabel(String.valueOf(MedicineDAO.getExpiredCount()));
+        cardsPanel.add(createCard("Expired", lblExpiredVal, "Medicines Expired", new Color(231, 76, 60)));
 
         add(cardsPanel, BorderLayout.NORTH);
 
@@ -77,6 +84,12 @@ public class DashboardPanel extends JPanel {
         }
         if (lblSalesCountVal != null) {
             lblSalesCountVal.setText("  Number Of Sales: " + SharedData.latestSalesList.size());
+        }
+        if (lblMedicinesVal != null) {
+            lblMedicinesVal.setText(String.valueOf(MedicineDAO.getAllMedicines().size()));
+        }
+        if (lblExpiredVal != null) {
+            lblExpiredVal.setText(String.valueOf(MedicineDAO.getExpiredCount()));
         }
         if (tableModel != null) {
             tableModel.setRowCount(0);

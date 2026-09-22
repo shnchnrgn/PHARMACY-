@@ -190,23 +190,30 @@ public class POSFrame extends JPanel {
         });
 
         btnCheckout.addActionListener(e -> {
-            if (cartModel.getRowCount() > 0) {
-                String customerName = JOptionPane.showInputDialog(this, "Enter Customer Name:", "Customer Details", JOptionPane.QUESTION_MESSAGE);
-                if (customerName != null && !customerName.trim().isEmpty()) {
-                    double totalAmount = calculateTotal();
-                    String orderNo = "ORD-" + (System.currentTimeMillis() % 10000);
-                    String currentDate = LocalDate.now().toString();
+            try {
+                if (cartModel.getRowCount() > 0) {
+                    String customerName = JOptionPane.showInputDialog(this, "Enter Customer Name:", "Customer Details", JOptionPane.QUESTION_MESSAGE);
+                    if (customerName != null && !customerName.trim().isEmpty()) {
+                        double totalAmount = calculateTotal();
+                        String orderNo = "ORD-" + (System.currentTimeMillis() % 10000);
+                        String currentDate = LocalDate.now().toString();
 
-                    SharedData.addSale(orderNo, currentDate, String.format("%.2f", totalAmount), customerName.trim());
+                        SharedData.totalSalesToday += totalAmount;
+                        SharedData.addSale(orderNo, currentDate, String.format("%.2f", totalAmount), customerName.trim());
+                        DashboardPanel.refreshDashboardData();
 
-                    JOptionPane.showMessageDialog(this, "Checkout successful! Transferred to Dashboard.");
-                    cartModel.setRowCount(0);
-                    updateSubtotal();
+                        JOptionPane.showMessageDialog(this, "Checkout successful! Transferred to Dashboard.");
+                        cartModel.setRowCount(0);
+                        updateSubtotal();
+                    } else {
+                        JOptionPane.showMessageDialog(this, "Checkout cancelled. Customer name is required.");
+                    }
                 } else {
-                    JOptionPane.showMessageDialog(this, "Checkout cancelled. Customer name is required.");
+                    JOptionPane.showMessageDialog(this, "The cart is empty.");
                 }
-            } else {
-                JOptionPane.showMessageDialog(this, "The cart is empty.");
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(this, "Checkout Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
     }

@@ -1,5 +1,8 @@
 package ui;
 
+import db.MedicineDAO;
+import models.Medicine;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.TableModelEvent;
@@ -12,6 +15,7 @@ import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.util.List;
 
 public class MedicinePanel extends JPanel {
 
@@ -181,6 +185,7 @@ public class MedicinePanel extends JPanel {
         centerContainer.setOpaque(false);
 
         String[] columns = {
+            "ID",
             "Medicine Name ↕", 
             "Medicine Category ↕", 
             "Buy Price ↕", 
@@ -192,52 +197,21 @@ public class MedicinePanel extends JPanel {
             "Action ↕"
         };
         
-        SharedData.medicineTableModel = new DefaultTableModel(columns, 0) {
+        DefaultTableModel tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column != 8;
+                return column != 9;
             }
         };
-        
-        String[][] defaultData = {
-            {"Biogesic 500mg", "Tablet", "₱4.00", "₱6.00", "150", "1", "Unilab", "15-Aug-2028", ""},
-            {"Neozep Forte", "Tablet", "₱5.50", "₱7.75", "120", "2", "Unilab", "20-Nov-2027", ""},
-            {"Alaxan FR", "Capsule", "₱8.00", "₱11.00", "90", "3", "Unilab", "10-Jan-2027", ""},
-            {"Decolgen Fort", "Tablet", "₱5.00", "₱7.00", "100", "4", "Pascual Lab", "05-Dec-2027", ""},
-            {"Lagundi 600mg", "Tablet", "₱6.00", "₱8.50", "80", "5", "Pascual Lab", "12-Mar-2028", ""},
-            {"Ascorbic Acid (Ceelin) 100ml", "Syrup", "₱85.00", "₱110.00", "45", "6", "Unilab", "30-Jun-2027", ""},
-            {"Mefenamic Acid 500mg", "Capsule", "₱4.50", "₱6.50", "200", "7", "Ritemed", "18-Sep-2028", ""}
-        };
-        
-        if (SharedData.medicineList.isEmpty()) {
-            for (String[] row : defaultData) {
-                SharedData.medicineList.add(row);
-                SharedData.medicineTableModel.addRow(row);
-            }
-        } else {
-            for (String[] row : SharedData.medicineList) {
-                SharedData.medicineTableModel.addRow(row);
-            }
-        }
 
-        SharedData.medicineTableModel.addTableModelListener(e -> {
-            if (e.getType() == TableModelEvent.UPDATE) {
-                int row = e.getFirstRow();
-                int col = e.getColumn();
-                if (row >= 0 && row < SharedData.medicineList.size() && col != 8) {
-                    String updatedVal = (String) SharedData.medicineTableModel.getValueAt(row, col);
-                    String[] rowData = SharedData.medicineList.get(row);
-                    rowData[col] = updatedVal;
-                }
-            }
-        });
+        table = new JTable(tableModel);
+        loadTableData(tableModel);
 
-        table = new JTable(SharedData.medicineTableModel);
         table.setRowHeight(32);
         table.setShowVerticalLines(false);
         table.setShowHorizontalLines(true);
         table.setGridColor(new Color(235, 238, 242));
-        table.getColumnModel().getColumn(8).setCellRenderer(new ActionButtonRenderer());
+        table.getColumnModel().getColumn(9).setCellRenderer(new ActionButtonRenderer());
         
         table.addMouseListener(new MouseAdapter() {
             @Override
@@ -245,19 +219,18 @@ public class MedicinePanel extends JPanel {
                 int row = table.rowAtPoint(e.getPoint());
                 int col = table.columnAtPoint(e.getPoint());
                 
-                if (col == 8 && row >= 0) {
+                if (col == 9 && row >= 0) {
                     Rectangle cellRect = table.getCellRect(row, col, false);
                     int clickX = e.getX() - cellRect.x;
+                    int medicineId = Integer.parseInt(table.getValueAt(row, 0).toString());
                     
                     if (clickX < cellRect.width / 2) {
-                        JOptionPane.showMessageDialog(table, "Edit medicine at row: " + (row + 1));
+                        JOptionPane.showMessageDialog(table, "Edit medicine ID: " + medicineId);
                     } else {
                         int confirm = JOptionPane.showConfirmDialog(table, "Are you sure you want to delete this medicine?", "Confirm Delete", JOptionPane.YES_NO_OPTION);
                         if (confirm == JOptionPane.YES_OPTION) {
-                            ((DefaultTableModel) table.getModel()).removeRow(row);
-                            if (row < SharedData.medicineList.size()) {
-                                SharedData.medicineList.remove(row);
-                            }
+                            MedicineDAO.deleteMedicine(medicineId);
+                            loadTableData((DefaultTableModel) table.getModel());
                         }
                     }
                 }
@@ -280,8 +253,8 @@ public class MedicinePanel extends JPanel {
         lblShowing.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblShowing.setForeground(new Color(100, 100, 100));
 
-        SharedData.medicineTableModel.addTableModelListener(e -> {
-        lblShowing.setText("Showing 1 to " + table.getRowCount() + " of entries");
+        tableModel.addTableModelListener(e -> {
+            lblShowing.setText("Showing 1 to " + table.getRowCount() + " of entries");
         });
 
         JPanel paginationPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 2, 0));
@@ -313,6 +286,33 @@ public class MedicinePanel extends JPanel {
 
         contentPanel.add(centerContainer, BorderLayout.CENTER);
         add(contentPanel, BorderLayout.CENTER);
+    }
+
+    public void loadTableData(DefaultTableModel model) {
+        model.setRowCount(0);
+        List<Medicine> list = MedicineDAO.getAllMedicines();
+        for (Medicine m : list) {
+            model.addRow(new Object[]{
+                m.getId(),
+                m.getName(),
+                "Tablet", 
+                "₱" + m.getPrice(),
+                "₱" + m.getPrice(),
+                m.getStock(),
+                "1",
+                "Unilab",
+                "2027-01-01",
+                ""
+            });
+        }
+    }
+
+    @Override
+    public void addNotify() {
+        super.addNotify();
+        if (table != null) {
+            loadTableData((DefaultTableModel) table.getModel());
+        }
     }
 
     class ActionButtonRenderer extends JPanel implements TableCellRenderer {

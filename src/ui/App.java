@@ -41,10 +41,29 @@ public class App extends JFrame {
         sb.setBackground(new Color(24, 34, 45));
         sb.setLayout(new BoxLayout(sb, BoxLayout.Y_AXIS));
 
-        JLabel lblLogo = new JLabel(" Vanguard Pharmacy MS");
-        lblLogo.setForeground(Color.WHITE);
-        lblLogo.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        lblLogo.setMaximumSize(new Dimension(240, 60));
+        JLabel lblLogo;
+        try {
+            ImageIcon originalIcon = new ImageIcon(getClass().getResource("/ui/VANGUARD MS.png"));
+            Image image = originalIcon.getImage();
+            
+            int originalWidth = image.getWidth(null);
+            int originalHeight = image.getHeight(null);
+            
+            int targetWidth = 150;
+            int targetHeight = (int) ((double) originalHeight / originalWidth * targetWidth);
+            
+            Image scaledImage = image.getScaledInstance(targetWidth, targetHeight, Image.SCALE_SMOOTH);
+            lblLogo = new JLabel(new ImageIcon(scaledImage));
+            lblLogo.setMaximumSize(new Dimension(240, targetHeight + 5));
+            lblLogo.setBorder(BorderFactory.createEmptyBorder(5, 10, 2, 10));
+        } catch (Exception e) {
+            lblLogo = new JLabel("Vanguard MS");
+            lblLogo.setForeground(Color.WHITE);
+            lblLogo.setFont(new Font("Segoe UI", Font.BOLD, 16));
+            lblLogo.setMaximumSize(new Dimension(240, 40));
+            lblLogo.setBorder(BorderFactory.createEmptyBorder(5, 10, 2, 10));
+        }
+        
         lblLogo.setAlignmentX(Component.LEFT_ALIGNMENT);
         sb.add(lblLogo);
 
