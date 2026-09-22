@@ -31,7 +31,6 @@ public class App extends JFrame {
         mainContentPanel.add(new AddMedicinePanel(), "ADD_MEDICINE");
         mainContentPanel.add(new MedicineCategoryPanel(), "MEDICINE_CATEGORY");
         mainContentPanel.add(new CustomerPanel(), "CUSTOMERS");
-        mainContentPanel.add(new InventoryPanel(), "INVENTORY");
 
         add(mainContentPanel, BorderLayout.CENTER);
     }
@@ -42,7 +41,7 @@ public class App extends JFrame {
         sb.setBackground(new Color(24, 34, 45));
         sb.setLayout(new BoxLayout(sb, BoxLayout.Y_AXIS));
 
-        JLabel lblLogo = new JLabel("  Pharmacy MS");
+        JLabel lblLogo = new JLabel(" Vanguard Pharmacy MS");
         lblLogo.setForeground(Color.WHITE);
         lblLogo.setFont(new Font("Segoe UI", Font.BOLD, 18));
         lblLogo.setMaximumSize(new Dimension(240, 60));
@@ -51,7 +50,6 @@ public class App extends JFrame {
 
         sb.add(createStyledNavButton("Dashboard", e -> cardLayout.show(mainContentPanel, "DASHBOARD")));
         sb.add(createStyledNavButton("Point Of Sales", e -> cardLayout.show(mainContentPanel, "POS")));
-        sb.add(createStyledNavButton("Inventory", e -> cardLayout.show(mainContentPanel, "INVENTORY")));
 
         sb.add(createMedicineDropdownButton());
 
