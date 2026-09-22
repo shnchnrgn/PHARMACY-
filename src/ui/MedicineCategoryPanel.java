@@ -4,13 +4,14 @@ import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
-import javax.swing.table.TableCellEditor;
 import java.awt.*;
 
 public class MedicineCategoryPanel extends JPanel {
 
-    private JTable catTable;
-    private DefaultTableModel tableModel;
+    private JTable categoryTable;
+    private DefaultTableModel categoryModel;
+    private JTextField txtCategoryName;
+    private JTextArea txtDescription;
 
     public MedicineCategoryPanel() {
         setLayout(new BorderLayout(0, 15));
@@ -18,78 +19,89 @@ public class MedicineCategoryPanel extends JPanel {
         setBorder(new EmptyBorder(20, 20, 20, 20));
 
         JLabel lblTitle = new JLabel("Medicine Category Management");
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        lblTitle.setForeground(new Color(40, 40, 40));
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        lblTitle.setForeground(new Color(50, 50, 50));
         add(lblTitle, BorderLayout.NORTH);
 
-        JPanel content = new JPanel(new BorderLayout(15, 0));
-        content.setOpaque(false);
+        JPanel contentPanel = new JPanel(new GridLayout(1, 2, 15, 0));
+        contentPanel.setOpaque(false);
 
-        JPanel leftForm = new JPanel(new GridLayout(3, 2, 5, 10));
-        leftForm.setBackground(Color.WHITE);
-        leftForm.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(220, 224, 230)),
-            new EmptyBorder(15, 15, 15, 15)
-        ));
-        leftForm.setPreferredSize(new Dimension(320, 180));
-
-        JTextField txtCategoryName = new JTextField();
-        JTextField txtDescription = new JTextField();
-
-        leftForm.add(new JLabel("Category Name:"));
-        leftForm.add(txtCategoryName);
-        leftForm.add(new JLabel("Description:"));
-        leftForm.add(txtDescription);
-        
-        JButton btnAddCat = new JButton("Add Category");
-        btnAddCat.setBackground(new Color(39, 174, 96));
-        btnAddCat.setForeground(Color.WHITE);
-        btnAddCat.setFocusPainted(false);
-        leftForm.add(new JLabel(""));
-        leftForm.add(btnAddCat);
-
-        content.add(leftForm, BorderLayout.WEST);
-
-        JPanel rightTable = new JPanel(new BorderLayout());
-        rightTable.setBackground(Color.WHITE);
-        rightTable.setBorder(BorderFactory.createCompoundBorder(
+        JPanel leftFormPanel = new JPanel();
+        leftFormPanel.setLayout(null);
+        leftFormPanel.setBackground(Color.WHITE);
+        leftFormPanel.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(220, 224, 230)),
             new EmptyBorder(15, 15, 15, 15)
         ));
 
-        String[] cols = {"Category ID", "Category Name", "Description", "Action"};
-        Object[][] data = {
-            {"C01", "Tablet", "Oral solid dosage form", ""},
-            {"C02", "Syrup", "Liquid oral preparation", ""},
-            {"C03", "Capsule", "Enclosed in a gelatin shell", ""},
-            {"C04", "Drop", "Liquid medication drops", ""}
+        JLabel lblCatName = new JLabel("Category Name:");
+        lblCatName.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblCatName.setBounds(20, 30, 120, 25);
+        leftFormPanel.add(lblCatName);
+
+        txtCategoryName = new JTextField();
+        txtCategoryName.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        txtCategoryName.setBounds(20, 60, 300, 30);
+        leftFormPanel.add(txtCategoryName);
+
+        JLabel lblDesc = new JLabel("Description:");
+        lblDesc.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblDesc.setBounds(20, 110, 120, 25);
+        leftFormPanel.add(lblDesc);
+
+        txtDescription = new JTextArea();
+        txtDescription.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        txtDescription.setLineWrap(true);
+        JScrollPane descScroll = new JScrollPane(txtDescription);
+        descScroll.setBounds(20, 140, 300, 90);
+        leftFormPanel.add(descScroll);
+
+        JButton btnAddCategory = new JButton("Add Category");
+        btnAddCategory.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnAddCategory.setBackground(new Color(40, 167, 69));
+        btnAddCategory.setForeground(Color.WHITE);
+        btnAddCategory.setFocusPainted(false);
+        btnAddCategory.setBounds(20, 250, 300, 45);
+        leftFormPanel.add(btnAddCategory);
+
+        JPanel rightTablePanel = new JPanel(new BorderLayout());
+        rightTablePanel.setBackground(Color.WHITE);
+        rightTablePanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(220, 224, 230)),
+            new EmptyBorder(15, 15, 15, 15)
+        ));
+
+        String[] columns = {"Category ID", "Category Name", "Description", "Action"};
+        categoryModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column == 3;
+            }
         };
 
-        tableModel = new DefaultTableModel(data, cols);
-        catTable = new JTable(tableModel);
-        
-        catTable.getColumnModel().getColumn(3).setCellRenderer(new ActionButtonRenderer());
-        catTable.getColumnModel().getColumn(3).setCellEditor(new ActionButtonEditor(new JCheckBox(), catTable));
-        catTable.setRowHeight(35);
+        categoryModel.addRow(new Object[]{"C01", "Tablet", "Oral solid dosage form", ""});
+        categoryModel.addRow(new Object[]{"C02", "Syrup", "Liquid oral preparation", ""});
+        categoryModel.addRow(new Object[]{"C03", "Capsule", "Enclosed in a gelatin shell", ""});
+        categoryModel.addRow(new Object[]{"C04", "Drop", "Liquid medication drops", ""});
 
-        rightTable.add(new JScrollPane(catTable), BorderLayout.CENTER);
+        categoryTable = new JTable(categoryModel);
+        categoryTable.setRowHeight(35);
+        categoryTable.setShowVerticalLines(false);
+        categoryTable.setShowHorizontalLines(true);
+        categoryTable.setGridColor(new Color(235, 238, 242));
+        categoryTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        categoryTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        categoryTable.getTableHeader().setBackground(new Color(248, 249, 250));
+        categoryTable.getTableHeader().setForeground(new Color(50, 50, 50));
+        categoryTable.getColumnModel().getColumn(3).setCellRenderer(new ActionButtonRenderer());
 
-        content.add(rightTable, BorderLayout.CENTER);
-        add(content, BorderLayout.CENTER);
+        JScrollPane tableScroll = new JScrollPane(categoryTable);
+        tableScroll.getViewport().setBackground(Color.WHITE);
+        rightTablePanel.add(tableScroll, BorderLayout.CENTER);
 
-        btnAddCat.addActionListener(e -> {
-            String catName = txtCategoryName.getText().trim();
-            String desc = txtDescription.getText().trim();
-            if (!catName.isEmpty()) {
-                String id = "C0" + (catTable.getRowCount() + 1);
-                tableModel.addRow(new Object[]{id, catName, desc, ""});
-                txtCategoryName.setText("");
-                txtDescription.setText("");
-                JOptionPane.showMessageDialog(this, "Category added successfully!");
-            } else {
-                JOptionPane.showMessageDialog(this, "Please enter Category Name.");
-            }
-        });
+        contentPanel.add(leftFormPanel);
+        contentPanel.add(rightTablePanel);
+        add(contentPanel, BorderLayout.CENTER);
     }
 
     class ActionButtonRenderer extends JPanel implements TableCellRenderer {
@@ -99,21 +111,21 @@ public class MedicineCategoryPanel extends JPanel {
             setLayout(new FlowLayout(FlowLayout.CENTER, 4, 4));
             setOpaque(true);
             
-            btnEdit = new JButton("...");
-            btnEdit.setBackground(new Color(41, 128, 185));
+            btnEdit = new JButton("✏");
+            btnEdit.setBackground(new Color(51, 122, 183));
             btnEdit.setForeground(Color.WHITE);
             btnEdit.setFocusPainted(false);
             btnEdit.setBorderPainted(false);
             btnEdit.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            btnEdit.setPreferredSize(new Dimension(32, 26));
+            btnEdit.setPreferredSize(new Dimension(30, 24));
 
-            btnDelete = new JButton("...");
-            btnDelete.setBackground(new Color(203, 67, 53));
+            btnDelete = new JButton("🗑");
+            btnDelete.setBackground(new Color(217, 83, 79));
             btnDelete.setForeground(Color.WHITE);
             btnDelete.setFocusPainted(false);
             btnDelete.setBorderPainted(false);
             btnDelete.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            btnDelete.setPreferredSize(new Dimension(32, 26));
+            btnDelete.setPreferredSize(new Dimension(30, 24));
 
             add(btnEdit);
             add(btnDelete);
@@ -121,69 +133,8 @@ public class MedicineCategoryPanel extends JPanel {
 
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-            if (isSelected) {
-                setBackground(table.getSelectionBackground());
-            } else {
-                setBackground(Color.WHITE);
-            }
+            setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
             return this;
-        }
-    }
-
-    class ActionButtonEditor extends AbstractCellEditor implements TableCellEditor {
-        private JPanel panel;
-        private JButton btnEdit, btnDelete;
-        private JTable table;
-        private int currentRow;
-
-        public ActionButtonEditor(JCheckBox checkBox, JTable table) {
-            this.table = table;
-            panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 4));
-            panel.setOpaque(true);
-
-            btnEdit = new JButton("...");
-            btnEdit.setBackground(new Color(41, 128, 185));
-            btnEdit.setForeground(Color.WHITE);
-            btnEdit.setFocusPainted(false);
-            btnEdit.setBorderPainted(false);
-            btnEdit.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            btnEdit.setPreferredSize(new Dimension(32, 26));
-
-            btnDelete = new JButton("...");
-            btnDelete.setBackground(new Color(203, 67, 53));
-            btnDelete.setForeground(Color.WHITE);
-            btnDelete.setFocusPainted(false);
-            btnDelete.setBorderPainted(false);
-            btnDelete.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            btnDelete.setPreferredSize(new Dimension(32, 26));
-
-            btnEdit.addActionListener(e -> {
-                fireEditingStopped();
-                JOptionPane.showMessageDialog(table, "Edit category at row: " + (currentRow + 1));
-            });
-
-            btnDelete.addActionListener(e -> {
-                fireEditingStopped();
-                int confirm = JOptionPane.showConfirmDialog(table, "Are you sure you want to delete this category?", "Confirm Delete", JOptionPane.YES_NO_OPTION);
-                if (confirm == JOptionPane.YES_OPTION) {
-                    ((DefaultTableModel) table.getModel()).removeRow(currentRow);
-                }
-            });
-
-            panel.add(btnEdit);
-            panel.add(btnDelete);
-        }
-
-        @Override
-        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
-            currentRow = row;
-            panel.setBackground(table.getSelectionBackground());
-            return panel;
-        }
-
-        @Override
-        public Object getCellEditorValue() {
-            return "";
         }
     }
 }

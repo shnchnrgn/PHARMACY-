@@ -45,22 +45,36 @@ public class POSFrame extends JPanel {
         searchPanel.add(btnSearch, BorderLayout.EAST);
         leftPanel.add(searchPanel, BorderLayout.NORTH);
 
-        String[] medColumns = {"ID", "Name", "Price", "Stock"};
-        Object[][] medData = {
-            {"M001", "Biogesic", "5.00", "150"},
-            {"M002", "Neozep", "7.50", "80"},
-            {"M003", "Alaxan FR", "10.00", "45"},
-            {"M004", "Enat 400", "18.00", "60"}
+        String[] medColumns = {"Medicine Name", "Category", "Price", "Stock"};
+        
+        medicineModel = new DefaultTableModel(medColumns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
         };
-        medicineModel = new DefaultTableModel(medData, medColumns);
+        
+        loadMedicinesToPOS();
+
         medicineTable = new JTable(medicineModel);
+        medicineTable.setRowHeight(32);
+        medicineTable.setShowVerticalLines(false);
+        medicineTable.setShowHorizontalLines(true);
+        medicineTable.setGridColor(new Color(235, 238, 242));
+        medicineTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        medicineTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        medicineTable.getTableHeader().setBackground(new Color(248, 249, 250));
+        medicineTable.getTableHeader().setForeground(new Color(50, 50, 50));
+
         JScrollPane medScroll = new JScrollPane(medicineTable);
+        medScroll.getViewport().setBackground(Color.WHITE);
         leftPanel.add(medScroll, BorderLayout.CENTER);
 
         JButton btnAddToCart = new JButton("Add to Cart");
         btnAddToCart.setBackground(new Color(41, 128, 185));
         btnAddToCart.setForeground(Color.WHITE);
         btnAddToCart.setFocusPainted(false);
+        btnAddToCart.setCursor(new Cursor(Cursor.HAND_CURSOR));
         leftPanel.add(btnAddToCart, BorderLayout.SOUTH);
 
         JPanel rightPanel = new JPanel(new BorderLayout());
@@ -78,7 +92,17 @@ public class POSFrame extends JPanel {
         String[] cartColumns = {"Item Name", "Price", "Qty", "Total"};
         cartModel = new DefaultTableModel(new Object[][]{}, cartColumns);
         cartTable = new JTable(cartModel);
+        cartTable.setRowHeight(32);
+        cartTable.setShowVerticalLines(false);
+        cartTable.setShowHorizontalLines(true);
+        cartTable.setGridColor(new Color(235, 238, 242));
+        cartTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        cartTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        cartTable.getTableHeader().setBackground(new Color(248, 249, 250));
+        cartTable.getTableHeader().setForeground(new Color(50, 50, 50));
+
         JScrollPane cartScroll = new JScrollPane(cartTable);
+        cartScroll.getViewport().setBackground(Color.WHITE);
         rightPanel.add(cartScroll, BorderLayout.CENTER);
 
         JPanel bottomCartPanel = new JPanel(new BorderLayout());
@@ -102,11 +126,13 @@ public class POSFrame extends JPanel {
         btnRemove.setBackground(new Color(231, 76, 60));
         btnRemove.setForeground(Color.WHITE);
         btnRemove.setFocusPainted(false);
+        btnRemove.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         JButton btnCheckout = new JButton("Checkout");
         btnCheckout.setBackground(new Color(39, 174, 96));
         btnCheckout.setForeground(Color.WHITE);
         btnCheckout.setFocusPainted(false);
+        btnCheckout.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         actionButtons.add(btnRemove);
         actionButtons.add(btnCheckout);
@@ -118,12 +144,35 @@ public class POSFrame extends JPanel {
         contentPanel.add(rightPanel);
         add(contentPanel, BorderLayout.CENTER);
 
+        this.addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentShown(java.awt.event.ComponentEvent e) {
+                loadMedicinesToPOS();
+            }
+        });
+
         btnAddToCart.addActionListener(e -> {
             int selectedRow = medicineTable.getSelectedRow();
             if (selectedRow != -1) {
-                String name = (String) medicineModel.getValueAt(selectedRow, 1);
+                String name = (String) medicineModel.getValueAt(selectedRow, 0);
                 String priceStr = (String) medicineModel.getValueAt(selectedRow, 2);
-                cartModel.addRow(new Object[]{name, priceStr, "1", priceStr});
+                
+                double price = Double.parseDouble(priceStr.replace("₱", "").trim());
+                
+                boolean found = false;
+                for (int i = 0; i < cartModel.getRowCount(); i++) {
+                    if (cartModel.getValueAt(i, 0).equals(name)) {
+                        int qty = Integer.parseInt((String) cartModel.getValueAt(i, 2)) + 1;
+                        cartModel.setValueAt(String.valueOf(qty), i, 2);
+                        cartModel.setValueAt(String.format("₱%.2f", price * qty), i, 3);
+                        found = true;
+                        break;
+                    }
+                }
+                
+                if (!found) {
+                    cartModel.addRow(new Object[]{name, String.format("₱%.2f", price), "1", String.format("₱%.2f", price)});
+                }
                 updateSubtotal();
             } else {
                 JOptionPane.showMessageDialog(this, "Please select a medicine from the list first.");
@@ -148,7 +197,6 @@ public class POSFrame extends JPanel {
                     String orderNo = "ORD-" + (System.currentTimeMillis() % 10000);
                     String currentDate = LocalDate.now().toString();
 
-                    // I-save sa Shared Data para makita sa Dashboard
                     SharedData.addSale(orderNo, currentDate, String.format("%.2f", totalAmount), customerName.trim());
 
                     JOptionPane.showMessageDialog(this, "Checkout successful! Transferred to Dashboard.");
@@ -163,15 +211,28 @@ public class POSFrame extends JPanel {
         });
     }
 
+    private void loadMedicinesToPOS() {
+        medicineModel.setRowCount(0);
+        if (!SharedData.medicineList.isEmpty()) {
+            for (String[] med : SharedData.medicineList) {
+                medicineModel.addRow(new Object[]{med[0], med[1], med[3], med[4]});
+            }
+        } else {
+            medicineModel.addRow(new Object[]{"Biogesic 500mg", "Tablet", "₱6.00", "150"});
+            medicineModel.addRow(new Object[]{"Neozep Forte", "Tablet", "₱7.75", "120"});
+        }
+    }
+
     private double calculateTotal() {
         double total = 0;
         for (int i = 0; i < cartModel.getRowCount(); i++) {
-            total += Double.parseDouble((String) cartModel.getValueAt(i, 3));
+            String totalStr = (String) cartModel.getValueAt(i, 3);
+            total += Double.parseDouble(totalStr.replace("₱", "").trim());
         }
         return total;
     }
 
     private void updateSubtotal() {
-        lblSubtotalVal.setText("₱ " + String.format("%.2f", calculateTotal()));
+        lblSubtotalVal.setText(String.format("₱ %.2f", calculateTotal()));
     }
 }

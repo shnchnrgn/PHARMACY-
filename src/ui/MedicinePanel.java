@@ -200,7 +200,6 @@ public class MedicinePanel extends JPanel {
             }
         };
         
-        // Updated default data na may mga pamilyar na gamot sa Pilipinas
         String[][] defaultData = {
             {"Biogesic 500mg", "Tablet", "₱4.00", "₱6.00", "150", "1", "Unilab", "15-Aug-2028", ""},
             {"Neozep Forte", "Tablet", "₱5.50", "₱7.75", "120", "2", "Unilab", "20-Nov-2027", ""},
@@ -235,6 +234,10 @@ public class MedicinePanel extends JPanel {
         });
 
         table = new JTable(SharedData.medicineTableModel);
+        table.setRowHeight(32);
+        table.setShowVerticalLines(false);
+        table.setShowHorizontalLines(true);
+        table.setGridColor(new Color(235, 238, 242));
         table.getColumnModel().getColumn(8).setCellRenderer(new ActionButtonRenderer());
         
         table.addMouseListener(new MouseAdapter() {
@@ -262,13 +265,13 @@ public class MedicinePanel extends JPanel {
             }
         });
 
-        table.setRowHeight(36);
         table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         table.getTableHeader().setBackground(new Color(248, 249, 250));
         table.getTableHeader().setForeground(new Color(50, 50, 50));
 
         JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.getViewport().setBackground(Color.WHITE);
         centerContainer.add(scrollPane, BorderLayout.CENTER);
 
         JPanel bottomBar = new JPanel(new BorderLayout());
