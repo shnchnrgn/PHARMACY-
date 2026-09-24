@@ -1,5 +1,6 @@
 package ui;
 
+import db.Database;
 import javax.swing.*;
 import java.awt.*;
 
@@ -11,7 +12,8 @@ public class App extends JFrame {
     private boolean isMedicineMenuOpen = true;
     private JLabel lblArrow;
 
-    public App() {
+    public App() { 
+        Database.createTables();
         setTitle("Pharmacy Management System");
         setSize(1250, 720);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
