@@ -16,6 +16,7 @@ public class App extends JFrame {
         setSize(1250, 720);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+        getContentPane().setBackground(new Color(240, 242, 245));
 
         setLayout(new BorderLayout());
 
@@ -38,7 +39,7 @@ public class App extends JFrame {
     private JPanel createSidebar() {
         JPanel sb = new JPanel();
         sb.setPreferredSize(new Dimension(240, getHeight()));
-        sb.setBackground(new Color(24, 34, 45));
+        sb.setBackground(new Color(29, 45, 80));
         sb.setLayout(new BoxLayout(sb, BoxLayout.Y_AXIS));
 
         JLabel lblLogo;
@@ -62,6 +63,7 @@ public class App extends JFrame {
             lblLogo.setFont(new Font("Segoe UI", Font.BOLD, 16));
             lblLogo.setMaximumSize(new Dimension(240, 40));
             lblLogo.setBorder(BorderFactory.createEmptyBorder(5, 10, 2, 10));
+            lblLogo.setBackground(new Color(142,197,255));
         }
         
         lblLogo.setAlignmentX(Component.LEFT_ALIGNMENT);
@@ -165,6 +167,7 @@ public class App extends JFrame {
         lblArrow = new JLabel("^");
         lblArrow.setForeground(Color.WHITE);
         lblArrow.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblArrow.setBackground(new Color(240, 242, 245));
 
         button.add(lblText, BorderLayout.WEST);
         button.add(lblArrow, BorderLayout.EAST);

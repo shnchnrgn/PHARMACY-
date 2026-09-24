@@ -217,17 +217,30 @@ public class POSFrame extends JPanel {
         btnRemove.addActionListener(e -> {
             int selectedCartRow = cartTable.getSelectedRow();
             if (selectedCartRow != -1) {
-                cartModel.removeRow(selectedCartRow);
+                String priceStr = (String) cartModel.getValueAt(selectedCartRow, 1);
+                int currentQty = Integer.parseInt((String) cartModel.getValueAt(selectedCartRow, 2));
+                
+                if (currentQty > 1) {   
+                    double unitPrice = Double.parseDouble(priceStr.replace("₱", "").trim());
+                    int newQty = currentQty - 1;
+                    cartModel.setValueAt(String.valueOf(newQty), selectedCartRow, 2);
+                    cartModel.setValueAt(String.format("₱%.2f", unitPrice * newQty), selectedCartRow, 3);
+                } else {
+                    cartModel.removeRow(selectedCartRow);
+                }
                 updateSubtotal();
             } else {
-                JOptionPane.showMessageDialog(this, "Please select an item from the cart to remove.");
+                JOptionPane.showMessageDialog(this, 
+                    "Please select an item from the cart to remove.");
             }
         });
 
         btnCheckout.addActionListener(e -> {
             try {
                 if (cartModel.getRowCount() > 0) {
-                    String customerName = JOptionPane.showInputDialog(this, "Enter Customer Name:", "Customer Details", JOptionPane.QUESTION_MESSAGE);
+                    String customerName = JOptionPane.showInputDialog(this, 
+                        "Enter Customer Name:", 
+                        "Customer Details", JOptionPane.QUESTION_MESSAGE);
                     if (customerName != null && !customerName.trim().isEmpty()) {
                         double totalAmount = calculateTotal();
                         String orderNo = "ORD-" + (System.currentTimeMillis() % 10000);
@@ -237,22 +250,78 @@ public class POSFrame extends JPanel {
                         SharedData.addSale(orderNo, currentDate, String.format("%.2f", totalAmount), customerName.trim());
                         DashboardPanel.refreshDashboardData();
 
-                        JOptionPane.showMessageDialog(this, "Checkout successful! Transferred to Dashboard.");
+                        JOptionPane.showMessageDialog(this, 
+                            "Checkout successful! Transferred to Dashboard.");
                         cartModel.setRowCount(0);
                         updateSubtotal();
                     } else {
-                        JOptionPane.showMessageDialog(this, "Checkout cancelled. Customer name is required.");
+                        JOptionPane.showMessageDialog(this, 
+                            "Checkout cancelled. Customer name is required.");
                     }
                 } else {
-                    JOptionPane.showMessageDialog(this, "The cart is empty.");
+                    JOptionPane.showMessageDialog(this, 
+                        "The cart is empty.");
                 }
             } catch (Exception ex) {
                 ex.printStackTrace();
-                JOptionPane.showMessageDialog(this, "Checkout Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(this, 
+                    "Checkout Error: " + ex.getMessage(), 
+                    "Error", JOptionPane.ERROR_MESSAGE);
             }
         });
-    }
 
+        btnSearch.addActionListener(e -> {
+            String searchInput = searchField.getText().trim();
+            
+            if (searchInput.isEmpty()) {
+                JOptionPane.showMessageDialog(this,
+                    "Please enter a medicine name to search.",
+                    "Incorrect Input", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            if (searchInput.matches("\\d+")) {
+                JOptionPane.showMessageDialog(this,
+                    "Incorrect Input (Please search using Name)",
+                    "Incorrect Input", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            boolean itemFound = false;
+            
+            for (int i = 0; i < medicineModel.getRowCount(); i++) {
+                String name = (String) medicineModel.getValueAt(i, 0);
+
+                if (name.equalsIgnoreCase(searchInput) || name.toLowerCase().equalsIgnoreCase(searchInput.toLowerCase())) {            
+                    itemFound = true;
+                    medicineTable.setRowSelectionInterval(i, i);
+                    medicineTable.scrollRectToVisible(medicineTable.getCellRect(i, 0, true));
+                    
+                    Object stockObj = medicineModel.getValueAt(i, 3);
+                    int stock = Integer.parseInt(stockObj.toString().trim());
+                    
+                    if (stock <= 0) {
+                        JOptionPane.showMessageDialog(this, 
+                            "Medicine '" + name + "' is Out of Stock!", 
+                            "Out of Stock", 
+                            JOptionPane.ERROR_MESSAGE);
+                        } else {
+                            JOptionPane.showMessageDialog(this, 
+                                "Found: " + name + "\nPrice: " + medicineModel.getValueAt(i, 2) + "\nStock: " + stock, 
+                                "Item Found", 
+                                JOptionPane.INFORMATION_MESSAGE);
+                            }
+                            break;
+                        }
+                    }
+                    if (!itemFound) {
+                        JOptionPane.showMessageDialog(this, 
+                            "Medicine '" + searchInput + "' Not Found.", 
+                            "Not Found", 
+                            JOptionPane.ERROR_MESSAGE);
+                        }
+                    });
+                }
     private void loadMedicinesToPOS() {
         medicineModel.setRowCount(0);
         if (!SharedData.medicineList.isEmpty()) {

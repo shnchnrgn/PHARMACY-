@@ -16,7 +16,8 @@ public class DashboardPanel extends JPanel {
 
     public DashboardPanel() {
         setLayout(new BorderLayout(0, 15));
-        setBackground(new Color(245, 247, 250));
+        setBackground(new Color (255,255,255));
+        setOpaque(true);
         setBorder(new EmptyBorder(20, 20, 20, 20));
 
         JPanel cardsPanel = new JPanel(new GridLayout(1, 4, 15, 0));
