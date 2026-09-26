@@ -75,10 +75,15 @@ public class MedicinePanel extends JPanel {
 
         btnCsv.addActionListener(e -> {
             try {
-                JFileChooser fileChooser = new JFileChooser();
-                fileChooser.setSelectedFile(new File("medicine_list.csv"));
-                if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-                    File file = fileChooser.getSelectedFile();
+                FileDialog fileDialog = new FileDialog((Frame) SwingUtilities.getWindowAncestor(this), "Save CSV", FileDialog.SAVE);
+                fileDialog.setFile("medicine_list.csv");
+                fileDialog.setVisible(true);
+                
+                String fileName = fileDialog.getFile();
+                String directory = fileDialog.getDirectory();
+                
+                if (fileName != null) {
+                    File file = new File(directory, fileName);
                     PrintWriter pw = new PrintWriter(new FileWriter(file));
                     for (int i = 0; i < table.getColumnCount() - 1; i++) {
                         pw.print(table.getColumnName(i).replace(" ↕", "") + (i == table.getColumnCount() - 2 ? "" : ","));
@@ -100,10 +105,15 @@ public class MedicinePanel extends JPanel {
 
         btnExcel.addActionListener(e -> {
             try {
-                JFileChooser fileChooser = new JFileChooser();
-                fileChooser.setSelectedFile(new File("medicine_list.xls"));
-                if (fileChooser.showSaveDialog(this) == JFileChooser.APPROVE_OPTION) {
-                    File file = fileChooser.getSelectedFile();
+                FileDialog fileDialog = new FileDialog((Frame) SwingUtilities.getWindowAncestor(this), "Save Excel", FileDialog.SAVE);
+                fileDialog.setFile("medicine_list.xls");
+                fileDialog.setVisible(true);
+                
+                String fileName = fileDialog.getFile();
+                String directory = fileDialog.getDirectory();
+                
+                if (fileName != null) {
+                    File file = new File(directory, fileName);
                     PrintWriter pw = new PrintWriter(new FileWriter(file));
                     pw.println("<html xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\" xmlns=\"http://www.w3.org/TR/REC-html40\">");
                     pw.println("<head><meta charset='UTF-8'></head><body>");
@@ -130,9 +140,18 @@ public class MedicinePanel extends JPanel {
 
         btnPdf.addActionListener(e -> {
             try {
-                boolean complete = table.print(JTable.PrintMode.FIT_WIDTH, null, null);
-                if (complete) {
-                    JOptionPane.showMessageDialog(this, "Document sent to printer/PDF successfully!", "PDF Export", JOptionPane.INFORMATION_MESSAGE);
+                FileDialog fileDialog = new FileDialog((Frame) SwingUtilities.getWindowAncestor(this), "Save PDF / Print", FileDialog.SAVE);
+                fileDialog.setFile("medicine_list.pdf");
+                fileDialog.setVisible(true);
+                
+                String fileName = fileDialog.getFile();
+                String directory = fileDialog.getDirectory();
+                
+                if (fileName != null) {
+                    boolean complete = table.print(JTable.PrintMode.FIT_WIDTH, null, null);
+                    if (complete) {
+                        JOptionPane.showMessageDialog(this, "Document sent to printer/PDF successfully!", "PDF Export", JOptionPane.INFORMATION_MESSAGE);
+                    }
                 }
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Error generating PDF: " + ex.getMessage(), "PDF Error", JOptionPane.ERROR_MESSAGE);
@@ -276,7 +295,7 @@ public class MedicinePanel extends JPanel {
             setOpaque(true);
             
             btnEdit = new JButton("✏");
-            btnEdit.setBackground(new Color(51, 122, 183)); // Asul para sa Edit
+            btnEdit.setBackground(new Color(51, 122, 183));
             btnEdit.setForeground(Color.WHITE);
             btnEdit.setFocusPainted(false);
             btnEdit.setBorderPainted(false);
@@ -284,7 +303,7 @@ public class MedicinePanel extends JPanel {
             btnEdit.setPreferredSize(new Dimension(30, 24));
 
             btnDelete = new JButton("🗑");
-            btnDelete.setBackground(new Color(220, 53, 69)); // Pula para sa Delete
+            btnDelete.setBackground(new Color(220, 53, 69));
             btnDelete.setForeground(Color.WHITE);
             btnDelete.setFocusPainted(false);
             btnDelete.setBorderPainted(false);
