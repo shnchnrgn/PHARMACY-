@@ -210,7 +210,7 @@ public class MedicinePanel extends JPanel {
         DefaultTableModel tableModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column != 8;
+                return column == 8;
             }
         };
 
@@ -222,31 +222,8 @@ public class MedicinePanel extends JPanel {
         table.setShowHorizontalLines(true);
         table.setGridColor(new Color(235, 238, 242));
         table.getColumnModel().getColumn(8).setCellRenderer(new ActionButtonRenderer());
+        table.getColumnModel().getColumn(8).setCellEditor(new ActionButtonEditor(new JCheckBox()));
         
-        table.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mousePressed(MouseEvent e) {
-                int row = table.rowAtPoint(e.getPoint());
-                int col = table.columnAtPoint(e.getPoint());
-                
-                if (col == 8 && row >= 0) {
-                    Rectangle cellRect = table.getCellRect(row, col, false);
-                    int clickX = e.getX() - cellRect.x;
-                    int medicineId = Integer.parseInt(table.getValueAt(row, 0).toString());
-                    
-                    if (clickX < cellRect.width / 2) {
-                        JOptionPane.showMessageDialog(table, "Edit medicine ID: " + medicineId);
-                    } else {
-                        int confirm = JOptionPane.showConfirmDialog(table, "Are you sure you want to delete this medicine?", "Confirm Delete", JOptionPane.YES_NO_OPTION);
-                        if (confirm == JOptionPane.YES_OPTION) {
-                            MedicineDAO.deleteMedicine(medicineId);
-                            loadTableData((DefaultTableModel) table.getModel());
-                        }
-                    }
-                }
-            }
-        });
-
         table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         table.getTableHeader().setBackground(new Color(248, 249, 250));
@@ -294,17 +271,21 @@ public class MedicinePanel extends JPanel {
             setLayout(new FlowLayout(FlowLayout.CENTER, 4, 4));
             setOpaque(true);
             
-            btnEdit = new JButton("✏");
+            btnEdit = new JButton("...");
             btnEdit.setBackground(new Color(51, 122, 183));
             btnEdit.setForeground(Color.WHITE);
+            btnEdit.setOpaque(true);
+            btnEdit.setContentAreaFilled(false);
             btnEdit.setFocusPainted(false);
             btnEdit.setBorderPainted(false);
             btnEdit.setFont(new Font("Segoe UI", Font.BOLD, 11));
             btnEdit.setPreferredSize(new Dimension(30, 24));
 
-            btnDelete = new JButton("🗑");
+            btnDelete = new JButton("...");
             btnDelete.setBackground(new Color(220, 53, 69));
             btnDelete.setForeground(Color.WHITE);
+            btnDelete.setOpaque(true);
+            btnDelete.setContentAreaFilled(false);
             btnDelete.setFocusPainted(false);
             btnDelete.setBorderPainted(false);
             btnDelete.setFont(new Font("Segoe UI", Font.BOLD, 11));
@@ -318,6 +299,69 @@ public class MedicinePanel extends JPanel {
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
             setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
             return this;
+        }
+    }
+
+    class ActionButtonEditor extends DefaultCellEditor {
+        private JPanel panel;
+        private JButton btnEdit, btnDelete;
+        private int currentRow;
+
+        public ActionButtonEditor(JCheckBox checkBox) {
+            super(checkBox);
+            panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 4));
+            panel.setOpaque(true);
+
+            btnEdit = new JButton("...");
+            btnEdit.setBackground(new Color(51, 122, 183));
+            btnEdit.setForeground(Color.WHITE);
+            btnEdit.setOpaque(true);
+            btnEdit.setContentAreaFilled(false);
+            btnEdit.setFocusPainted(false);
+            btnEdit.setBorderPainted(false);
+            btnEdit.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            btnEdit.setPreferredSize(new Dimension(30, 24));
+
+            btnDelete = new JButton("...");
+            btnDelete.setBackground(new Color(220, 53, 69));
+            btnDelete.setForeground(Color.WHITE);
+            btnDelete.setOpaque(true);
+            btnDelete.setContentAreaFilled(false);
+            btnDelete.setFocusPainted(false);
+            btnDelete.setBorderPainted(false);
+            btnDelete.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            btnDelete.setPreferredSize(new Dimension(30, 24));
+
+            btnEdit.addActionListener(e -> {
+                fireEditingStopped();
+                int medicineId = Integer.parseInt(table.getValueAt(currentRow, 0).toString());
+                JOptionPane.showMessageDialog(table, "Edit medicine ID: " + medicineId);
+            });
+
+            btnDelete.addActionListener(e -> {
+                fireEditingStopped();
+                int medicineId = Integer.parseInt(table.getValueAt(currentRow, 0).toString());
+                int confirm = JOptionPane.showConfirmDialog(table, "Are you sure you want to delete this medicine?", "Confirm Delete", JOptionPane.YES_NO_OPTION);
+                if (confirm == JOptionPane.YES_OPTION) {
+                    MedicineDAO.deleteMedicine(medicineId);
+                    loadTableData((DefaultTableModel) table.getModel());
+                }
+            });
+
+            panel.add(btnEdit);
+            panel.add(btnDelete);
+        }
+
+        @Override
+        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
+            currentRow = row;
+            panel.setBackground(table.getSelectionBackground());
+            return panel;
+        }
+
+        @Override
+        public Object getCellEditorValue() {
+            return "";
         }
     }
 }

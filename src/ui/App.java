@@ -79,8 +79,8 @@ public class App extends JFrame {
         medicineSubMenu.setVisible(true);
 
         medicineSubMenu.add(createSubNavButton("   + Add Medicine", e -> cardLayout.show(mainContentPanel, "ADD_MEDICINE")));
-        medicineSubMenu.add(createSubNavButton("   -  Medicine List", e -> cardLayout.show(mainContentPanel, "MEDICINE_LIST")));
-        medicineSubMenu.add(createSubNavButton("   +  Medicine Category", e -> cardLayout.show(mainContentPanel, "MEDICINE_CATEGORY")));
+        medicineSubMenu.add(createSubNavButton("   -   Medicine List", e -> cardLayout.show(mainContentPanel, "MEDICINE_LIST")));
+        medicineSubMenu.add(createSubNavButton("   +   Medicine Category", e -> cardLayout.show(mainContentPanel, "MEDICINE_CATEGORY")));
 
         sb.add(medicineSubMenu);
 
@@ -114,6 +114,7 @@ public class App extends JFrame {
         button.setPreferredSize(new Dimension(240, 42));
         button.setMinimumSize(new Dimension(240, 42));
         button.setForeground(Color.WHITE);
+        button.setOpaque(false);
         button.setContentAreaFilled(false);
         button.setFocusPainted(false);
         button.setBorderPainted(false);
@@ -151,6 +152,7 @@ public class App extends JFrame {
         button.setMaximumSize(new Dimension(240, 42));
         button.setPreferredSize(new Dimension(240, 42));
         button.setMinimumSize(new Dimension(240, 42));
+        button.setOpaque(false);
         button.setContentAreaFilled(false);
         button.setFocusPainted(false);
         button.setBorderPainted(false);
@@ -208,6 +210,7 @@ public class App extends JFrame {
         button.setMaximumSize(new Dimension(240, 38));
         button.setPreferredSize(new Dimension(240, 38));
         button.setForeground(new Color(210, 215, 220));
+        button.setOpaque(false);
         button.setContentAreaFilled(false);
         button.setFocusPainted(false);
         button.setBorderPainted(false);
