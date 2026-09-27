@@ -1,10 +1,14 @@
 package ui;
 
+import db.MedicineDAO;
+import models.Medicine;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.time.LocalDate;
+import java.util.List;
 
 public class POSFrame extends JPanel {
 
@@ -73,7 +77,7 @@ public class POSFrame extends JPanel {
             }
         };
         
-        loadMedicinesToPOS();
+        loadMedicinesToPOS("");
 
         medicineTable = new JTable(medicineModel);
         medicineTable.setRowHeight(32);
@@ -179,11 +183,18 @@ public class POSFrame extends JPanel {
         contentPanel.add(rightPanel);
         add(contentPanel, BorderLayout.CENTER);
 
+        // Refresh list dynamically when panel becomes visible
         this.addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override
             public void componentShown(java.awt.event.ComponentEvent e) {
-                loadMedicinesToPOS();
+                loadMedicinesToPOS("");
             }
+        });
+
+        // Search button filter listener
+        btnSearch.addActionListener(e -> {
+            String keyword = searchField.getText().trim();
+            loadMedicinesToPOS(keyword);
         });
 
         btnAddToCart.addActionListener(e -> {
@@ -223,7 +234,7 @@ public class POSFrame extends JPanel {
                 JOptionPane.showMessageDialog(this, "Please select an item from the cart to remove.");
             }
         });
-
+        
         btnCheckout.addActionListener(e -> {
             try {
                 if (cartModel.getRowCount() > 0) {
@@ -233,35 +244,52 @@ public class POSFrame extends JPanel {
                         String orderNo = "ORD-" + (System.currentTimeMillis() % 10000);
                         String currentDate = LocalDate.now().toString();
 
+                        for (int i = 0; i < cartModel.getRowCount(); i++) {
+                            String itemName = (String) cartModel.getValueAt(i, 0);
+                            int qtySold = Integer.parseInt((String) cartModel.getValueAt(i, 2));
+                    
+     
+                            MedicineDAO.decreaseStock(itemName, qtySold);
+                        }
+
                         SharedData.totalSalesToday += totalAmount;
                         SharedData.addSale(orderNo, currentDate, String.format("%.2f", totalAmount), customerName.trim());
                         DashboardPanel.refreshDashboardData();
-
-                        JOptionPane.showMessageDialog(this, "Checkout successful! Transferred to Dashboard.");
+                        
+                        JOptionPane.showMessageDialog(this, "Checkout successful! Stock updated and transferred to Dashboard.");
                         cartModel.setRowCount(0);
                         updateSubtotal();
+                        loadMedicinesToPOS(""); 
+                        } else {
+                            JOptionPane.showMessageDialog(this, "Checkout cancelled. Customer name is required.");
+                        }
                     } else {
-                        JOptionPane.showMessageDialog(this, "Checkout cancelled. Customer name is required.");
+                        JOptionPane.showMessageDialog(this, "The cart is empty.");
                     }
-                } else {
-                    JOptionPane.showMessageDialog(this, "The cart is empty.");
+                } catch (Exception ex) {
+                    ex.printStackTrace();
+                    JOptionPane.showMessageDialog(this, "Checkout Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
                 }
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                JOptionPane.showMessageDialog(this, "Checkout Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-            }
-        });
+            });
     }
 
-    private void loadMedicinesToPOS() {
+    private void loadMedicinesToPOS(String filterKeyword) {
         medicineModel.setRowCount(0);
-        if (!SharedData.medicineList.isEmpty()) {
-            for (String[] med : SharedData.medicineList) {
-                medicineModel.addRow(new Object[]{med[0], med[1], med[3], med[4]});
+        List<Medicine> medicines = MedicineDAO.getAllMedicines();
+        
+        for (Medicine med : medicines) {
+            // Filter by name or category if keyword is provided
+            if (filterKeyword.isEmpty() || 
+                med.getName().toLowerCase().contains(filterKeyword.toLowerCase()) || 
+                med.getMedicineCategory().toLowerCase().contains(filterKeyword.toLowerCase())) {
+                
+                medicineModel.addRow(new Object[]{
+                    med.getName(),
+                    med.getMedicineCategory(),
+                    String.format("₱%.2f", med.getSellPrice()),
+                    med.getStock()
+                });
             }
-        } else {
-            medicineModel.addRow(new Object[]{"Biogesic 500mg", "Tablet", "₱6.00", "150"});
-            medicineModel.addRow(new Object[]{"Neozep Forte", "Tablet", "₱7.75", "120"});
         }
     }
 

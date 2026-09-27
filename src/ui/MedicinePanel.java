@@ -5,6 +5,7 @@ import models.Medicine;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
@@ -217,12 +218,28 @@ public class MedicinePanel extends JPanel {
         table = new JTable(tableModel);
         loadTableData(tableModel);
 
+        table.setLayout(new FlowLayout(FlowLayout.CENTER,0,1));
         table.setRowHeight(32);
         table.setShowVerticalLines(false);
         table.setShowHorizontalLines(true);
         table.setGridColor(new Color(235, 238, 242));
         table.getColumnModel().getColumn(8).setCellRenderer(new ActionButtonRenderer());
         table.getColumnModel().getColumn(8).setCellEditor(new ActionButtonEditor(new JCheckBox()));
+
+        table.getColumnModel().getColumn(0).setPreferredWidth(50);   
+        table.getColumnModel().getColumn(1).setPreferredWidth(160);
+        table.getColumnModel().getColumn(2).setPreferredWidth(120);
+        table.getColumnModel().getColumn(3).setPreferredWidth(90); 
+        table.getColumnModel().getColumn(4).setPreferredWidth(90);  
+        table.getColumnModel().getColumn(5).setPreferredWidth(70); 
+        table.getColumnModel().getColumn(6).setPreferredWidth(150);
+        table.getColumnModel().getColumn(7).setPreferredWidth(100); 
+        table.getColumnModel().getColumn(8).setPreferredWidth(180);
+
+       CenterTableCellRenderer centerRenderer = new CenterTableCellRenderer();
+       for (int i = 0; i < 8; i++) {
+        table.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
+    }
         
         table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -245,12 +262,12 @@ public class MedicinePanel extends JPanel {
             model.addRow(new Object[]{
                 m.getId(),
                 m.getName(),
-                "Tablet", 
-                "₱" + m.getPrice(),
-                "₱" + m.getPrice(),
+                m.getMedicineCategory(), 
+                "₱" + m.getBuyPrice(),
+                "₱" + m.getSellPrice(),
                 m.getStock(),
-                "Unilab",
-                "2027-01-01",
+                m.getCompanyName(),
+                m.getExpiryDate(),
                 ""
             });
         }
@@ -263,33 +280,28 @@ public class MedicinePanel extends JPanel {
             loadTableData((DefaultTableModel) table.getModel());
         }
     }
-
     class ActionButtonRenderer extends JPanel implements TableCellRenderer {
         private JButton btnEdit, btnDelete;
-
+        
         public ActionButtonRenderer() {
-            setLayout(new FlowLayout(FlowLayout.CENTER, 4, 4));
+            setLayout(new FlowLayout(FlowLayout.CENTER, 1, 2));
             setOpaque(true);
             
-            btnEdit = new JButton("...");
+            btnEdit = new JButton("Edit");
             btnEdit.setBackground(new Color(51, 122, 183));
-            btnEdit.setForeground(Color.WHITE);
+            btnEdit.setForeground(Color.WHITE); // 
             btnEdit.setOpaque(true);
-            btnEdit.setContentAreaFilled(false);
             btnEdit.setFocusPainted(false);
-            btnEdit.setBorderPainted(false);
             btnEdit.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            btnEdit.setPreferredSize(new Dimension(30, 24));
+            btnEdit.setPreferredSize(new Dimension(70, 26)); 
 
-            btnDelete = new JButton("...");
+            btnDelete = new JButton("Delete");
             btnDelete.setBackground(new Color(220, 53, 69));
-            btnDelete.setForeground(Color.WHITE);
+            btnDelete.setForeground(Color.WHITE); // 
             btnDelete.setOpaque(true);
-            btnDelete.setContentAreaFilled(false);
             btnDelete.setFocusPainted(false);
-            btnDelete.setBorderPainted(false);
             btnDelete.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            btnDelete.setPreferredSize(new Dimension(30, 24));
+            btnDelete.setPreferredSize(new Dimension(70, 26)); 
 
             add(btnEdit);
             add(btnDelete);
@@ -309,28 +321,24 @@ public class MedicinePanel extends JPanel {
 
         public ActionButtonEditor(JCheckBox checkBox) {
             super(checkBox);
-            panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 4));
+            panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 1, 2));
             panel.setOpaque(true);
 
-            btnEdit = new JButton("...");
+            btnEdit = new JButton("Edit");
             btnEdit.setBackground(new Color(51, 122, 183));
             btnEdit.setForeground(Color.WHITE);
             btnEdit.setOpaque(true);
-            btnEdit.setContentAreaFilled(false);
             btnEdit.setFocusPainted(false);
-            btnEdit.setBorderPainted(false);
             btnEdit.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            btnEdit.setPreferredSize(new Dimension(30, 24));
+            btnEdit.setPreferredSize(new Dimension(70, 26));
 
-            btnDelete = new JButton("...");
+            btnDelete = new JButton("Delete");
             btnDelete.setBackground(new Color(220, 53, 69));
             btnDelete.setForeground(Color.WHITE);
             btnDelete.setOpaque(true);
-            btnDelete.setContentAreaFilled(false);
             btnDelete.setFocusPainted(false);
-            btnDelete.setBorderPainted(false);
             btnDelete.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            btnDelete.setPreferredSize(new Dimension(30, 24));
+            btnDelete.setPreferredSize(new Dimension(70, 26));
 
             btnEdit.addActionListener(e -> {
                 fireEditingStopped();
@@ -363,5 +371,13 @@ public class MedicinePanel extends JPanel {
         public Object getCellEditorValue() {
             return "";
         }
+    } 
+
+    class CenterTableCellRenderer extends DefaultTableCellRenderer {
+        public CenterTableCellRenderer() {
+            setHorizontalAlignment(JLabel.CENTER);
+        }
     }
+
+    
 }

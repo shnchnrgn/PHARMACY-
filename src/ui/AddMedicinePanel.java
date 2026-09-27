@@ -1,5 +1,8 @@
 package ui;
 
+import db.MedicineDAO;
+import models.Medicine;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -94,20 +97,40 @@ public class AddMedicinePanel extends JPanel {
             if (category == null || category.equals("-- Select Category --")) {
                 category = "";
             }
-            String buyPrice = "₱" + txtBuyPrice.getText().trim();
-            String sellPrice = "₱" + txtSellPrice.getText().trim();
-            String qty = txtQuantity.getText().trim();
+            
+            String buyPriceStr = txtBuyPrice.getText().trim();
+            String sellPriceStr = txtSellPrice.getText().trim();
+            String qtyStr = txtQuantity.getText().trim();
             String company = txtCompany.getText().trim();
             String expire = txtExpire.getText().trim();
 
-            if (!name.isEmpty() && !qty.isEmpty() && !category.isEmpty()) {
-                String[] newMed = {name, category, buyPrice, sellPrice, qty, company, expire, ""};
-                
-                SharedData.addMedicine(newMed);
-                JOptionPane.showMessageDialog(this, "Medicine successfully added!");
-                clearForm();
+            if (!name.isEmpty() && !qtyStr.isEmpty() && !category.isEmpty()) {
+                try {
+                    // Parse numeric inputs securely
+                    double buyPrice = buyPriceStr.isEmpty() ? 0.0 : Double.parseDouble(buyPriceStr);
+                    double sellPrice = sellPriceStr.isEmpty() ? 0.0 : Double.parseDouble(sellPriceStr);
+                    int stock = Integer.parseInt(qtyStr);
+
+                    // Build the Medicine model object
+                    Medicine medicine = new Medicine();
+                    medicine.setName(name);
+                    medicine.setMedicineCategory(category);
+                    medicine.setBuyPrice(buyPrice);
+                    medicine.setSellPrice(sellPrice);
+                    medicine.setStock(stock);
+                    medicine.setCompanyName(company);
+                    medicine.setExpiryDate(expire);
+
+                    // Save directly to pharmacy.db via DAO
+                    MedicineDAO.addMedicine(medicine);
+
+                    JOptionPane.showMessageDialog(this, "Medicine successfully saved to database!");
+                    clearForm();
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(this, "Please enter valid numeric values for prices and quantity.", "Input Error", JOptionPane.ERROR_MESSAGE);
+                }
             } else {
-                JOptionPane.showMessageDialog(this, "Please fill in Medicine Name, Category, and Quantity.");
+                JOptionPane.showMessageDialog(this, "Please fill in Medicine Name, Category, and Quantity.", "Validation Error", JOptionPane.WARNING_MESSAGE);
             }
         });
     }

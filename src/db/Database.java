@@ -18,16 +18,22 @@ public class Database {
     }
 
     public static void createTables() {
-        String sql = "CREATE TABLE IF NOT EXISTS medicines (" +
-                     "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                     "name TEXT NOT NULL, " +
-                     "price REAL NOT NULL, " +
-                     "stock INTEGER NOT NULL, " +
-                     "expiry_date TEXT" +
-                     ");";
+        String createTableSQL = "CREATE TABLE IF NOT EXISTS medicines (" +
+                                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                                "name TEXT NOT NULL, " +
+                                "price REAL NOT NULL, " +
+                                "stock INTEGER NOT NULL, " +
+                                "expiry_date TEXT" +
+                                ");";
+
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {
-            stmt.execute(sql);
+            stmt.execute(createTableSQL);
+            try {
+                stmt.execute("ALTER TABLE medicines ADD COLUMN expiry_date TEXT;");
+            } catch (SQLException e) {
+            }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
