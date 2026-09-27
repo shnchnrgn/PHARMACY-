@@ -1,25 +1,14 @@
 package ui;
 
-import db.MedicineDAO;
-import models.Medicine;
-
 import javax.swing.*;
 import javax.swing.border.Border;
 import java.awt.*;
 
-public class AddMedicinePanel extends JPanel {
+public class SystemSettingsPanel extends JPanel {
 
     private final Border grayBorder = BorderFactory.createLineBorder(new Color(200, 205, 210), 1);
 
-    private JTextField txtName;
-    private JComboBox<String> cmbCategory;
-    private JTextField txtBuyPrice;
-    private JTextField txtSellPrice;
-    private JTextField txtQuantity;
-    private JTextField txtCompany;
-    private JTextField txtExpire;
-
-    public AddMedicinePanel() {
+    public SystemSettingsPanel() {
         setLayout(new BorderLayout());
         setBackground(new Color(240, 242, 245));
 
@@ -31,13 +20,13 @@ public class AddMedicinePanel extends JPanel {
         JPanel formCard = new JPanel(new BorderLayout());
         formCard.setBackground(Color.WHITE);
         formCard.setBorder(BorderFactory.createLineBorder(new Color(220, 225, 230)));
-        formCard.setMaximumSize(new Dimension(850, 680));
+        formCard.setMaximumSize(new Dimension(850, 620));
 
         JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 12));
         headerPanel.setBackground(new Color(248, 249, 250));
         headerPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 225, 230)));
         
-        JLabel lblHeader = new JLabel("Add New Medicine");
+        JLabel lblHeader = new JLabel("+ Store Information");
         lblHeader.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lblHeader.setForeground(new Color(80, 90, 100));
         headerPanel.add(lblHeader);
@@ -48,61 +37,61 @@ public class AddMedicinePanel extends JPanel {
         fieldsPanel.setBorder(BorderFactory.createEmptyBorder(20, 25, 20, 25));
 
         GridBagConstraints gbc = new GridBagConstraints();
-        gbc.insets = new Insets(8, 10, 8, 10);
+        gbc.insets = new Insets(6, 10, 4, 10);
         gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.gridx = 0;
         gbc.gridy = 0;
 
-        txtName = createStyledTextField("");
-        addFieldRow(fieldsPanel, gbc, "Medicine Name", true, txtName);
+        addLabel(fieldsPanel, gbc, "Store Title", true);
+        addTextFieldWithHelper(fieldsPanel, gbc, "Pharmacy Management System", "eg. XYZ Management System");
 
-        String[] categories = {"-- Select Category --", "Tablet", "Capsule", "Syrup", "Injection", "Ointment"};
-        cmbCategory = createStyledDropdown(categories);
-        addDropdownRow(fieldsPanel, gbc, "Medicine Category", true, cmbCategory);
+        addLabel(fieldsPanel, gbc, "Store Name", true);
+        addTextFieldWithHelper(fieldsPanel, gbc, "Vanguard Pharmacy", "eg. Your store name (ABC or XYZ)");
 
-        txtBuyPrice = createStyledTextField("");
-        addFieldRow(fieldsPanel, gbc, "Buy Price", true, txtBuyPrice);
+        addLabel(fieldsPanel, gbc, "Store Email", false);
+        addStandardField(fieldsPanel, gbc, "Vanguard.p.m.s@gmail.com");
 
-        txtSellPrice = createStyledTextField("");
-        addFieldRow(fieldsPanel, gbc, "Sell Price", true, txtSellPrice);
+        addLabel(fieldsPanel, gbc, "Store Phone", false);
+        addStandardField(fieldsPanel, gbc, "null");
 
-        txtQuantity = createStyledTextField("");
-        addFieldRow(fieldsPanel, gbc, "Quantity", true, txtQuantity);
+        gbc.gridx = 0; gbc.gridy++;
+        gbc.weightx = 0.0;
+        JLabel lblAddress = new JLabel("Store Address");
+        lblAddress.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblAddress.setForeground(new Color(70, 80, 90));
+        fieldsPanel.add(lblAddress, gbc);
 
-        txtCompany = createStyledTextField("");
-        addFieldRow(fieldsPanel, gbc, "Company Name", true, txtCompany);
-
-        txtExpire = createStyledTextField("");
-        addFieldRow(fieldsPanel, gbc, "Expire Date (YYYY-MM-DD)", true, txtExpire);
-
-        gbc.gridx = 1; 
-        gbc.gridy++;
+        gbc.gridx = 1;
         gbc.weightx = 1.0;
-        gbc.anchor = GridBagConstraints.WEST;
+        JTextArea txtAddress = new JTextArea("null", 3, 20);
+        txtAddress.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        txtAddress.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        txtAddress.setSelectionColor(new Color(220, 225, 230));
+        txtAddress.setSelectedTextColor(Color.BLACK);
+        JScrollPane scrollAddress = new JScrollPane(txtAddress);
+        scrollAddress.setBorder(grayBorder);
+        fieldsPanel.add(scrollAddress, gbc);
+
+        String[] currencies = {"PHP (₱)", "USD ($)", "EUR (€)", "GBP (£)", "JPY (¥)", "SGD ($)"};
+        addEditableDropdownField(fieldsPanel, gbc, "Store Currency", true, currencies);
+
+        String[] discountTypes = {"Flat", "Percentage (%)", "Senior Citizen (20%)", "PWD (20%)"};
+        addEditableDropdownField(fieldsPanel, gbc, "Store Discount Type", true, discountTypes);
+
+        gbc.gridx = 1; gbc.gridy++;
+        gbc.weightx = 1.0;
+        gbc.anchor = GridBagConstraints.EAST;
         gbc.fill = GridBagConstraints.NONE;
         gbc.insets = new Insets(15, 10, 10, 10);
-
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        btnPanel.setOpaque(false);
-
-        JButton btnSave = new JButton("Save Medicine");
-        btnSave.setBackground(new Color(39, 174, 96));
+        
+        JButton btnSave = new JButton("✔ Save");
+        btnSave.setBackground(new Color(26, 188, 156));
         btnSave.setForeground(Color.WHITE);
         btnSave.setFont(new Font("Segoe UI", Font.BOLD, 13));
         btnSave.setFocusPainted(false);
-        btnSave.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
+        btnSave.setBorder(BorderFactory.createEmptyBorder(8, 25, 8, 25));
         btnSave.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnPanel.add(btnSave);
-
-        JButton btnClear = new JButton("Clear Form");
-        btnClear.setBackground(new Color(231, 76, 60));
-        btnClear.setForeground(Color.WHITE);
-        btnClear.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        btnClear.setFocusPainted(false);
-        btnClear.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
-        btnClear.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnPanel.add(btnClear);
-
-        fieldsPanel.add(btnPanel, gbc);
+        fieldsPanel.add(btnSave, gbc);
 
         formCard.add(fieldsPanel, BorderLayout.CENTER);
         container.add(formCard);
@@ -111,68 +100,15 @@ public class AddMedicinePanel extends JPanel {
         mainScroll.setBorder(null);
         mainScroll.setBackground(new Color(240, 242, 245));
         add(mainScroll, BorderLayout.CENTER);
-
-        btnSave.addActionListener(e -> {
-            try {
-                String name = txtName.getText().trim();
-                String category = (cmbCategory.getSelectedItem() != null) ? cmbCategory.getSelectedItem().toString().trim() : "";
-                String buyPriceStr = txtBuyPrice.getText().trim();
-                String sellPriceStr = txtSellPrice.getText().trim();
-                String quantityStr = txtQuantity.getText().trim();
-                String company = txtCompany.getText().trim();
-                String expireDateStr = txtExpire.getText().trim();
-
-                if (name.isEmpty() || category.equals("-- Select Category --") || buyPriceStr.isEmpty() || 
-                    sellPriceStr.isEmpty() || quantityStr.isEmpty() || company.isEmpty() || expireDateStr.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Please fill up all the required fields.", "Error", JOptionPane.WARNING_MESSAGE);
-                    return;
-                }
-
-                double buyPrice = Double.parseDouble(buyPriceStr);
-                double sellPrice = Double.parseDouble(sellPriceStr);
-                int stock = Integer.parseInt(quantityStr);
-
-                Medicine newMed = new Medicine();
-                newMed.setName(name);
-                newMed.setMedicineCategory(category);
-                newMed.setBuyPrice(buyPrice);
-                newMed.setSellPrice(sellPrice);
-                newMed.setStock(stock);
-                newMed.setCompanyName(company);
-                newMed.setExpiryDate(expireDateStr); 
-
-                MedicineDAO.addMedicine(newMed);
-
-                JOptionPane.showMessageDialog(this, "Successfully added new medicine!", "Success", JOptionPane.INFORMATION_MESSAGE);
-                clearForm();
-
-            } catch (Exception ex) {
-                ex.printStackTrace();
-                JOptionPane.showMessageDialog(this, "Error in saving. Make sure the price, quantity (numbers), and date format are correct.", "Database Error", JOptionPane.ERROR_MESSAGE);
-            }
-        });
-
-        btnClear.addActionListener(e -> clearForm());
     }
 
-    private void clearForm() {
-        txtName.setText("");
-        if (cmbCategory.getItemCount() > 0) cmbCategory.setSelectedIndex(0);
-        txtBuyPrice.setText("");
-        txtSellPrice.setText("");
-        txtQuantity.setText("");
-        txtCompany.setText("");
-        txtExpire.setText("");
-    }
-
-    private void addFieldRow(JPanel panel, GridBagConstraints gbc, String labelText, boolean isRequired, JComponent field) {
-        gbc.gridx = 0;
+    private void addLabel(JPanel panel, GridBagConstraints gbc, String text, boolean isRequired) {
+        gbc.gridx = 0; gbc.gridy++;
         gbc.weightx = 0.0;
-        
         JPanel lblPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         lblPanel.setOpaque(false);
         
-        JLabel label = new JLabel(labelText + " ");
+        JLabel label = new JLabel(text + " ");
         label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         label.setForeground(new Color(70, 80, 90));
         lblPanel.add(label);
@@ -184,16 +120,35 @@ public class AddMedicinePanel extends JPanel {
             lblPanel.add(lblStar);
         }
         panel.add(lblPanel, gbc);
-
-        gbc.gridx = 1;
-        gbc.weightx = 1.0;
-        panel.add(field, gbc);
-
-        gbc.gridy++;
     }
 
-    private void addDropdownRow(JPanel panel, GridBagConstraints gbc, String labelText, boolean isRequired, JComboBox<String> comboBox) {
-        addFieldRow(panel, gbc, labelText, isRequired, comboBox);
+    private void addTextFieldWithHelper(JPanel panel, GridBagConstraints gbc, String defaultValue, String helperText) {
+        gbc.gridx = 1; 
+        gbc.weightx = 1.0;
+        
+        JPanel fieldWrapper = new JPanel();
+        fieldWrapper.setLayout(new BoxLayout(fieldWrapper, BoxLayout.Y_AXIS));
+        fieldWrapper.setOpaque(false);
+
+        JTextField textField = createStyledTextField(defaultValue);
+        fieldWrapper.add(textField);
+
+        if (helperText != null && !helperText.isEmpty()) {
+            fieldWrapper.add(Box.createVerticalStrut(2));
+            JLabel lblHelper = new JLabel(helperText);
+            lblHelper.setFont(new Font("Segoe UI", Font.ITALIC, 11));
+            lblHelper.setForeground(new Color(130, 140, 150));
+            fieldWrapper.add(lblHelper);
+        }
+
+        panel.add(fieldWrapper, gbc);
+    }
+
+    private void addStandardField(JPanel panel, GridBagConstraints gbc, String defaultValue) {
+        gbc.gridx = 1; 
+        gbc.weightx = 1.0;
+        JTextField textField = createStyledTextField(defaultValue);
+        panel.add(textField, gbc);
     }
 
     private JTextField createStyledTextField(String defaultValue) {
@@ -207,7 +162,11 @@ public class AddMedicinePanel extends JPanel {
         return textField;
     }
 
-    private JComboBox<String> createStyledDropdown(String[] items) {
+    private void addEditableDropdownField(JPanel panel, GridBagConstraints gbc, String labelText, boolean isRequired, String[] items) {
+        addLabel(panel, gbc, labelText, isRequired);
+        
+        gbc.gridx = 1; 
+        gbc.weightx = 1.0;
         JComboBox<String> comboBox = new JComboBox<>(items);
         comboBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         comboBox.setPreferredSize(new Dimension(350, 30));
@@ -281,7 +240,7 @@ public class AddMedicinePanel extends JPanel {
                 return renderer;
             }
         });
-
-        return comboBox;
+        
+        panel.add(comboBox, gbc);
     }
 }

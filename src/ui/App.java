@@ -31,6 +31,7 @@ public class App extends JFrame {
         mainContentPanel.add(new AddMedicinePanel(), "ADD_MEDICINE");
         mainContentPanel.add(new MedicineCategoryPanel(), "MEDICINE_CATEGORY");
         mainContentPanel.add(new CustomerPanel(), "CUSTOMERS");
+        mainContentPanel.add(new SystemSettingsPanel(), "SYSTEM_SETTINGS");
 
         add(mainContentPanel, BorderLayout.CENTER);
     }
@@ -67,8 +68,10 @@ public class App extends JFrame {
         lblLogo.setAlignmentX(Component.LEFT_ALIGNMENT);
         sb.add(lblLogo);
 
-        sb.add(createStyledNavButton("Dashboard", e -> cardLayout.show(mainContentPanel, "DASHBOARD")));
-        sb.add(createStyledNavButton("Point Of Sales", e -> cardLayout.show(mainContentPanel, "POS")));
+        
+        
+        sb.add(createStyledNavButton("Dashboard", "/ui/dashboard.png", e -> cardLayout.show(mainContentPanel, "DASHBOARD")));
+        sb.add(createStyledNavButton("Point Of Sales", "/ui/pos.png", e -> cardLayout.show(mainContentPanel, "POS")));
 
         sb.add(createMedicineDropdownButton());
 
@@ -78,18 +81,21 @@ public class App extends JFrame {
         medicineSubMenu.setMaximumSize(new Dimension(240, 135));
         medicineSubMenu.setVisible(true);
 
-        medicineSubMenu.add(createSubNavButton("   + Add Medicine", e -> cardLayout.show(mainContentPanel, "ADD_MEDICINE")));
-        medicineSubMenu.add(createSubNavButton("   -   Medicine List", e -> cardLayout.show(mainContentPanel, "MEDICINE_LIST")));
-        medicineSubMenu.add(createSubNavButton("   +   Medicine Category", e -> cardLayout.show(mainContentPanel, "MEDICINE_CATEGORY")));
+        medicineSubMenu.add(createSubNavButton("Add Medicine", "/ui/add_medicine.png", e -> cardLayout.show(mainContentPanel, "ADD_MEDICINE")));
+        medicineSubMenu.add(createSubNavButton("Medicine List", "/ui/medicine_list.png", e -> cardLayout.show(mainContentPanel, "MEDICINE_LIST")));
+        medicineSubMenu.add(createSubNavButton("Medicine Category", "/ui/medicine_category.png", e -> cardLayout.show(mainContentPanel, "MEDICINE_CATEGORY")));
 
         sb.add(medicineSubMenu);
 
-        sb.add(createStyledNavButton("Customers", e -> cardLayout.show(mainContentPanel, "CUSTOMERS")));
+        
+        sb.add(createStyledNavButton("Customers", "/ui/customers.png", e -> cardLayout.show(mainContentPanel, "CUSTOMERS")));
 
+       
+        sb.add(createStyledNavButton("System Settings", "/ui/system_settings.png", e -> cardLayout.show(mainContentPanel, "SYSTEM_SETTINGS")));
         return sb;
     }
 
-    private JButton createStyledNavButton(String text, java.awt.event.ActionListener action) {
+    private JButton createStyledNavButton(String text, String iconPath, java.awt.event.ActionListener action) {
         JButton button = new JButton(text) {
             @Override
             protected void paintComponent(Graphics g) {
@@ -123,11 +129,24 @@ public class App extends JFrame {
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.setAlignmentX(Component.LEFT_ALIGNMENT);
         button.setBorder(BorderFactory.createEmptyBorder(0, 15, 0, 0));
+
+        if (iconPath != null && !iconPath.isEmpty()) {
+            try {
+                ImageIcon originalIcon = new ImageIcon(getClass().getResource(iconPath));
+               
+                Image scaledImg = originalIcon.getImage().getScaledInstance(15, 15, Image.SCALE_SMOOTH);
+                button.setIcon(new ImageIcon(scaledImg));
+                button.setIconTextGap(12); 
+            } catch (Exception e) {
+                
+            }
+        }
+
         button.addActionListener(action);
         return button;
     }
 
-    private JButton createMedicineDropdownButton() {
+   private JButton createMedicineDropdownButton() {
         JButton button = new JButton() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -148,7 +167,8 @@ public class App extends JFrame {
             }
         };
         
-        button.setLayout(new BorderLayout());
+        
+        button.setLayout(new GridBagLayout());
         button.setMaximumSize(new Dimension(240, 42));
         button.setPreferredSize(new Dimension(240, 42));
         button.setMinimumSize(new Dimension(240, 42));
@@ -160,16 +180,39 @@ public class App extends JFrame {
         button.setAlignmentX(Component.LEFT_ALIGNMENT);
         button.setBorder(BorderFactory.createEmptyBorder(0, 15, 0, 15));
 
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.CENTER;
+
+        
+        try {
+            ImageIcon originalIcon = new ImageIcon(getClass().getResource("/ui/medicine.png"));
+            Image scaledImg = originalIcon.getImage().getScaledInstance(15, 15, Image.SCALE_SMOOTH);
+            JLabel lblIcon = new JLabel(new ImageIcon(scaledImg));
+            gbc.gridx = 0;
+            gbc.insets = new Insets(0, 0, 0, 12); // Distansya patungo sa text
+            button.add(lblIcon, gbc);
+        } catch (Exception e) {
+            gbc.gridx = 0;
+            gbc.insets = new Insets(0, 0, 0, 0);
+        }
+
         JLabel lblText = new JLabel("Medicine");
         lblText.setForeground(Color.WHITE);
         lblText.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        gbc.gridx = 1;
+        gbc.weightx = 1.0; 
+        gbc.anchor = GridBagConstraints.WEST;
+        button.add(lblText, gbc);
 
+       
         lblArrow = new JLabel("^");
         lblArrow.setForeground(Color.WHITE);
         lblArrow.setFont(new Font("Segoe UI", Font.BOLD, 12));
-
-        button.add(lblText, BorderLayout.WEST);
-        button.add(lblArrow, BorderLayout.EAST);
+        gbc.gridx = 2;
+        gbc.weightx = 0.0;
+        gbc.anchor = GridBagConstraints.EAST;
+        button.add(lblArrow, gbc);
 
         button.addActionListener(e -> {
             isMedicineMenuOpen = !isMedicineMenuOpen;
@@ -185,9 +228,8 @@ public class App extends JFrame {
 
         return button;
     }
-
-    private JButton createSubNavButton(String text, java.awt.event.ActionListener action) {
-        JButton button = new JButton(text) {
+  private JButton createSubNavButton(String text, String iconPath, java.awt.event.ActionListener action) {
+        JButton button = new JButton() {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2d = (Graphics2D) g.create();
@@ -207,17 +249,46 @@ public class App extends JFrame {
             }
         };
         
+        button.setLayout(new GridBagLayout());
         button.setMaximumSize(new Dimension(240, 38));
         button.setPreferredSize(new Dimension(240, 38));
-        button.setForeground(new Color(210, 215, 220));
+        button.setMinimumSize(new Dimension(240, 38));
         button.setOpaque(false);
         button.setContentAreaFilled(false);
         button.setFocusPainted(false);
         button.setBorderPainted(false);
-        button.setHorizontalAlignment(SwingConstants.LEFT);
-        button.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        button.setBorder(BorderFactory.createEmptyBorder(0, 25, 0, 0));
+        button.setAlignmentX(Component.LEFT_ALIGNMENT);
+        button.setBorder(BorderFactory.createEmptyBorder(0, 25, 0, 15));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.CENTER;
+
+        
+        if (iconPath != null && !iconPath.isEmpty()) {
+            try {
+                ImageIcon originalIcon = new ImageIcon(getClass().getResource(iconPath));
+                Image scaledImg = originalIcon.getImage().getScaledInstance(14, 14, Image.SCALE_SMOOTH);
+                JLabel lblIcon = new JLabel(new ImageIcon(scaledImg));
+                gbc.gridx = 0;
+                gbc.insets = new Insets(0, 0, 0, 10);
+                button.add(lblIcon, gbc);
+            } catch (Exception e) {
+                gbc.gridx = 0;
+                gbc.insets = new Insets(0, 0, 0, 0);
+            }
+        }
+
+       
+        JLabel lblText = new JLabel(text);
+        lblText.setForeground(new Color(210, 215, 220));
+        lblText.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        gbc.anchor = GridBagConstraints.WEST;
+        button.add(lblText, gbc);
+
         button.addActionListener(action);
         return button;
     }

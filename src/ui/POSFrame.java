@@ -183,7 +183,6 @@ public class POSFrame extends JPanel {
         contentPanel.add(rightPanel);
         add(contentPanel, BorderLayout.CENTER);
 
-        // Refresh list dynamically when panel becomes visible
         this.addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override
             public void componentShown(java.awt.event.ComponentEvent e) {
@@ -191,7 +190,6 @@ public class POSFrame extends JPanel {
             }
         });
 
-        // Search button filter listener
         btnSearch.addActionListener(e -> {
             String keyword = searchField.getText().trim();
             loadMedicinesToPOS(keyword);
@@ -202,13 +200,27 @@ public class POSFrame extends JPanel {
             if (selectedRow != -1) {
                 String name = (String) medicineModel.getValueAt(selectedRow, 0);
                 String priceStr = (String) medicineModel.getValueAt(selectedRow, 2);
+                int availableStock = Integer.parseInt(medicineModel.getValueAt(selectedRow, 3).toString());
                 
                 double price = Double.parseDouble(priceStr.replace("₱", "").trim());
+                
+                int currentQtyInCart = 0;
+                for (int i = 0; i < cartModel.getRowCount(); i++) {
+                    if (cartModel.getValueAt(i, 0).equals(name)) {
+                        currentQtyInCart = Integer.parseInt((String) cartModel.getValueAt(i, 2));
+                        break;
+                    }
+                }
+
+                if (availableStock <= 0 || currentQtyInCart + 1 > availableStock) {
+                    CustomDialog.showMessage(this, "Insufficient stock available for this medicine!", "Stock Error", true);
+                    return;
+                }
                 
                 boolean found = false;
                 for (int i = 0; i < cartModel.getRowCount(); i++) {
                     if (cartModel.getValueAt(i, 0).equals(name)) {
-                        int qty = Integer.parseInt((String) cartModel.getValueAt(i, 2)) + 1;
+                        int qty = currentQtyInCart + 1;
                         cartModel.setValueAt(String.valueOf(qty), i, 2);
                         cartModel.setValueAt(String.format("₱%.2f", price * qty), i, 3);
                         found = true;
@@ -221,7 +233,7 @@ public class POSFrame extends JPanel {
                 }
                 updateSubtotal();
             } else {
-                JOptionPane.showMessageDialog(this, "Please select a medicine from the list first.");
+                CustomDialog.showMessage(this, "Please select a medicine from the list first.", "Selection Error", true);
             }
         });
 
@@ -231,14 +243,15 @@ public class POSFrame extends JPanel {
                 cartModel.removeRow(selectedCartRow);
                 updateSubtotal();
             } else {
-                JOptionPane.showMessageDialog(this, "Please select an item from the cart to remove.");
+                CustomDialog.showMessage(this, "Please select an item from the cart to remove.", "Selection Error", true);
             }
         });
         
         btnCheckout.addActionListener(e -> {
             try {
                 if (cartModel.getRowCount() > 0) {
-                    String customerName = JOptionPane.showInputDialog(this, "Enter Customer Name:", "Customer Details", JOptionPane.QUESTION_MESSAGE);
+                    String customerName = CustomDialog.showInput(this, "Enter Customer Name:", "Customer Details");
+                    
                     if (customerName != null && !customerName.trim().isEmpty()) {
                         double totalAmount = calculateTotal();
                         String orderNo = "ORD-" + (System.currentTimeMillis() % 10000);
@@ -247,8 +260,6 @@ public class POSFrame extends JPanel {
                         for (int i = 0; i < cartModel.getRowCount(); i++) {
                             String itemName = (String) cartModel.getValueAt(i, 0);
                             int qtySold = Integer.parseInt((String) cartModel.getValueAt(i, 2));
-                    
-     
                             MedicineDAO.decreaseStock(itemName, qtySold);
                         }
 
@@ -256,21 +267,21 @@ public class POSFrame extends JPanel {
                         SharedData.addSale(orderNo, currentDate, String.format("%.2f", totalAmount), customerName.trim());
                         DashboardPanel.refreshDashboardData();
                         
-                        JOptionPane.showMessageDialog(this, "Checkout successful! Stock updated and transferred to Dashboard.");
+                        CustomDialog.showMessage(this, "Checkout successful! Stock updated and transferred to Dashboard.", "Success", false);
                         cartModel.setRowCount(0);
                         updateSubtotal();
                         loadMedicinesToPOS(""); 
-                        } else {
-                            JOptionPane.showMessageDialog(this, "Checkout cancelled. Customer name is required.");
-                        }
-                    } else {
-                        JOptionPane.showMessageDialog(this, "The cart is empty.");
+                    } else if (customerName != null) {
+                        CustomDialog.showMessage(this, "Customer name is required.", "Validation Error", true);
                     }
-                } catch (Exception ex) {
-                    ex.printStackTrace();
-                    JOptionPane.showMessageDialog(this, "Checkout Error: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                } else {
+                    CustomDialog.showMessage(this, "The cart is empty.", "Cart Error", true);
                 }
-            });
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                CustomDialog.showMessage(this, "Checkout Error: " + ex.getMessage(), "Error", true);
+            }
+        });
     }
 
     private void loadMedicinesToPOS(String filterKeyword) {
@@ -278,7 +289,6 @@ public class POSFrame extends JPanel {
         List<Medicine> medicines = MedicineDAO.getAllMedicines();
         
         for (Medicine med : medicines) {
-            // Filter by name or category if keyword is provided
             if (filterKeyword.isEmpty() || 
                 med.getName().toLowerCase().contains(filterKeyword.toLowerCase()) || 
                 med.getMedicineCategory().toLowerCase().contains(filterKeyword.toLowerCase())) {
@@ -304,5 +314,129 @@ public class POSFrame extends JPanel {
 
     private void updateSubtotal() {
         lblSubtotalVal.setText(String.format("₱ %.2f", calculateTotal()));
+    }
+
+    private static class CustomDialog {
+        private static String inputResult = null;
+
+        public static void showMessage(Component parent, String message, String title, boolean isWarning) {
+            JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(parent), title, true);
+            dialog.setSize(450, 180);
+            dialog.setLocationRelativeTo(parent);
+            dialog.setLayout(new BorderLayout());
+
+            JPanel topHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
+            topHeader.setBackground(new Color(248, 249, 250));
+            topHeader.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 225, 230)));
+            JLabel lblTitle = new JLabel(title);
+            lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            lblTitle.setForeground(isWarning ? new Color(217, 119, 6) : new Color(50, 60, 70));
+            topHeader.add(lblTitle);
+            dialog.add(topHeader, BorderLayout.NORTH);
+
+            JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 20));
+            centerPanel.setBackground(Color.WHITE);
+            JLabel lblMsg = new JLabel(message);
+            lblMsg.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            lblMsg.setForeground(new Color(70, 75, 80));
+            centerPanel.add(lblMsg);
+            dialog.add(centerPanel, BorderLayout.CENTER);
+
+            JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
+            bottomPanel.setBackground(new Color(248, 249, 250));
+            bottomPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(220, 225, 230)));
+
+            JButton btnOk = new JButton("OK");
+            btnOk.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            btnOk.setBackground(new Color(13, 148, 136));
+            btnOk.setForeground(Color.WHITE);
+            btnOk.setFocusPainted(false);
+            btnOk.setBorder(BorderFactory.createEmptyBorder(6, 18, 6, 18));
+            btnOk.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            btnOk.addActionListener(e -> dialog.dispose());
+
+            bottomPanel.add(btnOk);
+            dialog.add(bottomPanel, BorderLayout.SOUTH);
+            dialog.setVisible(true);
+        }
+
+        public static String showInput(Component parent, String message, String title) {
+            inputResult = null;
+            JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(parent), title, true);
+            dialog.setSize(450, 200);
+            dialog.setLocationRelativeTo(parent);
+            dialog.setLayout(new BorderLayout());
+
+            JPanel topHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
+            topHeader.setBackground(new Color(248, 249, 250));
+            topHeader.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 225, 230)));
+            JLabel lblTitle = new JLabel(title);
+            lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            lblTitle.setForeground(new Color(50, 60, 70));
+            topHeader.add(lblTitle);
+            dialog.add(topHeader, BorderLayout.NORTH);
+
+            JPanel centerPanel = new JPanel();
+            centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
+            centerPanel.setBackground(Color.WHITE);
+            centerPanel.setBorder(new EmptyBorder(15, 20, 15, 20));
+
+            JLabel lblMsg = new JLabel(message);
+            lblMsg.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            lblMsg.setForeground(new Color(70, 75, 80));
+            lblMsg.setAlignmentX(Component.LEFT_ALIGNMENT);
+            centerPanel.add(lblMsg);
+
+            centerPanel.add(Box.createVerticalStrut(10));
+
+            JTextField textField = new JTextField();
+            textField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            textField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+            textField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 205, 210)),
+                BorderFactory.createEmptyBorder(4, 6, 4, 6)
+            ));
+            textField.setAlignmentX(Component.LEFT_ALIGNMENT);
+            centerPanel.add(textField);
+
+            dialog.add(centerPanel, BorderLayout.CENTER);
+
+            JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+            bottomPanel.setBackground(new Color(248, 249, 250));
+            bottomPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(220, 225, 230)));
+
+            JButton btnOk = new JButton("OK");
+            btnOk.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            btnOk.setBackground(new Color(13, 148, 136));
+            btnOk.setForeground(Color.WHITE);
+            btnOk.setFocusPainted(false);
+            btnOk.setBorder(BorderFactory.createEmptyBorder(6, 18, 6, 18));
+            btnOk.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+            JButton btnCancel = new JButton("Cancel");
+            btnCancel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            btnCancel.setBackground(new Color(220, 53, 69));
+            btnCancel.setForeground(Color.WHITE);
+            btnCancel.setFocusPainted(false);
+            btnCancel.setBorder(BorderFactory.createEmptyBorder(6, 18, 6, 18));
+            btnCancel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+            btnOk.addActionListener(e -> {
+                inputResult = textField.getText().trim();
+                dialog.dispose();
+            });
+
+            btnCancel.addActionListener(e -> {
+                inputResult = null;
+                dialog.dispose();
+            });
+
+            bottomPanel.add(btnOk);
+            bottomPanel.add(btnCancel);
+            dialog.add(bottomPanel, BorderLayout.SOUTH);
+            dialog.setVisible(true);
+
+            return inputResult;
+        }
     }
 }

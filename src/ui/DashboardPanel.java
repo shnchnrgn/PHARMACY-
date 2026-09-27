@@ -1,154 +1,287 @@
 package ui;
 
-import db.MedicineDAO;
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
+import javax.swing.border.Border;
+import javax.swing.plaf.basic.BasicScrollBarUI;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.util.List;
 
 public class DashboardPanel extends JPanel {
 
-    private static JLabel lblSalesVal;
-    private static JLabel lblSalesCountVal;
-    private static JLabel lblMedicinesVal;
-    private static JLabel lblExpiredVal;
+    private final Border grayBorder = BorderFactory.createLineBorder(new Color(200, 205, 210), 1);
     private static DefaultTableModel tableModel;
+    private static JLabel lblSalesVal;
 
     public DashboardPanel() {
-        setLayout(new BorderLayout(0, 15));
-        setBackground(new Color(245, 247, 250));
-        setBorder(new EmptyBorder(20, 20, 20, 20));
+        setLayout(new BorderLayout());
+        setBackground(new Color(240, 242, 245));
 
-        JPanel cardsPanel = new JPanel(new GridLayout(1, 4, 15, 0));
-        cardsPanel.setOpaque(false);
-        cardsPanel.setPreferredSize(new Dimension(0, 100));
+        JPanel container = new JPanel();
+        container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
+        container.setBorder(BorderFactory.createEmptyBorder(20, 25, 20, 25));
+        container.setOpaque(false);
 
-        lblSalesVal = new JLabel("₱ " + String.format("%.2f", SharedData.totalSalesToday));
-        cardsPanel.add(createCard("Sales", lblSalesVal, "Total Sales Today", new Color(41, 128, 185)));
-        cardsPanel.add(createCard("Expenses", "₱ 0.00", "Total Expenses Today", new Color(39, 174, 96)));
-        
-        lblMedicinesVal = new JLabel(String.valueOf(MedicineDAO.getAllMedicines().size()));
-        cardsPanel.add(createCard("Medicines", lblMedicinesVal, "Total Medicine In Store", new Color(230, 126, 34)));
+        JPanel topCardsPanel = new JPanel(new GridLayout(1, 4, 15, 0));
+        topCardsPanel.setOpaque(false);
+        topCardsPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 110));
 
-        lblExpiredVal = new JLabel(String.valueOf(MedicineDAO.getExpiredCount()));
-        cardsPanel.add(createCard("Expired", lblExpiredVal, "Medicines Expired", new Color(231, 76, 60)));
+        topCardsPanel.add(createMetricCard("Sales", "₱ 0.00", "Total Sales Today", new Color(41, 128, 185)));
+        topCardsPanel.add(createMetricCard("Expenses", "₱ 0.00", "Total Expenses Today", new Color(22, 160, 133)));
+        topCardsPanel.add(createMetricCard("Medicines", "24", "Total Medicine In Store", new Color(243, 156, 18)));
+        topCardsPanel.add(createMetricCard("Expired", "0", "Medicines Expired In Store", new Color(231, 76, 60)));
 
-        add(cardsPanel, BorderLayout.NORTH);
+        container.add(topCardsPanel);
+        container.add(Box.createVerticalStrut(20));
 
-        JPanel mainCenterPanel = new JPanel(new GridLayout(2, 1, 0, 15));
-        mainCenterPanel.setOpaque(false);
+        JPanel middlePanel = new JPanel(new GridLayout(1, 2, 15, 0));
+        middlePanel.setOpaque(false);
+        middlePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 260));
 
-        JPanel topCenterRow = new JPanel(new GridLayout(1, 2, 15, 0));
-        topCenterRow.setOpaque(false);
+        middlePanel.add(createStatisticsCard());
+        middlePanel.add(createGraphCard());
 
-        JPanel statsCard = createSectionCard("Statistics This Month");
-        lblSalesCountVal = new JLabel("  Number Of Sales: " + SharedData.latestSalesList.size());
-        lblSalesCountVal.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        statsCard.add(lblSalesCountVal, BorderLayout.CENTER);
+        container.add(middlePanel);
+        container.add(Box.createVerticalStrut(20));
 
-        JPanel chartPlaceholder = createSectionCard("Sales & Profit Overview");
-        chartPlaceholder.add(new JLabel(" [ Graph Placeholder ]", SwingConstants.CENTER), BorderLayout.CENTER);
+        container.add(createTableCard());
 
-        topCenterRow.add(statsCard);
-        topCenterRow.add(chartPlaceholder);
-        mainCenterPanel.add(topCenterRow);
+        JScrollPane mainScroll = new JScrollPane(container);
+        mainScroll.setBorder(null);
+        mainScroll.setBackground(new Color(240, 242, 245));
+        styleScrollBar(mainScroll.getVerticalScrollBar());
+        add(mainScroll, BorderLayout.CENTER);
 
-        JPanel salesCard = createSectionCard("Latest Sales & Customer Details");
-        String[] columns = {"Order No", "Date", "Amount", "Customer Name"};
-        
-        tableModel = new DefaultTableModel(columns, 0);
-        SharedData.dashboardSalesModel = tableModel;
-        
-        for (String[] sale : SharedData.latestSalesList) {
-            tableModel.addRow(sale);
-        }
-
-        JTable table = new JTable(tableModel);
-        JScrollPane scrollPane = new JScrollPane(table);
-        salesCard.add(scrollPane, BorderLayout.CENTER);
-
-        mainCenterPanel.add(salesCard);
-
-        add(mainCenterPanel, BorderLayout.CENTER);
-    }
-
-    @Override
-    public void addNotify() {
-        super.addNotify();
         refreshDashboardData();
     }
 
     public static void refreshDashboardData() {
         if (lblSalesVal != null) {
-            lblSalesVal.setText("₱ " + String.format("%.2f", SharedData.totalSalesToday));
-        }
-        if (lblSalesCountVal != null) {
-            lblSalesCountVal.setText("  Number Of Sales: " + SharedData.latestSalesList.size());
-        }
-        if (lblMedicinesVal != null) {
-            lblMedicinesVal.setText(String.valueOf(MedicineDAO.getAllMedicines().size()));
-        }
-        if (lblExpiredVal != null) {
-            lblExpiredVal.setText(String.valueOf(MedicineDAO.getExpiredCount()));
+            lblSalesVal.setText(String.format("₱ %.2f", SharedData.totalSalesToday));
         }
         if (tableModel != null) {
             tableModel.setRowCount(0);
-            for (String[] sale : SharedData.latestSalesList) {
-                tableModel.addRow(sale);
+            List<SharedData.SaleItem> sales = SharedData.getSalesList();
+            for (SharedData.SaleItem sale : sales) {
+                tableModel.addRow(new Object[]{sale.orderNo, sale.date, "₱ " + sale.amount, sale.customerName});
             }
         }
     }
 
-    private JPanel createCard(String title, Object valueObj, String subtext, Color accentColor) {
+    private JPanel createMetricCard(String title, String value, String subtitle, Color accentColor) {
         JPanel card = new JPanel(new BorderLayout());
         card.setBackground(Color.WHITE);
-        card.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(220, 224, 230)),
-            new EmptyBorder(10, 12, 10, 12)
-        ));
+        card.setBorder(grayBorder);
 
-        JLabel lblTitle = new JLabel(title);
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(new Color(248, 249, 250));
+        header.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 225, 230)));
+        
+        JLabel lblTitle = new JLabel("  " + title);
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lblTitle.setForeground(Color.DARK_GRAY);
+        lblTitle.setForeground(new Color(90, 100, 110));
+        header.add(lblTitle, BorderLayout.WEST);
 
-        JComponent valueComponent;
-        if (valueObj instanceof JLabel) {
-            valueComponent = (JLabel) valueObj;
-        } else {
-            JLabel lblVal = new JLabel((String) valueObj);
-            lblVal.setFont(new Font("Segoe UI", Font.BOLD, 20));
-            lblVal.setForeground(new Color(40, 40, 40));
-            valueComponent = lblVal;
+        JPanel accentBar = new JPanel();
+        accentBar.setBackground(accentColor);
+        accentBar.setPreferredSize(new Dimension(5, 0));
+        card.add(accentBar, BorderLayout.WEST);
+
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setBackground(Color.WHITE);
+        content.setBorder(BorderFactory.createEmptyBorder(10, 15, 10, 15));
+
+        JLabel lblValue = new JLabel(value);
+        if (title.equals("Sales")) {
+            lblSalesVal = lblValue;
         }
+        lblValue.setFont(new Font("Segoe UI", Font.BOLD, 22));
+        lblValue.setForeground(new Color(40, 50, 60));
 
-        if (valueComponent instanceof JLabel) {
-            ((JLabel) valueComponent).setFont(new Font("Segoe UI", Font.BOLD, 20));
-            ((JLabel) valueComponent).setForeground(new Color(40, 40, 40));
-        }
+        JLabel lblSub = new JLabel(subtitle);
+        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        lblSub.setForeground(new Color(130, 140, 150));
 
-        JLabel lblSub = new JLabel(subtext);
-        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 10));
-        lblSub.setForeground(Color.GRAY);
+        content.add(lblValue);
+        content.add(Box.createVerticalStrut(3));
+        content.add(lblSub);
 
-        card.add(lblTitle, BorderLayout.NORTH);
-        card.add(valueComponent, BorderLayout.CENTER);
-        card.add(lblSub, BorderLayout.SOUTH);
+        JPanel innerWrapper = new JPanel(new BorderLayout());
+        innerWrapper.add(header, BorderLayout.NORTH);
+        innerWrapper.add(content, BorderLayout.CENTER);
+        innerWrapper.setBackground(Color.WHITE);
+
+        card.add(innerWrapper, BorderLayout.CENTER);
         return card;
     }
 
-    private JPanel createSectionCard(String title) {
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(220, 224, 230)),
-            new EmptyBorder(8, 8, 8, 8)
-        ));
+    private JPanel createStatisticsCard() {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(Color.WHITE);
+        card.setBorder(grayBorder);
 
-        JLabel lblHeader = new JLabel(" " + title);
-        lblHeader.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        lblHeader.setBorder(new EmptyBorder(0, 0, 8, 0));
-        panel.add(lblHeader, BorderLayout.NORTH);
+        JPanel header = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
+        header.setBackground(new Color(248, 249, 250));
+        header.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 225, 230)));
+        
+        JLabel lblTitle = new JLabel("Statistics This Month");
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblTitle.setForeground(new Color(80, 90, 100));
+        header.add(lblTitle);
+        card.add(header, BorderLayout.NORTH);
 
-        return panel;
+        JPanel content = new JPanel();
+        content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
+        content.setBackground(Color.WHITE);
+        content.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
+
+        content.add(createStatRow("Number Of Sales", "0"));
+        content.add(createStatRow("Total Sales Amount", "₱ 0.00"));
+        content.add(createStatRow("Sales Profit", "₱ 0.00"));
+        content.add(createStatRow("Number Of Expenses", "0"));
+        content.add(createStatRow("Total Expenses Amount", "₱ 0.00"));
+
+        card.add(content, BorderLayout.CENTER);
+        return card;
+    }
+
+    private JPanel createStatRow(String label, String value) {
+        JPanel row = new JPanel(new BorderLayout());
+        row.setBackground(Color.WHITE);
+        row.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(235, 240, 245)));
+        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 35));
+
+        JLabel lblName = new JLabel(label);
+        lblName.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblName.setForeground(new Color(90, 100, 110));
+
+        JLabel lblVal = new JLabel(value);
+        lblVal.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblVal.setForeground(new Color(40, 50, 60));
+
+        row.add(lblName, BorderLayout.WEST);
+        row.add(lblVal, BorderLayout.EAST);
+        return row;
+    }
+
+    private JPanel createGraphCard() {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(Color.WHITE);
+        card.setBorder(grayBorder);
+
+        JPanel header = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
+        header.setBackground(new Color(248, 249, 250));
+        header.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 225, 230)));
+        
+        JLabel lblTitle = new JLabel("Sales & Profit Overview");
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblTitle.setForeground(new Color(80, 90, 100));
+        header.add(lblTitle);
+        card.add(header, BorderLayout.NORTH);
+
+        JPanel graphPlaceholder = new JPanel() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2d = (Graphics2D) g;
+                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setColor(new Color(150, 160, 170));
+                g2d.setFont(new Font("Segoe UI", Font.ITALIC, 12));
+                String text = "[ Unique Bar Graph Overview Placeholder ]";
+                FontMetrics fm = g2d.getFontMetrics();
+                int x = (getWidth() - fm.stringWidth(text)) / 2;
+                int y = (getHeight() / 2);
+                g2d.drawString(text, x, y);
+            }
+        };
+        graphPlaceholder.setBackground(Color.WHITE);
+        card.add(graphPlaceholder, BorderLayout.CENTER);
+
+        return card;
+    }
+
+    private JPanel createTableCard() {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(Color.WHITE);
+        card.setBorder(grayBorder);
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 250));
+
+        JPanel header = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
+        header.setBackground(new Color(248, 249, 250));
+        header.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 225, 230)));
+        
+        JLabel lblTitle = new JLabel("Latest Sales & Customer Details");
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblTitle.setForeground(new Color(80, 90, 100));
+        header.add(lblTitle);
+        card.add(header, BorderLayout.NORTH);
+
+        String[] columns = {"Order No", "Date", "Amount", "Customer Name"};
+        tableModel = new DefaultTableModel(columns, 0);
+        JTable table = new JTable(tableModel);
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        table.setRowHeight(25);
+        table.setShowHorizontalLines(true);
+        table.setGridColor(new Color(230, 235, 240));
+        table.setShowVerticalLines(false);
+        table.setBorder(BorderFactory.createEmptyBorder());
+
+        table.getTableHeader().setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                JLabel c = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                c.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                c.setBackground(new Color(245, 247, 250));
+                c.setForeground(new Color(80, 90, 100));
+                c.setHorizontalAlignment(JLabel.CENTER);
+                c.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 1, new Color(220, 225, 230)));
+                return c;
+            }
+        });
+
+        JScrollPane scrollPane = new JScrollPane(table);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.setBackground(Color.WHITE);
+        scrollPane.getViewport().setBackground(Color.WHITE);
+        
+        styleScrollBar(scrollPane.getVerticalScrollBar());
+        styleScrollBar(scrollPane.getHorizontalScrollBar());
+
+        card.add(scrollPane, BorderLayout.CENTER);
+
+        return card;
+    }
+
+    private void styleScrollBar(JScrollBar scrollBar) {
+        scrollBar.setPreferredSize(new Dimension(8, 8));
+        scrollBar.setBackground(new Color(248, 249, 250));
+        scrollBar.setUI(new BasicScrollBarUI() {
+            @Override
+            protected void configureScrollBarColors() {
+                this.thumbColor = new Color(200, 205, 210);
+                this.trackColor = new Color(248, 249, 250);
+                this.thumbHighlightColor = new Color(200, 205, 210);
+                this.thumbDarkShadowColor = new Color(200, 205, 210);
+                this.thumbLightShadowColor = new Color(200, 205, 210);
+            }
+            @Override
+            protected JButton createDecreaseButton(int orientation) {
+                return createZeroButton();
+            }
+            @Override
+            protected JButton createIncreaseButton(int orientation) {
+                return createZeroButton();
+            }
+            private JButton createZeroButton() {
+                JButton button = new JButton();
+                button.setPreferredSize(new Dimension(0, 0));
+                button.setMinimumSize(new Dimension(0, 0));
+                button.setMaximumSize(new Dimension(0, 0));
+                button.setBorder(BorderFactory.createEmptyBorder());
+                return button;
+            }
+        });
     }
 }
