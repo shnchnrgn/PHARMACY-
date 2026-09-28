@@ -41,7 +41,6 @@ public class App extends JFrame {
     private static final Color ACCENT_COLOR =
             new Color(75, 218, 210);
 
-
     public App() {
 
         Database.createTables();
@@ -89,6 +88,11 @@ public class App extends JFrame {
         );
 
         mainContentPanel.add(
+                new ExpensePanel(),
+                "EXPENSES"
+        );
+
+        mainContentPanel.add(
                 new SystemSettingsPanel(),
                 "SYSTEM_SETTINGS"
         );
@@ -105,7 +109,6 @@ public class App extends JFrame {
                 BorderLayout.CENTER
         );
     }
-
 
     private JPanel createSidebar() {
 
@@ -128,7 +131,6 @@ public class App extends JFrame {
                         BoxLayout.Y_AXIS
                 )
         );
-
 
         JLabel lblLogo;
 
@@ -239,7 +241,6 @@ public class App extends JFrame {
                 Box.createVerticalStrut(4)
         );
 
-
         JButton dashboardButton =
                 createStyledNavButton(
                         "Dashboard",
@@ -253,15 +254,19 @@ public class App extends JFrame {
                             (JButton) e.getSource()
                     );
 
+                    DashboardPanel.refreshDashboardData();
+
                     cardLayout.show(
                             mainContentPanel,
                             "DASHBOARD"
                     );
+
+                    mainContentPanel.revalidate();
+                    mainContentPanel.repaint();
                 }
         );
 
         sb.add(dashboardButton);
-
 
         JButton posButton =
                 createStyledNavButton(
@@ -280,17 +285,18 @@ public class App extends JFrame {
                             mainContentPanel,
                             "POS"
                     );
+
+                    mainContentPanel.revalidate();
+                    mainContentPanel.repaint();
                 }
         );
 
         sb.add(posButton);
 
-
         JButton medicineButton =
                 createMedicineDropdownButton();
 
         sb.add(medicineButton);
-
 
         medicineSubMenu =
                 new JPanel();
@@ -324,7 +330,6 @@ public class App extends JFrame {
 
         medicineSubMenu.setVisible(true);
 
-
         JButton addMedicineButton =
                 createSubNavButton(
                         "Add Medicine",
@@ -342,13 +347,15 @@ public class App extends JFrame {
                             mainContentPanel,
                             "ADD_MEDICINE"
                     );
+
+                    mainContentPanel.revalidate();
+                    mainContentPanel.repaint();
                 }
         );
 
         medicineSubMenu.add(
                 addMedicineButton
         );
-
 
         JButton medicineListButton =
                 createSubNavButton(
@@ -367,13 +374,15 @@ public class App extends JFrame {
                             mainContentPanel,
                             "MEDICINE_LIST"
                     );
+
+                    mainContentPanel.revalidate();
+                    mainContentPanel.repaint();
                 }
         );
 
         medicineSubMenu.add(
                 medicineListButton
         );
-
 
         JButton medicineCategoryButton =
                 createSubNavButton(
@@ -392,6 +401,9 @@ public class App extends JFrame {
                             mainContentPanel,
                             "MEDICINE_CATEGORY"
                     );
+
+                    mainContentPanel.revalidate();
+                    mainContentPanel.repaint();
                 }
         );
 
@@ -402,7 +414,6 @@ public class App extends JFrame {
         sb.add(
                 medicineSubMenu
         );
-
 
         JButton customerButton =
                 createStyledNavButton(
@@ -421,11 +432,38 @@ public class App extends JFrame {
                             mainContentPanel,
                             "CUSTOMERS"
                     );
+
+                    mainContentPanel.revalidate();
+                    mainContentPanel.repaint();
                 }
         );
 
         sb.add(customerButton);
 
+        JButton expenseButton =
+                createStyledNavButton(
+                        "Expenses",
+                        "/ui/Expense.png"
+                );
+
+        expenseButton.addActionListener(
+                e -> {
+
+                    selectButton(
+                            (JButton) e.getSource()
+                    );
+
+                    cardLayout.show(
+                            mainContentPanel,
+                            "EXPENSES"
+                    );
+
+                    mainContentPanel.revalidate();
+                    mainContentPanel.repaint();
+                }
+        );
+
+        sb.add(expenseButton);
 
         JButton settingsButton =
                 createStyledNavButton(
@@ -444,27 +482,36 @@ public class App extends JFrame {
                             mainContentPanel,
                             "SYSTEM_SETTINGS"
                     );
+
+                    mainContentPanel.revalidate();
+                    mainContentPanel.repaint();
                 }
         );
 
         sb.add(settingsButton);
 
-
         sb.add(
                 Box.createVerticalGlue()
         );
 
-
         SwingUtilities.invokeLater(
-                () -> selectButton(
-                        dashboardButton
-                )
-        );
+                () -> {
 
+                    selectButton(
+                            dashboardButton
+                    );
+
+                    DashboardPanel.refreshDashboardData();
+
+                    cardLayout.show(
+                            mainContentPanel,
+                            "DASHBOARD"
+                    );
+                }
+        );
 
         return sb;
     }
-
 
     private void selectButton(
             JButton button
@@ -484,7 +531,6 @@ public class App extends JFrame {
             button.repaint();
         }
     }
-
 
     private JButton createStyledNavButton(
             String text,
@@ -512,7 +558,6 @@ public class App extends JFrame {
 
                 boolean hover =
                         getModel().isRollover();
-
 
                 if (selected) {
 
@@ -564,9 +609,7 @@ public class App extends JFrame {
             }
         };
 
-
         navigationButtons.add(button);
-
 
         button.setMaximumSize(
                 new Dimension(
@@ -632,7 +675,6 @@ public class App extends JFrame {
                 )
         );
 
-
         if (
                 iconPath != null &&
                 !iconPath.isEmpty()
@@ -665,23 +707,18 @@ public class App extends JFrame {
                 button.setIconTextGap(11);
 
             } catch (Exception e) {
-
             }
         }
 
-
         return button;
     }
-
 
     private JButton createMedicineDropdownButton() {
 
         JButton button =
                 new JButton();
 
-
         navigationButtons.add(button);
-
 
         button.setLayout(
                 new GridBagLayout()
@@ -735,7 +772,6 @@ public class App extends JFrame {
                 )
         );
 
-
         GridBagConstraints gbc =
                 new GridBagConstraints();
 
@@ -743,7 +779,6 @@ public class App extends JFrame {
 
         gbc.anchor =
                 GridBagConstraints.CENTER;
-
 
         try {
 
@@ -786,9 +821,7 @@ public class App extends JFrame {
             );
 
         } catch (Exception e) {
-
         }
-
 
         JLabel lblText =
                 new JLabel("Medicine");
@@ -817,7 +850,6 @@ public class App extends JFrame {
                 gbc
         );
 
-
         lblArrow =
                 new JLabel("^");
 
@@ -845,7 +877,6 @@ public class App extends JFrame {
                 gbc
         );
 
-
         button.setUI(
                 new javax.swing.plaf.basic.BasicButtonUI() {
 
@@ -871,7 +902,6 @@ public class App extends JFrame {
 
                 boolean hover =
                         b.getModel().isRollover();
-
 
                 if (selected) {
 
@@ -917,7 +947,6 @@ public class App extends JFrame {
                     );
                 }
 
-
                 g2.dispose();
 
                 super.paint(
@@ -925,9 +954,7 @@ public class App extends JFrame {
                         c
                 );
             }
-        }
-        );
-
+        });
 
         button.addActionListener(
                 e -> {
@@ -953,15 +980,12 @@ public class App extends JFrame {
                     }
 
                     sidebar.revalidate();
-
                     sidebar.repaint();
                 }
         );
 
-
         return button;
     }
-
 
     private JButton createSubNavButton(
             String text,
@@ -989,7 +1013,6 @@ public class App extends JFrame {
 
                 boolean hover =
                         getModel().isRollover();
-
 
                 if (selected) {
 
@@ -1035,16 +1058,13 @@ public class App extends JFrame {
                     );
                 }
 
-
                 g2.dispose();
 
                 super.paintComponent(g);
             }
         };
 
-
         navigationButtons.add(button);
-
 
         button.setMaximumSize(
                 new Dimension(
@@ -1110,7 +1130,6 @@ public class App extends JFrame {
                 )
         );
 
-
         if (
                 iconPath != null &&
                 !iconPath.isEmpty()
@@ -1143,14 +1162,11 @@ public class App extends JFrame {
                 button.setIconTextGap(10);
 
             } catch (Exception e) {
-
             }
         }
 
-
         return button;
     }
-
 
     public static void main(
             String[] args
@@ -1167,7 +1183,6 @@ public class App extends JFrame {
                         );
 
                     } catch (Exception e) {
-
                     }
 
                     new App().setVisible(true);

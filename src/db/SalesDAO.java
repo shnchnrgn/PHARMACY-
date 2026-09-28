@@ -1,200 +1,670 @@
 package db;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 public class SalesDAO {
 
     public static class SaleItemData {
-        private final int medicineId;
-        private final int quantity;
-        private final double unitPrice;
 
-        public SaleItemData(int medicineId, int quantity, double unitPrice) {
+        public int medicineId;
+        public int quantity;
+        public double unitPrice;
+
+        public SaleItemData(
+                int medicineId,
+                int quantity,
+                double unitPrice) {
+
             this.medicineId = medicineId;
             this.quantity = quantity;
             this.unitPrice = unitPrice;
         }
-
-        public int getMedicineId() {
-            return medicineId;
-        }
-
-        public int getQuantity() {
-            return quantity;
-        }
-
-        public double getUnitPrice() {
-            return unitPrice;
-        }
     }
 
-    public static boolean completeSale(int customerId, String orderNo, String purchaseDate,
-                                       double amount, boolean isPwd, String pwdId,
-                                       List<SaleItemData> items) throws SQLException {
-        if (items == null || items.isEmpty()) {
-            throw new SQLException("The sale has no items.");
+    public static void completeSale(
+            int customerId,
+            String orderNo,
+            String purchaseDate,
+            double amount,
+            boolean isPwd,
+            String pwdId,
+            List<SaleItemData> items) throws SQLException {
+
+        String saleSql =
+                "INSERT INTO sales " +
+                "(customer_id, order_no, purchase_date, amount, is_pwd, pwd_id) " +
+                "VALUES (?, ?, ?, ?, ?, ?)";
+
+        String itemSql =
+                "INSERT INTO sale_items " +
+                "(sale_id, medicine_id, quantity, unit_price, subtotal) " +
+                "VALUES (?, ?, ?, ?, ?)";
+
+        String stockSql =
+                "SELECT stock FROM medicines WHERE id = ?";
+
+        String decreaseStockSql =
+                "UPDATE medicines SET stock = stock - ? WHERE id = ?";
+
+        String historySql =
+                "INSERT INTO purchase_history " +
+                "(customer_id, order_no, purchase_date, amount) " +
+                "VALUES (?, ?, ?, ?)";
+
+        String customerSql =
+                "UPDATE customers SET last_purchase_date = ? WHERE id = ?";
+
+        Connection conn = Database.getConnection();
+
+        if (conn == null) {
+            throw new SQLException(
+                    "Unable to connect to database."
+            );
         }
 
-        try (Connection conn = Database.getConnection()) {
-            if (conn == null) {
-                throw new SQLException("Unable to connect to the database.");
-            }
+        try {
 
             conn.setAutoCommit(false);
 
-            try {
-                int saleId;
+            long saleId;
 
-                String saleSql = "INSERT INTO sales " +
-                        "(customer_id, order_no, purchase_date, amount, is_pwd, pwd_id) " +
-                        "VALUES (?, ?, ?, ?, ?, ?)";
+            try (PreparedStatement pstmt =
+                         conn.prepareStatement(
+                                 saleSql,
+                                 Statement.RETURN_GENERATED_KEYS)) {
 
-                try (PreparedStatement saleStmt = conn.prepareStatement(saleSql, Statement.RETURN_GENERATED_KEYS)) {
-                    saleStmt.setInt(1, customerId);
-                    saleStmt.setString(2, orderNo);
-                    saleStmt.setString(3, purchaseDate);
-                    saleStmt.setDouble(4, amount);
-                    saleStmt.setInt(5, isPwd ? 1 : 0);
-                    saleStmt.setString(6, pwdId == null ? "" : pwdId);
-                    saleStmt.executeUpdate();
+                pstmt.setInt(1, customerId);
+                pstmt.setString(2, orderNo);
+                pstmt.setString(3, purchaseDate);
+                pstmt.setDouble(4, amount);
+                pstmt.setInt(5, isPwd ? 1 : 0);
+                pstmt.setString(6, pwdId);
 
-                    try (ResultSet keys = saleStmt.getGeneratedKeys()) {
-                        if (!keys.next()) {
-                            throw new SQLException("Unable to create the sale record.");
-                        }
-                        saleId = keys.getInt(1);
+                pstmt.executeUpdate();
+
+                try (ResultSet rs =
+                             pstmt.getGeneratedKeys()) {
+
+                    if (!rs.next()) {
+                        throw new SQLException(
+                                "Unable to create sale record."
+                        );
                     }
-                }
 
-                String stockSql = "SELECT stock FROM medicines WHERE id = ?";
-                String itemSql = "INSERT INTO sale_items " +
-                        "(sale_id, medicine_id, quantity, unit_price, subtotal) VALUES (?, ?, ?, ?, ?)";
-                String updateStockSql = "UPDATE medicines SET stock = stock - ? WHERE id = ?";
-
-                try (PreparedStatement stockStmt = conn.prepareStatement(stockSql);
-                     PreparedStatement itemStmt = conn.prepareStatement(itemSql);
-                     PreparedStatement updateStockStmt = conn.prepareStatement(updateStockSql)) {
-
-                    for (SaleItemData item : items) {
-                        if (item.getQuantity() <= 0) {
-                            throw new SQLException("Invalid quantity for a medicine.");
-                        }
-
-                        stockStmt.setInt(1, item.getMedicineId());
-                        int stock;
-
-                        try (ResultSet rs = stockStmt.executeQuery()) {
-                            if (!rs.next()) {
-                                throw new SQLException("Medicine ID " + item.getMedicineId() + " was not found.");
-                            }
-                            stock = rs.getInt("stock");
-                        }
-
-                        if (stock < item.getQuantity()) {
-                            throw new SQLException("Insufficient stock for medicine ID " + item.getMedicineId() + ". Available: " + stock + ".");
-                        }
-
-                        double subtotal = item.getUnitPrice() * item.getQuantity();
-
-                        itemStmt.setInt(1, saleId);
-                        itemStmt.setInt(2, item.getMedicineId());
-                        itemStmt.setInt(3, item.getQuantity());
-                        itemStmt.setDouble(4, item.getUnitPrice());
-                        itemStmt.setDouble(5, subtotal);
-                        itemStmt.executeUpdate();
-
-                        updateStockStmt.setInt(1, item.getQuantity());
-                        updateStockStmt.setInt(2, item.getMedicineId());
-                        updateStockStmt.executeUpdate();
-                    }
-                }
-
-                String historySql = "INSERT INTO purchase_history " +
-                        "(customer_id, order_no, purchase_date, amount) VALUES (?, ?, ?, ?)";
-
-                try (PreparedStatement historyStmt = conn.prepareStatement(historySql)) {
-                    historyStmt.setInt(1, customerId);
-                    historyStmt.setString(2, orderNo);
-                    historyStmt.setString(3, purchaseDate);
-                    historyStmt.setDouble(4, amount);
-                    historyStmt.executeUpdate();
-                }
-
-                String customerSql = "UPDATE customers SET last_purchase_date = ? WHERE id = ?";
-                try (PreparedStatement customerStmt = conn.prepareStatement(customerSql)) {
-                    customerStmt.setString(1, purchaseDate);
-                    customerStmt.setInt(2, customerId);
-                    customerStmt.executeUpdate();
-                }
-
-                conn.commit();
-                return true;
-            } catch (SQLException e) {
-                try {
-                    conn.rollback();
-                } catch (SQLException rollbackException) {
-                    e.addSuppressed(rollbackException);
-                }
-                throw e;
-            } finally {
-                try {
-                    conn.setAutoCommit(true);
-                } catch (SQLException ignored) {
+                    saleId = rs.getLong(1);
                 }
             }
-        }
-    }
 
-    public static double getTodaySalesTotal() {
-        String sql = "SELECT COALESCE(SUM(amount), 0) FROM sales WHERE date(purchase_date) = date('now', 'localtime')";
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            return rs.next() ? rs.getDouble(1) : 0.0;
+            try (PreparedStatement stockCheck =
+                         conn.prepareStatement(stockSql);
+                 PreparedStatement itemStatement =
+                         conn.prepareStatement(itemSql);
+                 PreparedStatement decreaseStock =
+                         conn.prepareStatement(decreaseStockSql)) {
+
+                for (SaleItemData item : items) {
+
+                    int stock = -1;
+
+                    stockCheck.setInt(
+                            1,
+                            item.medicineId
+                    );
+
+                    try (ResultSet rs =
+                                 stockCheck.executeQuery()) {
+
+                        if (rs.next()) {
+                            stock = rs.getInt("stock");
+                        }
+                    }
+
+                    if (stock < 0) {
+                        throw new SQLException(
+                                "Medicine ID " +
+                                item.medicineId +
+                                " was not found."
+                        );
+                    }
+
+                    if (stock < item.quantity) {
+                        throw new SQLException(
+                                "Insufficient stock for medicine ID " +
+                                item.medicineId +
+                                "."
+                        );
+                    }
+
+                    double subtotal =
+                            item.unitPrice *
+                            item.quantity;
+
+                    itemStatement.setLong(
+                            1,
+                            saleId
+                    );
+
+                    itemStatement.setInt(
+                            2,
+                            item.medicineId
+                    );
+
+                    itemStatement.setInt(
+                            3,
+                            item.quantity
+                    );
+
+                    itemStatement.setDouble(
+                            4,
+                            item.unitPrice
+                    );
+
+                    itemStatement.setDouble(
+                            5,
+                            subtotal
+                    );
+
+                    itemStatement.executeUpdate();
+
+                    decreaseStock.setInt(
+                            1,
+                            item.quantity
+                    );
+
+                    decreaseStock.setInt(
+                            2,
+                            item.medicineId
+                    );
+
+                    decreaseStock.executeUpdate();
+                }
+            }
+
+            try (PreparedStatement pstmt =
+                         conn.prepareStatement(historySql)) {
+
+                pstmt.setInt(
+                        1,
+                        customerId
+                );
+
+                pstmt.setString(
+                        2,
+                        orderNo
+                );
+
+                pstmt.setString(
+                        3,
+                        purchaseDate
+                );
+
+                pstmt.setDouble(
+                        4,
+                        amount
+                );
+
+                pstmt.executeUpdate();
+            }
+
+            try (PreparedStatement pstmt =
+                         conn.prepareStatement(customerSql)) {
+
+                pstmt.setString(
+                        1,
+                        purchaseDate
+                );
+
+                pstmt.setInt(
+                        2,
+                        customerId
+                );
+
+                pstmt.executeUpdate();
+            }
+
+            conn.commit();
+
         } catch (SQLException e) {
-            return 0.0;
+
+            try {
+                conn.rollback();
+            } catch (SQLException ignored) {
+            }
+
+            throw e;
+
+        } finally {
+
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException ignored) {
+            }
+
+            conn.close();
         }
     }
 
     public static int getTodaySalesCount() {
-        String sql = "SELECT COUNT(*) FROM sales WHERE date(purchase_date) = date('now', 'localtime')";
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-            return rs.next() ? rs.getInt(1) : 0;
-        } catch (SQLException e) {
-            return 0;
+
+        String today =
+                LocalDate.now().toString();
+
+        String sql =
+                "SELECT COUNT(*) " +
+                "FROM sales " +
+                "WHERE substr(purchase_date,1,10) = ?";
+
+        return getInt(
+                sql,
+                today
+        );
+    }
+
+    public static double getTodaySalesTotal() {
+
+        String today =
+                LocalDate.now().toString();
+
+        String sql =
+                "SELECT COALESCE(SUM(amount),0) " +
+                "FROM sales " +
+                "WHERE substr(purchase_date,1,10) = ?";
+
+        return getDouble(
+                sql,
+                today
+        );
+    }
+
+    public static int getThisMonthSalesCount() {
+
+        String month =
+                LocalDate.now()
+                        .withDayOfMonth(1)
+                        .toString();
+
+        String nextMonth =
+                LocalDate.now()
+                        .withDayOfMonth(1)
+                        .plusMonths(1)
+                        .toString();
+
+        String sql =
+                "SELECT COUNT(*) " +
+                "FROM sales " +
+                "WHERE substr(purchase_date,1,10) >= ? " +
+                "AND substr(purchase_date,1,10) < ?";
+
+        return getInt(
+                sql,
+                month,
+                nextMonth
+        );
+    }
+
+    public static double getThisMonthSalesTotal() {
+
+        String month =
+                LocalDate.now()
+                        .withDayOfMonth(1)
+                        .toString();
+
+        String nextMonth =
+                LocalDate.now()
+                        .withDayOfMonth(1)
+                        .plusMonths(1)
+                        .toString();
+
+        String sql =
+                "SELECT COALESCE(SUM(amount),0) " +
+                "FROM sales " +
+                "WHERE substr(purchase_date,1,10) >= ? " +
+                "AND substr(purchase_date,1,10) < ?";
+
+        return getDouble(
+                sql,
+                month,
+                nextMonth
+        );
+    }
+
+    public static double getThisMonthSalesProfit() {
+
+        String month =
+                LocalDate.now()
+                        .withDayOfMonth(1)
+                        .toString();
+
+        String nextMonth =
+                LocalDate.now()
+                        .withDayOfMonth(1)
+                        .plusMonths(1)
+                        .toString();
+
+        String sql =
+                "SELECT COALESCE(" +
+                "SUM((" +
+                "si.unit_price - COALESCE(m.buy_price,0)" +
+                ") * si.quantity),0) " +
+                "FROM sale_items si " +
+                "INNER JOIN sales s " +
+                "ON s.id = si.sale_id " +
+                "INNER JOIN medicines m " +
+                "ON m.id = si.medicine_id " +
+                "WHERE substr(s.purchase_date,1,10) >= ? " +
+                "AND substr(s.purchase_date,1,10) < ?";
+
+        return getDouble(
+                sql,
+                month,
+                nextMonth
+        );
+    }
+
+    public static void addExpense(
+            String description,
+            double amount,
+            String expenseDate) throws SQLException {
+
+        String sql =
+                "INSERT INTO expenses " +
+                "(description, amount, expense_date) " +
+                "VALUES (?, ?, ?)";
+
+        try (Connection conn =
+                     Database.getConnection();
+             PreparedStatement pstmt =
+                     conn.prepareStatement(sql)) {
+
+            pstmt.setString(
+                    1,
+                    description
+            );
+
+            pstmt.setDouble(
+                    2,
+                    amount
+            );
+
+            pstmt.setString(
+                    3,
+                    expenseDate
+            );
+
+            pstmt.executeUpdate();
         }
     }
 
-    public static java.util.List<String[]> getLatestSales(int limit) {
-        java.util.List<String[]> sales = new java.util.ArrayList<>();
-        String sql = "SELECT s.order_no, s.purchase_date, s.amount, c.name " +
-                "FROM sales s LEFT JOIN customers c ON c.id = s.customer_id " +
-                "ORDER BY s.id DESC LIMIT ?";
+    public static int getThisMonthExpenseCount() {
 
-        try (Connection conn = Database.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            stmt.setInt(1, limit);
-            try (ResultSet rs = stmt.executeQuery()) {
+        String month =
+                LocalDate.now()
+                        .withDayOfMonth(1)
+                        .toString();
+
+        String nextMonth =
+                LocalDate.now()
+                        .withDayOfMonth(1)
+                        .plusMonths(1)
+                        .toString();
+
+        String sql =
+                "SELECT COUNT(*) " +
+                "FROM expenses " +
+                "WHERE substr(expense_date,1,10) >= ? " +
+                "AND substr(expense_date,1,10) < ?";
+
+        return getInt(
+                sql,
+                month,
+                nextMonth
+        );
+    }
+
+    public static double getThisMonthExpenseTotal() {
+
+        String month =
+                LocalDate.now()
+                        .withDayOfMonth(1)
+                        .toString();
+
+        String nextMonth =
+                LocalDate.now()
+                        .withDayOfMonth(1)
+                        .plusMonths(1)
+                        .toString();
+
+        String sql =
+                "SELECT COALESCE(SUM(amount),0) " +
+                "FROM expenses " +
+                "WHERE substr(expense_date,1,10) >= ? " +
+                "AND substr(expense_date,1,10) < ?";
+
+        return getDouble(
+                sql,
+                month,
+                nextMonth
+        );
+    }
+
+    public static double getTodayExpenseTotal() {
+
+        String today =
+                LocalDate.now().toString();
+
+        String sql =
+                "SELECT COALESCE(SUM(amount),0) " +
+                "FROM expenses " +
+                "WHERE substr(expense_date,1,10) = ?";
+
+        return getDouble(
+                sql,
+                today
+        );
+    }
+
+    public static List<String[]> getLatestSales(
+            int limit) {
+
+        List<String[]> sales =
+                new ArrayList<>();
+
+        String sql =
+                "SELECT " +
+                "s.order_no, " +
+                "s.purchase_date, " +
+                "s.amount, " +
+                "c.name " +
+                "FROM sales s " +
+                "LEFT JOIN customers c " +
+                "ON s.customer_id = c.id " +
+                "ORDER BY s.id DESC " +
+                "LIMIT ?";
+
+        try (Connection conn =
+                     Database.getConnection();
+             PreparedStatement pstmt =
+                     conn.prepareStatement(sql)) {
+
+            pstmt.setInt(
+                    1,
+                    limit
+            );
+
+            try (ResultSet rs =
+                         pstmt.executeQuery()) {
+
                 while (rs.next()) {
-                    sales.add(new String[]{
-                            rs.getString("order_no"),
-                            rs.getString("purchase_date"),
-                            String.format("%.2f", rs.getDouble("amount")),
-                            rs.getString("name") == null ? "Walk-in" : rs.getString("name")
-                    });
+
+                    sales.add(
+                            new String[]{
+                                    rs.getString(
+                                            "order_no"
+                                    ),
+                                    rs.getString(
+                                            "purchase_date"
+                                    ),
+                                    String.format(
+                                            "%.2f",
+                                            rs.getDouble(
+                                                    "amount"
+                                            )
+                                    ),
+                                    rs.getString(
+                                            "name"
+                                    )
+                            }
+                    );
                 }
             }
+
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
         return sales;
+    }
+
+    public static List<String[]> getAllExpenses() {
+
+        List<String[]> expenses =
+                new ArrayList<>();
+
+        String sql =
+                "SELECT " +
+                "id, " +
+                "expense_date, " +
+                "description, " +
+                "amount " +
+                "FROM expenses " +
+                "ORDER BY id DESC";
+
+        try (Connection conn =
+                     Database.getConnection();
+             PreparedStatement pstmt =
+                     conn.prepareStatement(sql);
+             ResultSet rs =
+                     pstmt.executeQuery()) {
+
+            while (rs.next()) {
+
+                expenses.add(
+                        new String[]{
+                                String.valueOf(
+                                        rs.getInt("id")
+                                ),
+                                rs.getString(
+                                        "expense_date"
+                                ),
+                                rs.getString(
+                                        "description"
+                                ),
+                                String.format(
+                                        "%.2f",
+                                        rs.getDouble(
+                                                "amount"
+                                        )
+                                )
+                        }
+                );
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return expenses;
+    }
+
+    public static void deleteExpense(
+            int id) throws SQLException {
+
+        String sql =
+                "DELETE FROM expenses " +
+                "WHERE id = ?";
+
+        try (Connection conn =
+                     Database.getConnection();
+             PreparedStatement pstmt =
+                     conn.prepareStatement(sql)) {
+
+            pstmt.setInt(
+                    1,
+                    id
+            );
+
+            pstmt.executeUpdate();
+        }
+    }
+
+    private static int getInt(
+            String sql,
+            String... params) {
+
+        try (Connection conn =
+                     Database.getConnection();
+             PreparedStatement pstmt =
+                     conn.prepareStatement(sql)) {
+
+            for (int i = 0;
+                 i < params.length;
+                 i++) {
+
+                pstmt.setString(
+                        i + 1,
+                        params[i]
+                );
+            }
+
+            try (ResultSet rs =
+                         pstmt.executeQuery()) {
+
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return 0;
+    }
+
+    private static double getDouble(
+            String sql,
+            String... params) {
+
+        try (Connection conn =
+                     Database.getConnection();
+             PreparedStatement pstmt =
+                     conn.prepareStatement(sql)) {
+
+            for (int i = 0;
+                 i < params.length;
+                 i++) {
+
+                pstmt.setString(
+                        i + 1,
+                        params[i]
+                );
+            }
+
+            try (ResultSet rs =
+                         pstmt.executeQuery()) {
+
+                if (rs.next()) {
+                    return rs.getDouble(1);
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return 0;
     }
 }

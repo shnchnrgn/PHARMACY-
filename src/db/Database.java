@@ -24,8 +24,8 @@ public class Database {
                 "CREATE TABLE IF NOT EXISTS medicines (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
                 "name TEXT NOT NULL, " +
-                "price REAL NOT NULL, " +
-                "stock INTEGER NOT NULL, " +
+                "price REAL NOT NULL DEFAULT 0, " +
+                "stock INTEGER NOT NULL DEFAULT 0, " +
                 "expiry_date TEXT" +
                 ");";
 
@@ -71,6 +71,14 @@ public class Database {
                 "FOREIGN KEY (medicine_id) REFERENCES medicines(id)" +
                 ");";
 
+        String expensesSql =
+                "CREATE TABLE IF NOT EXISTS expenses (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "description TEXT NOT NULL, " +
+                "amount REAL NOT NULL, " +
+                "expense_date TEXT NOT NULL" +
+                ");";
+
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {
 
@@ -79,14 +87,16 @@ public class Database {
             stmt.execute(purchaseHistorySql);
             stmt.execute(salesSql);
             stmt.execute(saleItemsSql);
+            stmt.execute(expensesSql);
 
         } catch (SQLException e) {
             e.printStackTrace();
         }
 
-      
         addColumnIfMissing("customers", "address", "TEXT");
         addColumnIfMissing("customers", "date_registered", "TEXT");
+
+        addColumnIfMissing("medicines", "expirydate", "TEXT");
         addColumnIfMissing("medicines", "category", "TEXT");
         addColumnIfMissing("medicines", "buy_price", "REAL");
         addColumnIfMissing("medicines", "sell_price", "REAL");
@@ -94,15 +104,37 @@ public class Database {
         addColumnIfMissing("medicines", "medicine_category", "TEXT");
     }
 
-    private static void addColumnIfMissing(String table, String column, String type) {
-        String sql = "ALTER TABLE " + table + " ADD COLUMN " + column + " " + type;
+    private static void addColumnIfMissing(
+            String table,
+            String column,
+            String type) {
+
+        String sql =
+                "ALTER TABLE " +
+                table +
+                " ADD COLUMN " +
+                column +
+                " " +
+                type;
+
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {
+
             stmt.execute(sql);
-            System.out.println("Added column '" + column + "' to '" + table + "'.");
+
         } catch (SQLException e) {
-            if (e.getMessage() == null || !e.getMessage().toLowerCase().contains("duplicate")) {
-                System.out.println("Migration note (" + column + "): " + e.getMessage());
+
+            if (e.getMessage() == null ||
+                !e.getMessage()
+                        .toLowerCase()
+                        .contains("duplicate")) {
+
+                System.out.println(
+                        "Migration note (" +
+                        column +
+                        "): " +
+                        e.getMessage()
+                );
             }
         }
     }
