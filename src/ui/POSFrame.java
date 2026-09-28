@@ -17,7 +17,16 @@ public class POSFrame extends JPanel {
     private DefaultTableModel medicineModel;
     private DefaultTableModel cartModel;
     private JTextField searchField;
+
     private JLabel lblSubtotalVal;
+    private JCheckBox chkPwd;
+    private JLabel lblVatExemptVal;
+    private JLabel lblDiscountVal;
+    private JLabel lblTotalVal;
+
+    private static final double VAT_RATE = 0.12;
+    private static final double PWD_DISCOUNT_RATE = 0.20;
+    private static final boolean PWD_VAT_EXEMPT = true; // false kung 20% discount lang
 
     public POSFrame() {
         setLayout(new BorderLayout());
@@ -43,18 +52,18 @@ public class POSFrame extends JPanel {
         JPanel searchPanel = new JPanel(new BorderLayout(8, 0));
         searchPanel.setOpaque(false);
         searchPanel.setBorder(new EmptyBorder(0, 0, 12, 0));
-        
+
         JLabel lblSearch = new JLabel("Search Medicine: ");
         lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblSearch.setForeground(new Color(70, 75, 80));
-        
+
         searchField = new JTextField();
         searchField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         searchField.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(200, 205, 210)),
             BorderFactory.createEmptyBorder(6, 8, 6, 8)
         ));
-        
+
         JButton btnSearch = new JButton("Search");
         btnSearch.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnSearch.setBackground(new Color(240, 242, 245));
@@ -69,14 +78,14 @@ public class POSFrame extends JPanel {
         leftPanel.add(searchPanel, BorderLayout.NORTH);
 
         String[] medColumns = {"Medicine Name", "Category", "Price", "Stock"};
-        
+
         medicineModel = new DefaultTableModel(medColumns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
         };
-        
+
         loadMedicinesToPOS("");
 
         medicineTable = new JTable(medicineModel);
@@ -101,7 +110,7 @@ public class POSFrame extends JPanel {
         btnAddToCart.setFocusPainted(false);
         btnAddToCart.setBorder(new EmptyBorder(10, 0, 10, 0));
         btnAddToCart.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        
+
         JPanel btnAddWrapper = new JPanel(new BorderLayout());
         btnAddWrapper.setOpaque(false);
         btnAddWrapper.setBorder(new EmptyBorder(10, 0, 0, 0));
@@ -142,21 +151,40 @@ public class POSFrame extends JPanel {
         bottomCartPanel.setOpaque(false);
         bottomCartPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
 
-        JPanel subtotalPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        subtotalPanel.setOpaque(false);
-        JLabel lblSubtotalText = new JLabel("Subtotal: ");
-        lblSubtotalText.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        lblSubtotalText.setForeground(new Color(90, 95, 100));
-        lblSubtotalVal = new JLabel("₱ 0.00");
-        lblSubtotalVal.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        lblSubtotalVal.setForeground(new Color(40, 167, 69));
-        subtotalPanel.add(lblSubtotalText);
-        subtotalPanel.add(lblSubtotalVal);
-        bottomCartPanel.add(subtotalPanel, BorderLayout.NORTH);
+        // ===== Summary panel (PWD checkbox + computation) =====
+        JPanel summaryPanel = new JPanel(new GridLayout(0, 2, 5, 4));
+        summaryPanel.setOpaque(false);
+        summaryPanel.setBorder(new EmptyBorder(0, 0, 10, 0));
+
+        chkPwd = new JCheckBox("PWD Customer");
+        chkPwd.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        chkPwd.setOpaque(false);
+        chkPwd.setForeground(new Color(70, 75, 80));
+        chkPwd.setFocusPainted(false);
+        chkPwd.addActionListener(e -> updateSubtotal());
+
+        lblSubtotalVal = createSummaryValue("₱ 0.00", new Color(90, 95, 100));
+        lblVatExemptVal = createSummaryValue("- ₱ 0.00", new Color(90, 95, 100));
+        lblDiscountVal = createSummaryValue("- ₱ 0.00", new Color(220, 53, 69));
+        lblTotalVal = createSummaryValue("₱ 0.00", new Color(40, 167, 69));
+        lblTotalVal.setFont(new Font("Segoe UI", Font.BOLD, 16));
+
+        summaryPanel.add(chkPwd);
+        summaryPanel.add(new JLabel());
+        summaryPanel.add(createSummaryLabel("Subtotal:"));
+        summaryPanel.add(lblSubtotalVal);
+        summaryPanel.add(createSummaryLabel("VAT Exemption:"));
+        summaryPanel.add(lblVatExemptVal);
+        summaryPanel.add(createSummaryLabel("PWD Discount (20%):"));
+        summaryPanel.add(lblDiscountVal);
+        summaryPanel.add(createSummaryLabel("TOTAL:"));
+        summaryPanel.add(lblTotalVal);
+
+        bottomCartPanel.add(summaryPanel, BorderLayout.NORTH);
 
         JPanel actionButtons = new JPanel(new GridLayout(1, 2, 10, 0));
         actionButtons.setOpaque(false);
-        
+
         JButton btnRemove = new JButton("Remove Item");
         btnRemove.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnRemove.setBackground(new Color(220, 53, 69));
@@ -201,9 +229,9 @@ public class POSFrame extends JPanel {
                 String name = (String) medicineModel.getValueAt(selectedRow, 0);
                 String priceStr = (String) medicineModel.getValueAt(selectedRow, 2);
                 int availableStock = Integer.parseInt(medicineModel.getValueAt(selectedRow, 3).toString());
-                
+
                 double price = Double.parseDouble(priceStr.replace("₱", "").trim());
-                
+
                 int currentQtyInCart = 0;
                 for (int i = 0; i < cartModel.getRowCount(); i++) {
                     if (cartModel.getValueAt(i, 0).equals(name)) {
@@ -216,7 +244,7 @@ public class POSFrame extends JPanel {
                     CustomDialog.showMessage(this, "Insufficient stock available for this medicine!", "Stock Error", true);
                     return;
                 }
-                
+
                 boolean found = false;
                 for (int i = 0; i < cartModel.getRowCount(); i++) {
                     if (cartModel.getValueAt(i, 0).equals(name)) {
@@ -227,7 +255,7 @@ public class POSFrame extends JPanel {
                         break;
                     }
                 }
-                
+
                 if (!found) {
                     cartModel.addRow(new Object[]{name, String.format("₱%.2f", price), "1", String.format("₱%.2f", price)});
                 }
@@ -246,13 +274,27 @@ public class POSFrame extends JPanel {
                 CustomDialog.showMessage(this, "Please select an item from the cart to remove.", "Selection Error", true);
             }
         });
-        
+
         btnCheckout.addActionListener(e -> {
             try {
                 if (cartModel.getRowCount() > 0) {
                     String customerName = CustomDialog.showInput(this, "Enter Customer Name:", "Customer Details");
-                    
+
                     if (customerName != null && !customerName.trim().isEmpty()) {
+
+                        boolean isPwd = chkPwd.isSelected();
+                        String pwdId = "";
+
+                        if (isPwd) {
+                            String input = CustomDialog.showInput(this, "Enter PWD ID Number:", "PWD Verification");
+                            if (input == null) return; 
+                            if (input.trim().isEmpty()) {
+                                CustomDialog.showMessage(this, "PWD ID number is required for PWD discount.", "Validation Error", true);
+                                return;
+                            }
+                            pwdId = input.trim();
+                        }
+
                         double totalAmount = calculateTotal();
                         String orderNo = "ORD-" + (System.currentTimeMillis() % 10000);
                         String currentDate = LocalDate.now().toString();
@@ -264,13 +306,15 @@ public class POSFrame extends JPanel {
                         }
 
                         SharedData.totalSalesToday += totalAmount;
-                        SharedData.addSale(orderNo, currentDate, String.format("%.2f", totalAmount), customerName.trim());
+                        SharedData.addSale(orderNo, currentDate, String.format("%.2f", totalAmount),
+                                           customerName.trim(), isPwd, pwdId);
                         DashboardPanel.refreshDashboardData();
-                        
+
                         CustomDialog.showMessage(this, "Checkout successful! Stock updated and transferred to Dashboard.", "Success", false);
                         cartModel.setRowCount(0);
+                        chkPwd.setSelected(false);
                         updateSubtotal();
-                        loadMedicinesToPOS(""); 
+                        loadMedicinesToPOS("");
                     } else if (customerName != null) {
                         CustomDialog.showMessage(this, "Customer name is required.", "Validation Error", true);
                     }
@@ -287,12 +331,12 @@ public class POSFrame extends JPanel {
     private void loadMedicinesToPOS(String filterKeyword) {
         medicineModel.setRowCount(0);
         List<Medicine> medicines = MedicineDAO.getAllMedicines();
-        
+
         for (Medicine med : medicines) {
-            if (filterKeyword.isEmpty() || 
-                med.getName().toLowerCase().contains(filterKeyword.toLowerCase()) || 
+            if (filterKeyword.isEmpty() ||
+                med.getName().toLowerCase().contains(filterKeyword.toLowerCase()) ||
                 med.getMedicineCategory().toLowerCase().contains(filterKeyword.toLowerCase())) {
-                
+
                 medicineModel.addRow(new Object[]{
                     med.getName(),
                     med.getMedicineCategory(),
@@ -303,7 +347,8 @@ public class POSFrame extends JPanel {
         }
     }
 
-    private double calculateTotal() {
+
+    private double calculateSubtotal() {
         double total = 0;
         for (int i = 0; i < cartModel.getRowCount(); i++) {
             String totalStr = (String) cartModel.getValueAt(i, 3);
@@ -312,8 +357,42 @@ public class POSFrame extends JPanel {
         return total;
     }
 
+    private double calculateVatExemption(double subtotal) {
+        if (!chkPwd.isSelected() || !PWD_VAT_EXEMPT) return 0;
+        return subtotal - (subtotal / (1 + VAT_RATE));
+    }
+
+    private double calculatePwdDiscount(double subtotal) {
+        if (!chkPwd.isSelected()) return 0;
+        double base = subtotal - calculateVatExemption(subtotal);
+        return base * PWD_DISCOUNT_RATE;
+    }
+
+    private double calculateTotal() {
+        double subtotal = calculateSubtotal();
+        return subtotal - calculateVatExemption(subtotal) - calculatePwdDiscount(subtotal);
+    }
+
     private void updateSubtotal() {
-        lblSubtotalVal.setText(String.format("₱ %.2f", calculateTotal()));
+        double subtotal = calculateSubtotal();
+        lblSubtotalVal.setText(String.format("₱ %.2f", subtotal));
+        lblVatExemptVal.setText(String.format("- ₱ %.2f", calculateVatExemption(subtotal)));
+        lblDiscountVal.setText(String.format("- ₱ %.2f", calculatePwdDiscount(subtotal)));
+        lblTotalVal.setText(String.format("₱ %.2f", calculateTotal()));
+    }
+
+    private JLabel createSummaryLabel(String text) {
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lbl.setForeground(new Color(90, 95, 100));
+        return lbl;
+    }
+
+    private JLabel createSummaryValue(String text, Color color) {
+        JLabel lbl = new JLabel(text, SwingConstants.RIGHT);
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lbl.setForeground(color);
+        return lbl;
     }
 
     private static class CustomDialog {
