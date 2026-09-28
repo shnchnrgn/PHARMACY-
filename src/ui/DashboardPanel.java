@@ -1,5 +1,8 @@
 package ui;
 
+import db.MedicineDAO;
+import db.SalesDAO;
+
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.plaf.basic.BasicScrollBarUI;
@@ -13,6 +16,8 @@ public class DashboardPanel extends JPanel {
     private final Border grayBorder = BorderFactory.createLineBorder(new Color(200, 205, 210), 1);
     private static DefaultTableModel tableModel;
     private static JLabel lblSalesVal;
+    private static JLabel lblMedicineVal;
+    private static JLabel lblExpiredVal;
 
     public DashboardPanel() {
         setLayout(new BorderLayout());
@@ -29,8 +34,8 @@ public class DashboardPanel extends JPanel {
 
         topCardsPanel.add(createMetricCard("Sales", "₱ 0.00", "Total Sales Today", new Color(41, 128, 185)));
         topCardsPanel.add(createMetricCard("Expenses", "₱ 0.00", "Total Expenses Today", new Color(22, 160, 133)));
-        topCardsPanel.add(createMetricCard("Medicines", "24", "Total Medicine In Store", new Color(243, 156, 18)));
-        topCardsPanel.add(createMetricCard("Expired", "0", "Medicines Expired In Store", new Color(231, 76, 60)));
+        topCardsPanel.add(createMetricCard("Medicines", String.valueOf(MedicineDAO.getAllMedicines().size()), "Total Medicine In Store", new Color(243, 156, 18)));
+        topCardsPanel.add(createMetricCard("Expired", String.valueOf(MedicineDAO.getExpiredCount()), "Medicines Expired In Store", new Color(231, 76, 60)));
 
         container.add(topCardsPanel);
         container.add(Box.createVerticalStrut(20));
@@ -57,14 +62,18 @@ public class DashboardPanel extends JPanel {
     }
 
     public static void refreshDashboardData() {
+        double todaySales = SalesDAO.getTodaySalesTotal();
+        SharedData.totalSalesToday = todaySales;
+
         if (lblSalesVal != null) {
-            lblSalesVal.setText(String.format("₱ %.2f", SharedData.totalSalesToday));
+            lblSalesVal.setText(String.format("₱ %.2f", todaySales));
         }
+
         if (tableModel != null) {
             tableModel.setRowCount(0);
-            List<SharedData.SaleItem> sales = SharedData.getSalesList();
-            for (SharedData.SaleItem sale : sales) {
-                tableModel.addRow(new Object[]{sale.orderNo, sale.date, "₱ " + sale.amount, sale.customerName});
+            List<String[]> sales = SalesDAO.getLatestSales(10);
+            for (String[] sale : sales) {
+                tableModel.addRow(new Object[]{sale[0], sale[1], "₱ " + sale[2], sale[3]});
             }
         }
     }

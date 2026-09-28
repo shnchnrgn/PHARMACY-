@@ -1,6 +1,8 @@
 package ui;
 
+import db.CustomerDAO;
 import db.MedicineDAO;
+import db.SalesDAO;
 import models.Medicine;
 
 import javax.swing.*;
@@ -8,6 +10,7 @@ import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
 public class POSFrame extends JPanel {
@@ -77,7 +80,7 @@ public class POSFrame extends JPanel {
         searchPanel.add(btnSearch, BorderLayout.EAST);
         leftPanel.add(searchPanel, BorderLayout.NORTH);
 
-        String[] medColumns = {"Medicine Name", "Category", "Price", "Stock"};
+        String[] medColumns = {"Medicine Name", "Category", "Price", "Stock", "ID"};
 
         medicineModel = new DefaultTableModel(medColumns, 0) {
             @Override
@@ -97,6 +100,9 @@ public class POSFrame extends JPanel {
         medicineTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         medicineTable.getTableHeader().setBackground(new Color(248, 249, 250));
         medicineTable.getTableHeader().setForeground(new Color(80, 85, 90));
+        medicineTable.getColumnModel().getColumn(4).setMinWidth(0);
+        medicineTable.getColumnModel().getColumn(4).setMaxWidth(0);
+        medicineTable.getColumnModel().getColumn(4).setPreferredWidth(0);
 
         JScrollPane medScroll = new JScrollPane(medicineTable);
         medScroll.getViewport().setBackground(Color.WHITE);
@@ -130,7 +136,7 @@ public class POSFrame extends JPanel {
         lblCartTitle.setBorder(new EmptyBorder(0, 0, 10, 0));
         rightPanel.add(lblCartTitle, BorderLayout.NORTH);
 
-        String[] cartColumns = {"Item Name", "Price", "Qty", "Total"};
+        String[] cartColumns = {"Item Name", "Price", "Qty", "Total", "Medicine ID"};
         cartModel = new DefaultTableModel(new Object[][]{}, cartColumns);
         cartTable = new JTable(cartModel);
         cartTable.setRowHeight(32);
@@ -141,6 +147,9 @@ public class POSFrame extends JPanel {
         cartTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
         cartTable.getTableHeader().setBackground(new Color(248, 249, 250));
         cartTable.getTableHeader().setForeground(new Color(80, 85, 90));
+        cartTable.getColumnModel().getColumn(4).setMinWidth(0);
+        cartTable.getColumnModel().getColumn(4).setMaxWidth(0);
+        cartTable.getColumnModel().getColumn(4).setPreferredWidth(0);
 
         JScrollPane cartScroll = new JScrollPane(cartTable);
         cartScroll.getViewport().setBackground(Color.WHITE);
@@ -229,6 +238,7 @@ public class POSFrame extends JPanel {
                 String name = (String) medicineModel.getValueAt(selectedRow, 0);
                 String priceStr = (String) medicineModel.getValueAt(selectedRow, 2);
                 int availableStock = Integer.parseInt(medicineModel.getValueAt(selectedRow, 3).toString());
+                int medicineId = Integer.parseInt(medicineModel.getValueAt(selectedRow, 4).toString());
 
                 double price = Double.parseDouble(priceStr.replace("₱", "").trim());
 
@@ -257,7 +267,7 @@ public class POSFrame extends JPanel {
                 }
 
                 if (!found) {
-                    cartModel.addRow(new Object[]{name, String.format("₱%.2f", price), "1", String.format("₱%.2f", price)});
+                    cartModel.addRow(new Object[]{name, String.format("₱%.2f", price), "1", String.format("₱%.2f", price), medicineId});
                 }
                 updateSubtotal();
             } else {
@@ -277,50 +287,66 @@ public class POSFrame extends JPanel {
 
         btnCheckout.addActionListener(e -> {
             try {
-                if (cartModel.getRowCount() > 0) {
-                    String customerName = CustomDialog.showInput(this, "Enter Customer Name:", "Customer Details");
-
-                    if (customerName != null && !customerName.trim().isEmpty()) {
-
-                        boolean isPwd = chkPwd.isSelected();
-                        String pwdId = "";
-
-                        if (isPwd) {
-                            String input = CustomDialog.showInput(this, "Enter PWD ID Number:", "PWD Verification");
-                            if (input == null) return; 
-                            if (input.trim().isEmpty()) {
-                                CustomDialog.showMessage(this, "PWD ID number is required for PWD discount.", "Validation Error", true);
-                                return;
-                            }
-                            pwdId = input.trim();
-                        }
-
-                        double totalAmount = calculateTotal();
-                        String orderNo = "ORD-" + (System.currentTimeMillis() % 10000);
-                        String currentDate = LocalDate.now().toString();
-
-                        for (int i = 0; i < cartModel.getRowCount(); i++) {
-                            String itemName = (String) cartModel.getValueAt(i, 0);
-                            int qtySold = Integer.parseInt((String) cartModel.getValueAt(i, 2));
-                            MedicineDAO.decreaseStock(itemName, qtySold);
-                        }
-
-                        SharedData.totalSalesToday += totalAmount;
-                        SharedData.addSale(orderNo, currentDate, String.format("%.2f", totalAmount),
-                                           customerName.trim(), isPwd, pwdId);
-                        DashboardPanel.refreshDashboardData();
-
-                        CustomDialog.showMessage(this, "Checkout successful! Stock updated and transferred to Dashboard.", "Success", false);
-                        cartModel.setRowCount(0);
-                        chkPwd.setSelected(false);
-                        updateSubtotal();
-                        loadMedicinesToPOS("");
-                    } else if (customerName != null) {
-                        CustomDialog.showMessage(this, "Customer name is required.", "Validation Error", true);
-                    }
-                } else {
+                if (cartModel.getRowCount() == 0) {
                     CustomDialog.showMessage(this, "The cart is empty.", "Cart Error", true);
+                    return;
                 }
+
+                String customerName = CustomDialog.showInput(this, "Enter Customer Name:", "Customer Details");
+                if (customerName == null) {
+                    return;
+                }
+
+                customerName = customerName.trim();
+                if (customerName.isEmpty()) {
+                    CustomDialog.showMessage(this, "Customer name is required.", "Validation Error", true);
+                    return;
+                }
+
+                int customerId = CustomerDAO.getCustomerIdByNameIgnoreCase(customerName);
+                if (customerId == -1) {
+                    CustomDialog.showMessage(this, "Customer not found in the Customer database. Please register the customer first.", "Customer Not Found", true);
+                    return;
+                }
+
+                boolean isPwd = chkPwd.isSelected();
+                String pwdId = "";
+
+                if (isPwd) {
+                    String input = CustomDialog.showInput(this, "Enter PWD ID Number:", "PWD Verification");
+                    if (input == null) {
+                        return;
+                    }
+                    if (input.trim().isEmpty()) {
+                        CustomDialog.showMessage(this, "PWD ID number is required for PWD discount.", "Validation Error", true);
+                        return;
+                    }
+                    pwdId = input.trim();
+                }
+
+                double totalAmount = calculateTotal();
+                String orderNo = "ORD-" + System.currentTimeMillis();
+                String currentDate = LocalDate.now().toString();
+                List<SalesDAO.SaleItemData> items = new ArrayList<>();
+
+                for (int i = 0; i < cartModel.getRowCount(); i++) {
+                    int medicineId = Integer.parseInt(cartModel.getValueAt(i, 4).toString());
+                    int qtySold = Integer.parseInt(cartModel.getValueAt(i, 2).toString());
+                    double unitPrice = Double.parseDouble(cartModel.getValueAt(i, 1).toString().replace("₱", "").trim());
+                    items.add(new SalesDAO.SaleItemData(medicineId, qtySold, unitPrice));
+                }
+
+                SalesDAO.completeSale(customerId, orderNo, currentDate, totalAmount, isPwd, pwdId, items);
+
+                SharedData.totalSalesToday = SalesDAO.getTodaySalesTotal();
+                SharedData.addSale(orderNo, currentDate, String.format("%.2f", totalAmount), customerName, isPwd, pwdId);
+                DashboardPanel.refreshDashboardData();
+
+                CustomDialog.showMessage(this, "Checkout successful! Sale saved, customer history updated, and inventory stock deducted.", "Success", false);
+                cartModel.setRowCount(0);
+                chkPwd.setSelected(false);
+                updateSubtotal();
+                loadMedicinesToPOS("");
             } catch (Exception ex) {
                 ex.printStackTrace();
                 CustomDialog.showMessage(this, "Checkout Error: " + ex.getMessage(), "Error", true);
@@ -339,9 +365,10 @@ public class POSFrame extends JPanel {
 
                 medicineModel.addRow(new Object[]{
                     med.getName(),
-                    med.getMedicineCategory(),
+                    med.getMedicineCategory() == null ? "" : med.getMedicineCategory(),
                     String.format("₱%.2f", med.getSellPrice()),
-                    med.getStock()
+                    med.getStock(),
+                    med.getId()
                 });
             }
         }

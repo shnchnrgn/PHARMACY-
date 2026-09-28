@@ -1,5 +1,7 @@
 package ui;
 
+import db.Database;
+
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
@@ -41,6 +43,8 @@ public class App extends JFrame {
 
 
     public App() {
+
+        Database.createTables();
 
         setTitle("Pharmacy Management System");
         setSize(1250, 720);

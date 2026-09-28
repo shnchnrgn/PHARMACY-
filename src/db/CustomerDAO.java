@@ -150,6 +150,27 @@ public class CustomerDAO {
         return -1;
     }
 
+    public static int getCustomerIdByNameIgnoreCase(String name) {
+        String sql = "SELECT id FROM customers WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) LIMIT 1";
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, name);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("id");
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return -1;
+    }
+
     public static void recordPurchase(int customerId, String orderNo, String purchaseDate, double amount) {
         String sql = "INSERT INTO purchase_history " +
                      "(customer_id, order_no, purchase_date, amount) " +

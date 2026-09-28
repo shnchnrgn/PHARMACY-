@@ -47,12 +47,38 @@ public class Database {
                 "FOREIGN KEY (customer_id) REFERENCES customers(id)" +
                 ");";
 
+        String salesSql =
+                "CREATE TABLE IF NOT EXISTS sales (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "customer_id INTEGER NOT NULL, " +
+                "order_no TEXT NOT NULL UNIQUE, " +
+                "purchase_date TEXT NOT NULL, " +
+                "amount REAL NOT NULL, " +
+                "is_pwd INTEGER NOT NULL DEFAULT 0, " +
+                "pwd_id TEXT, " +
+                "FOREIGN KEY (customer_id) REFERENCES customers(id)" +
+                ");";
+
+        String saleItemsSql =
+                "CREATE TABLE IF NOT EXISTS sale_items (" +
+                "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
+                "sale_id INTEGER NOT NULL, " +
+                "medicine_id INTEGER NOT NULL, " +
+                "quantity INTEGER NOT NULL, " +
+                "unit_price REAL NOT NULL, " +
+                "subtotal REAL NOT NULL, " +
+                "FOREIGN KEY (sale_id) REFERENCES sales(id), " +
+                "FOREIGN KEY (medicine_id) REFERENCES medicines(id)" +
+                ");";
+
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {
 
             stmt.execute(medicinesSql);
             stmt.execute(customersSql);
             stmt.execute(purchaseHistorySql);
+            stmt.execute(salesSql);
+            stmt.execute(saleItemsSql);
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -65,6 +91,7 @@ public class Database {
         addColumnIfMissing("medicines", "buy_price", "REAL");
         addColumnIfMissing("medicines", "sell_price", "REAL");
         addColumnIfMissing("medicines", "company_name", "TEXT");
+        addColumnIfMissing("medicines", "medicine_category", "TEXT");
     }
 
     private static void addColumnIfMissing(String table, String column, String type) {
