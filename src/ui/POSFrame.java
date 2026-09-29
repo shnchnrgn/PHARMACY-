@@ -23,13 +23,10 @@ public class POSFrame extends JPanel {
 
     private JLabel lblSubtotalVal;
     private JCheckBox chkPwd;
-    private JLabel lblVatExemptVal;
     private JLabel lblDiscountVal;
     private JLabel lblTotalVal;
 
-    private static final double VAT_RATE = 0.12;
     private static final double PWD_DISCOUNT_RATE = 0.20;
-    private static final boolean PWD_VAT_EXEMPT = true;
 
     public POSFrame() {
 
@@ -46,6 +43,7 @@ public class POSFrame extends JPanel {
         contentPanel.setOpaque(false);
         contentPanel.setBorder(new EmptyBorder(15, 0, 0, 0));
 
+        // ================= LEFT PANEL =================
         JPanel leftPanel = new JPanel(new BorderLayout());
         leftPanel.setBackground(Color.WHITE);
         leftPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -82,13 +80,7 @@ public class POSFrame extends JPanel {
 
         leftPanel.add(searchPanel, BorderLayout.NORTH);
 
-        String[] medColumns = {
-                "Medicine Name",
-                "Category",
-                "Price",
-                "Stock",
-                "ID"
-        };
+        String[] medColumns = {"Medicine Name", "Category", "Price", "Stock", "ID"};
 
         medicineModel = new DefaultTableModel(medColumns, 0) {
             @Override
@@ -132,6 +124,7 @@ public class POSFrame extends JPanel {
 
         leftPanel.add(btnAddWrapper, BorderLayout.SOUTH);
 
+        // ================= RIGHT PANEL =================
         JPanel rightPanel = new JPanel(new BorderLayout());
         rightPanel.setBackground(Color.WHITE);
         rightPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -146,18 +139,9 @@ public class POSFrame extends JPanel {
 
         rightPanel.add(lblCartTitle, BorderLayout.NORTH);
 
-        String[] cartColumns = {
-                "Item Name",
-                "Price",
-                "Qty",
-                "Total",
-                "Medicine ID"
-        };
+        String[] cartColumns = {"Item Name", "Price", "Qty", "Total", "Medicine ID"};
 
-        cartModel = new DefaultTableModel(
-                new Object[][]{},
-                cartColumns
-        ) {
+        cartModel = new DefaultTableModel(new Object[][]{}, cartColumns) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -188,338 +172,174 @@ public class POSFrame extends JPanel {
         bottomCartPanel.setOpaque(false);
         bottomCartPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
 
-        JPanel summaryPanel = new JPanel(new GridLayout(0, 2, 5, 4));
-        summaryPanel.setOpaque(false);
-        summaryPanel.setBorder(new EmptyBorder(0, 0, 10, 0));
+        // ---- PWD row + summary ----
+        final Color textColor = new Color(51, 51, 51);
+        final Color lineColor = new Color(220, 220, 220);
 
         chkPwd = new JCheckBox("PWD Customer");
-        chkPwd.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        chkPwd.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        chkPwd.setForeground(textColor);
         chkPwd.setOpaque(false);
-        chkPwd.setForeground(new Color(70, 75, 80));
         chkPwd.setFocusPainted(false);
+        chkPwd.setIcon(new FlatCheckIcon(false));
+        chkPwd.setSelectedIcon(new FlatCheckIcon(true));
+        chkPwd.setIconTextGap(8);
+        chkPwd.setCursor(new Cursor(Cursor.HAND_CURSOR));
         chkPwd.addActionListener(e -> updateSubtotal());
 
-        lblSubtotalVal =
-                createSummaryValue(
-                        "₱ 0.00",
-                        new Color(90, 95, 100)
-                );
+        JLabel lblPwdNote = new JLabel("20% discount");
+        lblPwdNote.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblPwdNote.setForeground(new Color(120, 125, 130));
 
-        lblVatExemptVal =
-                createSummaryValue(
-                        "- ₱ 0.00",
-                        new Color(90, 95, 100)
-                );
+        JPanel pwdRow = new JPanel(new BorderLayout(10, 0));
+        pwdRow.setBackground(new Color(248, 249, 250));
+        pwdRow.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 205, 210)),
+                new EmptyBorder(7, 10, 7, 10)
+        ));
+        pwdRow.add(chkPwd, BorderLayout.WEST);
+        pwdRow.add(lblPwdNote, BorderLayout.EAST);
 
-        lblDiscountVal =
-                createSummaryValue(
-                        "- ₱ 0.00",
-                        new Color(220, 53, 69)
-                );
+        lblSubtotalVal = createSummaryValue("₱ 0.00", textColor);
+        lblDiscountVal = createSummaryValue("- ₱ 0.00", textColor);
+        lblTotalVal = createSummaryValue("₱ 0.00", textColor);
+        lblTotalVal.setFont(new Font("Segoe UI", Font.BOLD, 16));
 
-        lblTotalVal =
-                createSummaryValue(
-                        "₱ 0.00",
-                        new Color(40, 167, 69)
-                );
-
-        lblTotalVal.setFont(
-                new Font("Segoe UI", Font.BOLD, 16)
-        );
-
-        summaryPanel.add(chkPwd);
-        summaryPanel.add(new JLabel());
+        JPanel summaryPanel = new JPanel(new GridLayout(0, 2, 5, 6));
+        summaryPanel.setOpaque(false);
         summaryPanel.add(createSummaryLabel("Subtotal:"));
         summaryPanel.add(lblSubtotalVal);
-        summaryPanel.add(createSummaryLabel("VAT Exemption:"));
-        summaryPanel.add(lblVatExemptVal);
         summaryPanel.add(createSummaryLabel("PWD Discount (20%):"));
         summaryPanel.add(lblDiscountVal);
-        summaryPanel.add(createSummaryLabel("TOTAL:"));
-        summaryPanel.add(lblTotalVal);
 
-        bottomCartPanel.add(
-                summaryPanel,
-                BorderLayout.NORTH
-        );
+        JLabel lblTotalText = createSummaryLabel("TOTAL:");
+        lblTotalText.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        lblTotalText.setForeground(textColor);
 
-        JPanel actionButtons =
-                new JPanel(
-                        new GridLayout(1, 2, 10, 0)
-                );
+        JPanel totalRow = new JPanel(new BorderLayout());
+        totalRow.setOpaque(false);
+        totalRow.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, lineColor),
+                new EmptyBorder(8, 0, 0, 0)
+        ));
+        totalRow.add(lblTotalText, BorderLayout.WEST);
+        totalRow.add(lblTotalVal, BorderLayout.EAST);
 
+        JPanel summaryBox = new JPanel(new BorderLayout(0, 8));
+        summaryBox.setOpaque(false);
+        summaryBox.setBorder(new EmptyBorder(10, 0, 10, 0));
+        summaryBox.add(summaryPanel, BorderLayout.CENTER);
+        summaryBox.add(totalRow, BorderLayout.SOUTH);
+
+        JPanel summaryWrap = new JPanel(new BorderLayout());
+        summaryWrap.setOpaque(false);
+        summaryWrap.add(pwdRow, BorderLayout.NORTH);
+        summaryWrap.add(summaryBox, BorderLayout.CENTER);
+
+        bottomCartPanel.add(summaryWrap, BorderLayout.NORTH);
+
+        // ---- Action buttons ----
+        JPanel actionButtons = new JPanel(new GridLayout(1, 2, 10, 0));
         actionButtons.setOpaque(false);
 
-        JButton btnRemove =
-                new JButton("Remove Item");
-
-        btnRemove.setFont(
-                new Font(
-                        "Segoe UI",
-                        Font.BOLD,
-                        12
-                )
-        );
-
-        btnRemove.setBackground(
-                new Color(220, 53, 69)
-        );
-
+        JButton btnRemove = new JButton("Remove Item");
+        btnRemove.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnRemove.setBackground(new Color(220, 53, 69));
         btnRemove.setForeground(Color.WHITE);
         btnRemove.setFocusPainted(false);
+        btnRemove.setBorder(new EmptyBorder(10, 0, 10, 0));
+        btnRemove.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        btnRemove.setBorder(
-                new EmptyBorder(
-                        10, 0, 10, 0
-                )
-        );
-
-        btnRemove.setCursor(
-                new Cursor(
-                        Cursor.HAND_CURSOR
-                )
-        );
-
-        JButton btnCheckout =
-                new JButton("Checkout");
-
-        btnCheckout.setFont(
-                new Font(
-                        "Segoe UI",
-                        Font.BOLD,
-                        12
-                )
-        );
-
-        btnCheckout.setBackground(
-                new Color(40, 167, 69)
-        );
-
+        JButton btnCheckout = new JButton("Checkout");
+        btnCheckout.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnCheckout.setBackground(new Color(40, 167, 69));
         btnCheckout.setForeground(Color.WHITE);
         btnCheckout.setFocusPainted(false);
-
-        btnCheckout.setBorder(
-                new EmptyBorder(
-                        10, 0, 10, 0
-                )
-        );
-
-        btnCheckout.setCursor(
-                new Cursor(
-                        Cursor.HAND_CURSOR
-                )
-        );
+        btnCheckout.setBorder(new EmptyBorder(10, 0, 10, 0));
+        btnCheckout.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
         actionButtons.add(btnRemove);
         actionButtons.add(btnCheckout);
 
-        bottomCartPanel.add(
-                actionButtons,
-                BorderLayout.SOUTH
-        );
+        bottomCartPanel.add(actionButtons, BorderLayout.SOUTH);
 
-        rightPanel.add(
-                bottomCartPanel,
-                BorderLayout.SOUTH
-        );
+        rightPanel.add(bottomCartPanel, BorderLayout.SOUTH);
 
         contentPanel.add(leftPanel);
         contentPanel.add(rightPanel);
 
-        add(
-                contentPanel,
-                BorderLayout.CENTER
-        );
+        add(contentPanel, BorderLayout.CENTER);
 
         loadMedicinesToPOS("");
 
-        addComponentListener(
-                new java.awt.event.ComponentAdapter() {
-
-                    @Override
-                    public void componentShown(
-                            java.awt.event.ComponentEvent e) {
-
-                        loadMedicinesToPOS("");
-                    }
-                }
-        );
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentShown(java.awt.event.ComponentEvent e) {
+                loadMedicinesToPOS("");
+            }
+        });
 
         btnSearch.addActionListener(e -> {
-
-            String keyword =
-                    searchField
-                            .getText()
-                            .trim();
-
+            String keyword = searchField.getText().trim();
             loadMedicinesToPOS(keyword);
         });
 
         btnAddToCart.addActionListener(e -> {
 
-            int selectedRow =
-                    medicineTable.getSelectedRow();
+            int selectedRow = medicineTable.getSelectedRow();
 
             if (selectedRow == -1) {
-
-                CustomDialog.showMessage(
-                        this,
+                CustomDialog.showMessage(this,
                         "Please select a medicine from the list first.",
-                        "Selection Error",
-                        true
-                );
-
+                        "Selection Error", true);
                 return;
             }
 
-            String name =
-                    (String) medicineModel
-                            .getValueAt(
-                                    selectedRow,
-                                    0
-                            );
-
-            String priceStr =
-                    (String) medicineModel
-                            .getValueAt(
-                                    selectedRow,
-                                    2
-                            );
-
-            int availableStock =
-                    Integer.parseInt(
-                            medicineModel
-                                    .getValueAt(
-                                            selectedRow,
-                                            3
-                                    )
-                                    .toString()
-                    );
-
-            int medicineId =
-                    Integer.parseInt(
-                            medicineModel
-                                    .getValueAt(
-                                            selectedRow,
-                                            4
-                                    )
-                                    .toString()
-                    );
-
-            double price =
-                    Double.parseDouble(
-                            priceStr
-                                    .replace(
-                                            "₱",
-                                            ""
-                                    )
-                                    .trim()
-                    );
+            String name = (String) medicineModel.getValueAt(selectedRow, 0);
+            String priceStr = (String) medicineModel.getValueAt(selectedRow, 2);
+            int availableStock = Integer.parseInt(
+                    medicineModel.getValueAt(selectedRow, 3).toString());
+            int medicineId = Integer.parseInt(
+                    medicineModel.getValueAt(selectedRow, 4).toString());
+            double price = Double.parseDouble(priceStr.replace("₱", "").trim());
 
             int currentQtyInCart = 0;
 
-            for (
-                    int i = 0;
-                    i < cartModel.getRowCount();
-                    i++
-            ) {
-
-                if (
-                        cartModel
-                                .getValueAt(
-                                        i,
-                                        0
-                                )
-                                .equals(name)
-                ) {
-
-                    currentQtyInCart =
-                            Integer.parseInt(
-                                    cartModel
-                                            .getValueAt(
-                                                    i,
-                                                    2
-                                            )
-                                            .toString()
-                            );
-
+            for (int i = 0; i < cartModel.getRowCount(); i++) {
+                if (cartModel.getValueAt(i, 0).equals(name)) {
+                    currentQtyInCart = Integer.parseInt(
+                            cartModel.getValueAt(i, 2).toString());
                     break;
                 }
             }
 
-            if (
-                    availableStock <= 0
-                            || currentQtyInCart + 1
-                            > availableStock
-            ) {
-
-                CustomDialog.showMessage(
-                        this,
+            if (availableStock <= 0 || currentQtyInCart + 1 > availableStock) {
+                CustomDialog.showMessage(this,
                         "Insufficient stock available for this medicine!",
-                        "Stock Error",
-                        true
-                );
-
+                        "Stock Error", true);
                 return;
             }
 
             boolean found = false;
 
-            for (
-                    int i = 0;
-                    i < cartModel.getRowCount();
-                    i++
-            ) {
-
-                if (
-                        cartModel
-                                .getValueAt(
-                                        i,
-                                        0
-                                )
-                                .equals(name)
-                ) {
-
-                    int qty =
-                            currentQtyInCart + 1;
-
-                    cartModel.setValueAt(
-                            String.valueOf(qty),
-                            i,
-                            2
-                    );
-
-                    cartModel.setValueAt(
-                            String.format(
-                                    "₱%.2f",
-                                    price * qty
-                            ),
-                            i,
-                            3
-                    );
-
+            for (int i = 0; i < cartModel.getRowCount(); i++) {
+                if (cartModel.getValueAt(i, 0).equals(name)) {
+                    int qty = currentQtyInCart + 1;
+                    cartModel.setValueAt(String.valueOf(qty), i, 2);
+                    cartModel.setValueAt(String.format("₱%.2f", price * qty), i, 3);
                     found = true;
                     break;
                 }
             }
 
             if (!found) {
-
-                cartModel.addRow(
-                        new Object[]{
-                                name,
-                                String.format(
-                                        "₱%.2f",
-                                        price
-                                ),
-                                "1",
-                                String.format(
-                                        "₱%.2f",
-                                        price
-                                ),
-                                medicineId
-                        }
-                );
+                cartModel.addRow(new Object[]{
+                        name,
+                        String.format("₱%.2f", price),
+                        "1",
+                        String.format("₱%.2f", price),
+                        medicineId
+                });
             }
 
             updateSubtotal();
@@ -527,31 +347,19 @@ public class POSFrame extends JPanel {
 
         btnRemove.addActionListener(e -> {
 
-            int selectedCartRow =
-                    cartTable.getSelectedRow();
+            int selectedCartRow = cartTable.getSelectedRow();
 
             if (selectedCartRow != -1) {
-
-                cartModel.removeRow(
-                        selectedCartRow
-                );
-
+                cartModel.removeRow(selectedCartRow);
                 updateSubtotal();
-
             } else {
-
-                CustomDialog.showMessage(
-                        this,
+                CustomDialog.showMessage(this,
                         "Please select an item from the cart to remove.",
-                        "Selection Error",
-                        true
-                );
+                        "Selection Error", true);
             }
         });
 
-        btnCheckout.addActionListener(
-                e -> processCheckout()
-        );
+        btnCheckout.addActionListener(e -> processCheckout());
     }
 
     private void processCheckout() {
@@ -559,191 +367,94 @@ public class POSFrame extends JPanel {
         try {
 
             if (cartModel.getRowCount() == 0) {
-
-                CustomDialog.showMessage(
-                        this,
-                        "The cart is empty.",
-                        "Cart Error",
-                        true
-                );
-
+                CustomDialog.showMessage(this, "The cart is empty.", "Cart Error", true);
                 return;
             }
 
-            String customerName =
-                    CustomDialog.showInput(
-                            this,
-                            "Enter Customer Name:",
-                            "Customer Details"
-                    );
+            String customerName = CustomDialog.showInput(this,
+                    "Enter Customer Name:", "Customer Details");
 
             if (customerName == null) {
                 return;
             }
 
-            customerName =
-                    customerName.trim();
+            customerName = customerName.trim();
 
             if (customerName.isEmpty()) {
-
-                CustomDialog.showMessage(
-                        this,
-                        "Customer name is required.",
-                        "Validation Error",
-                        true
-                );
-
+                CustomDialog.showMessage(this, "Customer name is required.",
+                        "Validation Error", true);
                 return;
             }
 
-            int customerId =
-                    CustomerDAO
-                            .getCustomerIdByNameIgnoreCase(
-                                    customerName
-                            );
+            int customerId = CustomerDAO.getCustomerIdByNameIgnoreCase(customerName);
 
             if (customerId == -1) {
-
-                CustomDialog.showMessage(
-                        this,
+                CustomDialog.showMessage(this,
                         "Customer not found in the Customer database. Please register the customer first.",
-                        "Customer Not Found",
-                        true
-                );
-
+                        "Customer Not Found", true);
                 return;
             }
 
-            boolean isPwd =
-                    chkPwd.isSelected();
+            boolean isPwd = chkPwd.isSelected();
 
             String pwdId = "";
 
             if (isPwd) {
 
-                String input =
-                        CustomDialog.showInput(
-                                this,
-                                "Enter PWD ID Number:",
-                                "PWD Verification"
-                        );
+                String input = CustomDialog.showInput(this,
+                        "Enter PWD ID Number:", "PWD Verification");
 
                 if (input == null) {
                     return;
                 }
 
                 if (input.trim().isEmpty()) {
-
-                    CustomDialog.showMessage(
-                            this,
+                    CustomDialog.showMessage(this,
                             "PWD ID number is required for PWD discount.",
-                            "Validation Error",
-                            true
-                    );
-
+                            "Validation Error", true);
                     return;
                 }
 
-                pwdId =
-                        input.trim();
+                pwdId = input.trim();
             }
 
-            double totalAmount =
-                    calculateTotal();
+            double totalAmount = calculateTotal();
 
-            String orderNo =
-                    "ORD-"
-                            + System.currentTimeMillis();
+            String orderNo = "ORD-" + System.currentTimeMillis();
 
-            String currentDate =
-                    LocalDate.now().toString();
+            String currentDate = LocalDate.now().toString();
 
-            List<SalesDAO.SaleItemData> items =
-                    new ArrayList<>();
+            List<SalesDAO.SaleItemData> items = new ArrayList<>();
 
-            for (
-                    int i = 0;
-                    i < cartModel.getRowCount();
-                    i++
-            ) {
+            for (int i = 0; i < cartModel.getRowCount(); i++) {
 
-                int medicineId =
-                        Integer.parseInt(
-                                cartModel
-                                        .getValueAt(
-                                                i,
-                                                4
-                                        )
-                                        .toString()
-                        );
+                int medicineId = Integer.parseInt(
+                        cartModel.getValueAt(i, 4).toString());
 
-                int qtySold =
-                        Integer.parseInt(
-                                cartModel
-                                        .getValueAt(
-                                                i,
-                                                2
-                                        )
-                                        .toString()
-                        );
+                int qtySold = Integer.parseInt(
+                        cartModel.getValueAt(i, 2).toString());
 
-                double unitPrice =
-                        Double.parseDouble(
-                                cartModel
-                                        .getValueAt(
-                                                i,
-                                                1
-                                        )
-                                        .toString()
-                                        .replace(
-                                                "₱",
-                                                ""
-                                        )
-                                        .trim()
-                        );
+                double unitPrice = Double.parseDouble(
+                        cartModel.getValueAt(i, 1).toString()
+                                .replace("₱", "").trim());
 
-                items.add(
-                        new SalesDAO.SaleItemData(
-                                medicineId,
-                                qtySold,
-                                unitPrice
-                        )
-                );
+                items.add(new SalesDAO.SaleItemData(medicineId, qtySold, unitPrice));
             }
 
-            SalesDAO.completeSale(
-                    customerId,
-                    orderNo,
-                    currentDate,
-                    totalAmount,
-                    isPwd,
-                    pwdId,
-                    items
-            );
+            SalesDAO.completeSale(customerId, orderNo, currentDate,
+                    totalAmount, isPwd, pwdId, items);
 
-            SharedData.totalSalesToday =
-                    SalesDAO.getTodaySalesTotal();
+            SharedData.totalSalesToday = SalesDAO.getTodaySalesTotal();
 
-            SharedData.addSale(
-                    orderNo,
-                    currentDate,
-                    String.format(
-                            "%.2f",
-                            totalAmount
-                    ),
-                    customerName,
-                    isPwd,
-                    pwdId
-            );
+            SharedData.addSale(orderNo, currentDate,
+                    String.format("%.2f", totalAmount),
+                    customerName, isPwd, pwdId);
 
             DashboardPanel.refreshDashboardData();
 
-            CustomDialog.showMessage(
-                    this,
+            CustomDialog.showMessage(this,
                     "Checkout successful! Sale saved, customer history updated, and inventory stock deducted.",
-                    "Success",
-                    false
-            );
+                    "Success", false);
 
             cartModel.setRowCount(0);
             chkPwd.setSelected(false);
@@ -755,64 +466,36 @@ public class POSFrame extends JPanel {
 
             ex.printStackTrace();
 
-            CustomDialog.showMessage(
-                    this,
-                    "Checkout Error: "
-                            + ex.getMessage(),
-                    "Error",
-                    true
-            );
+            CustomDialog.showMessage(this,
+                    "Checkout Error: " + ex.getMessage(),
+                    "Error", true);
         }
     }
 
-    private void loadMedicinesToPOS(
-            String filterKeyword) {
+    private void loadMedicinesToPOS(String filterKeyword) {
 
         medicineModel.setRowCount(0);
 
-        List<Medicine> medicines =
-                MedicineDAO.getAllMedicines();
+        List<Medicine> medicines = MedicineDAO.getAllMedicines();
 
         for (Medicine med : medicines) {
 
-            String name =
-                    med.getName() == null
-                            ? ""
-                            : med.getName();
+            String name = med.getName() == null ? "" : med.getName();
 
-            String category =
-                    med.getMedicineCategory() == null
-                            ? ""
-                            : med.getMedicineCategory();
+            String category = med.getMedicineCategory() == null
+                    ? "" : med.getMedicineCategory();
 
-            if (
-                    filterKeyword.isEmpty()
-                            || name
-                                    .toLowerCase()
-                                    .contains(
-                                            filterKeyword
-                                                    .toLowerCase()
-                                    )
-                            || category
-                                    .toLowerCase()
-                                    .contains(
-                                            filterKeyword
-                                                    .toLowerCase()
-                                    )
-            ) {
+            if (filterKeyword.isEmpty()
+                    || name.toLowerCase().contains(filterKeyword.toLowerCase())
+                    || category.toLowerCase().contains(filterKeyword.toLowerCase())) {
 
-                medicineModel.addRow(
-                        new Object[]{
-                                name,
-                                category,
-                                String.format(
-                                        "₱%.2f",
-                                        med.getSellPrice()
-                                ),
-                                med.getStock(),
-                                med.getId()
-                        }
-                );
+                medicineModel.addRow(new Object[]{
+                        name,
+                        category,
+                        String.format("₱%.2f", med.getSellPrice()),
+                        med.getStock(),
+                        med.getId()
+                });
             }
         }
     }
@@ -821,684 +504,226 @@ public class POSFrame extends JPanel {
 
         double total = 0;
 
-        for (
-                int i = 0;
-                i < cartModel.getRowCount();
-                i++
-        ) {
+        for (int i = 0; i < cartModel.getRowCount(); i++) {
 
-            String totalStr =
-                    cartModel
-                            .getValueAt(
-                                    i,
-                                    3
-                            )
-                            .toString();
+            String totalStr = cartModel.getValueAt(i, 3).toString();
 
-            total +=
-                    Double.parseDouble(
-                            totalStr
-                                    .replace(
-                                            "₱",
-                                            ""
-                                    )
-                                    .trim()
-                    );
+            total += Double.parseDouble(totalStr.replace("₱", "").trim());
         }
 
         return total;
     }
 
-    private double calculateVatExemption(
-            double subtotal) {
-
-        if (
-                !chkPwd.isSelected()
-                        || !PWD_VAT_EXEMPT
-        ) {
-
-            return 0;
-        }
-
-        return subtotal -
-                (subtotal / (1 + VAT_RATE));
-    }
-
-    private double calculatePwdDiscount(
-            double subtotal) {
+    private double calculatePwdDiscount(double subtotal) {
 
         if (!chkPwd.isSelected()) {
             return 0;
         }
 
-        double base =
-                subtotal -
-                        calculateVatExemption(
-                                subtotal
-                        );
-
-        return base *
-                PWD_DISCOUNT_RATE;
+        return subtotal * PWD_DISCOUNT_RATE;
     }
 
     private double calculateTotal() {
 
-        double subtotal =
-                calculateSubtotal();
+        double subtotal = calculateSubtotal();
 
-        return subtotal -
-                calculateVatExemption(
-                        subtotal
-                ) -
-                calculatePwdDiscount(
-                        subtotal
-                );
+        return subtotal - calculatePwdDiscount(subtotal);
     }
 
     private void updateSubtotal() {
 
-        double subtotal =
-                calculateSubtotal();
+        double subtotal = calculateSubtotal();
 
-        lblSubtotalVal.setText(
-                String.format(
-                        "₱ %.2f",
-                        subtotal
-                )
-        );
+        lblSubtotalVal.setText(String.format("₱ %.2f", subtotal));
 
-        lblVatExemptVal.setText(
-                String.format(
-                        "- ₱ %.2f",
-                        calculateVatExemption(
-                                subtotal
-                        )
-                )
-        );
+        lblDiscountVal.setText(String.format("- ₱ %.2f",
+                calculatePwdDiscount(subtotal)));
 
-        lblDiscountVal.setText(
-                String.format(
-                        "- ₱ %.2f",
-                        calculatePwdDiscount(
-                                subtotal
-                        )
-                )
-        );
-
-        lblTotalVal.setText(
-                String.format(
-                        "₱ %.2f",
-                        calculateTotal()
-                )
-        );
+        lblTotalVal.setText(String.format("₱ %.2f", calculateTotal()));
     }
 
-    private JLabel createSummaryLabel(
-            String text) {
-
-        JLabel lbl =
-                new JLabel(text);
-
-        lbl.setFont(
-                new Font(
-                        "Segoe UI",
-                        Font.BOLD,
-                        13
-                )
-        );
-
-        lbl.setForeground(
-                new Color(90, 95, 100)
-        );
-
+    private JLabel createSummaryLabel(String text) {
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lbl.setForeground(new Color(90, 95, 100));
         return lbl;
     }
 
-    private JLabel createSummaryValue(
-            String text,
-            Color color) {
-
-        JLabel lbl =
-                new JLabel(
-                        text,
-                        SwingConstants.RIGHT
-                );
-
-        lbl.setFont(
-                new Font(
-                        "Segoe UI",
-                        Font.BOLD,
-                        13
-                )
-        );
-
+    private JLabel createSummaryValue(String text, Color color) {
+        JLabel lbl = new JLabel(text, SwingConstants.RIGHT);
+        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         lbl.setForeground(color);
-
         return lbl;
     }
 
+    // ================= FLAT CHECKBOX ICON =================
+    private static class FlatCheckIcon implements Icon {
+
+        private final boolean checked;
+
+        FlatCheckIcon(boolean checked) {
+            this.checked = checked;
+        }
+
+        @Override public int getIconWidth()  { return 16; }
+        @Override public int getIconHeight() { return 16; }
+
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON);
+
+            Color blue = new Color(51, 122, 183);
+            g2.setColor(checked ? blue : Color.WHITE);
+            g2.fillRect(x, y, 15, 15);
+            g2.setColor(checked ? blue : new Color(160, 165, 170));
+            g2.drawRect(x, y, 15, 15);
+
+            if (checked) {
+                g2.setColor(Color.WHITE);
+                g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+                g2.drawLine(x + 4, y + 8, x + 7, y + 11);
+                g2.drawLine(x + 7, y + 11, x + 12, y + 4);
+            }
+            g2.dispose();
+        }
+    }
+
+    // ================= CUSTOM DIALOG =================
     private static class CustomDialog {
 
         private static String inputResult = null;
 
-        public static void showMessage(
-                Component parent,
-                String message,
-                String title,
-                boolean isWarning) {
+        public static void showMessage(Component parent, String message,
+                                       String title, boolean isWarning) {
 
-            JDialog dialog =
-                    new JDialog(
-                            (Frame) SwingUtilities
-                                    .getWindowAncestor(parent),
-                            title,
-                            true
-                    );
+            JDialog dialog = new JDialog(
+                    (Frame) SwingUtilities.getWindowAncestor(parent), title, true);
 
-            dialog.setSize(
-                    450,
-                    180
-            );
-
+            dialog.setSize(450, 180);
             dialog.setLocationRelativeTo(parent);
-            dialog.setLayout(
-                    new BorderLayout()
-            );
+            dialog.setLayout(new BorderLayout());
 
-            JPanel topHeader =
-                    new JPanel(
-                            new FlowLayout(
-                                    FlowLayout.LEFT,
-                                    15,
-                                    10
-                            )
-                    );
+            JPanel topHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
+            topHeader.setBackground(new Color(248, 249, 250));
+            topHeader.setBorder(BorderFactory.createMatteBorder(
+                    0, 0, 1, 0, new Color(220, 225, 230)));
 
-            topHeader.setBackground(
-                    new Color(248, 249, 250)
-            );
-
-            topHeader.setBorder(
-                    BorderFactory.createMatteBorder(
-                            0,
-                            0,
-                            1,
-                            0,
-                            new Color(
-                                    220,
-                                    225,
-                                    230
-                            )
-                    )
-            );
-
-            JLabel lblTitle =
-                    new JLabel(title);
-
-            lblTitle.setFont(
-                    new Font(
-                            "Segoe UI",
-                            Font.BOLD,
-                            13
-                    )
-            );
-
-            lblTitle.setForeground(
-                    isWarning
-                            ? new Color(
-                                    217,
-                                    119,
-                                    6
-                            )
-                            : new Color(
-                                    50,
-                                    60,
-                                    70
-                            )
-            );
+            JLabel lblTitle = new JLabel(title);
+            lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            lblTitle.setForeground(isWarning
+                    ? new Color(217, 119, 6)
+                    : new Color(50, 60, 70));
 
             topHeader.add(lblTitle);
+            dialog.add(topHeader, BorderLayout.NORTH);
 
-            dialog.add(
-                    topHeader,
-                    BorderLayout.NORTH
-            );
+            JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 20));
+            centerPanel.setBackground(Color.WHITE);
 
-            JPanel centerPanel =
-                    new JPanel(
-                            new FlowLayout(
-                                    FlowLayout.LEFT,
-                                    20,
-                                    20
-                            )
-                    );
-
-            centerPanel.setBackground(
-                    Color.WHITE
-            );
-
-            JLabel lblMsg =
-                    new JLabel(
-                            "<html>"
-                                    + message.replace(
-                                            "\n",
-                                            "<br>"
-                                    )
-                                    + "</html>"
-                    );
-
-            lblMsg.setFont(
-                    new Font(
-                            "Segoe UI",
-                            Font.PLAIN,
-                            13
-                    )
-            );
-
-            lblMsg.setForeground(
-                    new Color(
-                            70,
-                            75,
-                            80
-                    )
-            );
+            JLabel lblMsg = new JLabel(
+                    "<html>" + message.replace("\n", "<br>") + "</html>");
+            lblMsg.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            lblMsg.setForeground(new Color(70, 75, 80));
 
             centerPanel.add(lblMsg);
+            dialog.add(centerPanel, BorderLayout.CENTER);
 
-            dialog.add(
-                    centerPanel,
-                    BorderLayout.CENTER
-            );
+            JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
+            bottomPanel.setBackground(new Color(248, 249, 250));
+            bottomPanel.setBorder(BorderFactory.createMatteBorder(
+                    1, 0, 0, 0, new Color(220, 225, 230)));
 
-            JPanel bottomPanel =
-                    new JPanel(
-                            new FlowLayout(
-                                    FlowLayout.RIGHT,
-                                    15,
-                                    10
-                            )
-                    );
-
-            bottomPanel.setBackground(
-                    new Color(
-                            248,
-                            249,
-                            250
-                    )
-            );
-
-            bottomPanel.setBorder(
-                    BorderFactory.createMatteBorder(
-                            1,
-                            0,
-                            0,
-                            0,
-                            new Color(
-                                    220,
-                                    225,
-                                    230
-                            )
-                    )
-            );
-
-            JButton btnOk =
-                    new JButton("OK");
-
-            btnOk.setFont(
-                    new Font(
-                            "Segoe UI",
-                            Font.BOLD,
-                            12
-                    )
-            );
-
-            btnOk.setBackground(
-                    new Color(
-                            13,
-                            148,
-                            136
-                    )
-            );
-
-            btnOk.setForeground(
-                    Color.WHITE
-            );
-
+            JButton btnOk = new JButton("OK");
+            btnOk.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            btnOk.setBackground(new Color(13, 148, 136));
+            btnOk.setForeground(Color.WHITE);
             btnOk.setFocusPainted(false);
-
-            btnOk.setBorder(
-                    BorderFactory.createEmptyBorder(
-                            6,
-                            18,
-                            6,
-                            18
-                    )
-            );
-
-            btnOk.setCursor(
-                    new Cursor(
-                            Cursor.HAND_CURSOR
-                    )
-            );
-
-            btnOk.addActionListener(
-                    e -> dialog.dispose()
-            );
+            btnOk.setBorder(BorderFactory.createEmptyBorder(6, 18, 6, 18));
+            btnOk.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            btnOk.addActionListener(e -> dialog.dispose());
 
             bottomPanel.add(btnOk);
-
-            dialog.add(
-                    bottomPanel,
-                    BorderLayout.SOUTH
-            );
+            dialog.add(bottomPanel, BorderLayout.SOUTH);
 
             dialog.setVisible(true);
         }
 
-        public static String showInput(
-                Component parent,
-                String message,
-                String title) {
+        public static String showInput(Component parent, String message, String title) {
 
             inputResult = null;
 
-            JDialog dialog =
-                    new JDialog(
-                            (Frame) SwingUtilities
-                                    .getWindowAncestor(parent),
-                            title,
-                            true
-                    );
+            JDialog dialog = new JDialog(
+                    (Frame) SwingUtilities.getWindowAncestor(parent), title, true);
 
-            dialog.setSize(
-                    450,
-                    200
-            );
-
+            dialog.setSize(450, 200);
             dialog.setLocationRelativeTo(parent);
-            dialog.setLayout(
-                    new BorderLayout()
-            );
+            dialog.setLayout(new BorderLayout());
 
-            JPanel topHeader =
-                    new JPanel(
-                            new FlowLayout(
-                                    FlowLayout.LEFT,
-                                    15,
-                                    10
-                            )
-                    );
+            JPanel topHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
+            topHeader.setBackground(new Color(248, 249, 250));
+            topHeader.setBorder(BorderFactory.createMatteBorder(
+                    0, 0, 1, 0, new Color(220, 225, 230)));
 
-            topHeader.setBackground(
-                    new Color(
-                            248,
-                            249,
-                            250
-                    )
-            );
-
-            topHeader.setBorder(
-                    BorderFactory.createMatteBorder(
-                            0,
-                            0,
-                            1,
-                            0,
-                            new Color(
-                                    220,
-                                    225,
-                                    230
-                            )
-                    )
-            );
-
-            JLabel lblTitle =
-                    new JLabel(title);
-
-            lblTitle.setFont(
-                    new Font(
-                            "Segoe UI",
-                            Font.BOLD,
-                            13
-                    )
-            );
-
-            lblTitle.setForeground(
-                    new Color(
-                            50,
-                            60,
-                            70
-                    )
-            );
+            JLabel lblTitle = new JLabel(title);
+            lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            lblTitle.setForeground(new Color(50, 60, 70));
 
             topHeader.add(lblTitle);
+            dialog.add(topHeader, BorderLayout.NORTH);
 
-            dialog.add(
-                    topHeader,
-                    BorderLayout.NORTH
-            );
+            JPanel centerPanel = new JPanel();
+            centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
+            centerPanel.setBackground(Color.WHITE);
+            centerPanel.setBorder(new EmptyBorder(15, 20, 15, 20));
 
-            JPanel centerPanel =
-                    new JPanel();
-
-            centerPanel.setLayout(
-                    new BoxLayout(
-                            centerPanel,
-                            BoxLayout.Y_AXIS
-                    )
-            );
-
-            centerPanel.setBackground(
-                    Color.WHITE
-            );
-
-            centerPanel.setBorder(
-                    new EmptyBorder(
-                            15,
-                            20,
-                            15,
-                            20
-                    )
-            );
-
-            JLabel lblMsg =
-                    new JLabel(message);
-
-            lblMsg.setFont(
-                    new Font(
-                            "Segoe UI",
-                            Font.PLAIN,
-                            13
-                    )
-            );
-
-            lblMsg.setForeground(
-                    new Color(
-                            70,
-                            75,
-                            80
-                    )
-            );
-
-            lblMsg.setAlignmentX(
-                    Component.LEFT_ALIGNMENT
-            );
+            JLabel lblMsg = new JLabel(message);
+            lblMsg.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            lblMsg.setForeground(new Color(70, 75, 80));
+            lblMsg.setAlignmentX(Component.LEFT_ALIGNMENT);
 
             centerPanel.add(lblMsg);
+            centerPanel.add(Box.createVerticalStrut(10));
 
-            centerPanel.add(
-                    Box.createVerticalStrut(10)
-            );
-
-            JTextField textField =
-                    new JTextField();
-
-            textField.setFont(
-                    new Font(
-                            "Segoe UI",
-                            Font.PLAIN,
-                            13
-                    )
-            );
-
-            textField.setMaximumSize(
-                    new Dimension(
-                            Integer.MAX_VALUE,
-                            32
-                    )
-            );
-
-            textField.setBorder(
-                    BorderFactory.createCompoundBorder(
-                            BorderFactory.createLineBorder(
-                                    new Color(
-                                            200,
-                                            205,
-                                            210
-                                    )
-                            ),
-                            BorderFactory.createEmptyBorder(
-                                    4,
-                                    6,
-                                    4,
-                                    6
-                            )
-                    )
-            );
-
-            textField.setAlignmentX(
-                    Component.LEFT_ALIGNMENT
-            );
+            JTextField textField = new JTextField();
+            textField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            textField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
+            textField.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(200, 205, 210)),
+                    BorderFactory.createEmptyBorder(4, 6, 4, 6)));
+            textField.setAlignmentX(Component.LEFT_ALIGNMENT);
 
             centerPanel.add(textField);
+            dialog.add(centerPanel, BorderLayout.CENTER);
 
-            dialog.add(
-                    centerPanel,
-                    BorderLayout.CENTER
-            );
+            JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+            bottomPanel.setBackground(new Color(248, 249, 250));
+            bottomPanel.setBorder(BorderFactory.createMatteBorder(
+                    1, 0, 0, 0, new Color(220, 225, 230)));
 
-            JPanel bottomPanel =
-                    new JPanel(
-                            new FlowLayout(
-                                    FlowLayout.RIGHT,
-                                    10,
-                                    10
-                            )
-                    );
-
-            bottomPanel.setBackground(
-                    new Color(
-                            248,
-                            249,
-                            250
-                    )
-            );
-
-            bottomPanel.setBorder(
-                    BorderFactory.createMatteBorder(
-                            1,
-                            0,
-                            0,
-                            0,
-                            new Color(
-                                    220,
-                                    225,
-                                    230
-                            )
-                    )
-            );
-
-            JButton btnOk =
-                    new JButton("OK");
-
-            btnOk.setFont(
-                    new Font(
-                            "Segoe UI",
-                            Font.BOLD,
-                            12
-                    )
-            );
-
-            btnOk.setBackground(
-                    new Color(
-                            13,
-                            148,
-                            136
-                    )
-            );
-
-            btnOk.setForeground(
-                    Color.WHITE
-            );
-
+            JButton btnOk = new JButton("OK");
+            btnOk.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            btnOk.setBackground(new Color(13, 148, 136));
+            btnOk.setForeground(Color.WHITE);
             btnOk.setFocusPainted(false);
+            btnOk.setBorder(BorderFactory.createEmptyBorder(6, 18, 6, 18));
+            btnOk.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-            btnOk.setBorder(
-                    BorderFactory.createEmptyBorder(
-                            6,
-                            18,
-                            6,
-                            18
-                    )
-            );
-
-            btnOk.setCursor(
-                    new Cursor(
-                            Cursor.HAND_CURSOR
-                    )
-            );
-
-            JButton btnCancel =
-                    new JButton("Cancel");
-
-            btnCancel.setFont(
-                    new Font(
-                            "Segoe UI",
-                            Font.BOLD,
-                            12
-                    )
-            );
-
-            btnCancel.setBackground(
-                    new Color(
-                            220,
-                            53,
-                            69
-                    )
-            );
-
-            btnCancel.setForeground(
-                    Color.WHITE
-            );
-
+            JButton btnCancel = new JButton("Cancel");
+            btnCancel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            btnCancel.setBackground(new Color(220, 53, 69));
+            btnCancel.setForeground(Color.WHITE);
             btnCancel.setFocusPainted(false);
-
-            btnCancel.setBorder(
-                    BorderFactory.createEmptyBorder(
-                            6,
-                            18,
-                            6,
-                            18
-                    )
-            );
-
-            btnCancel.setCursor(
-                    new Cursor(
-                            Cursor.HAND_CURSOR
-                    )
-            );
+            btnCancel.setBorder(BorderFactory.createEmptyBorder(6, 18, 6, 18));
+            btnCancel.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
             btnOk.addActionListener(e -> {
-
-                inputResult =
-                        textField
-                                .getText()
-                                .trim();
-
+                inputResult = textField.getText().trim();
                 dialog.dispose();
             });
 
             btnCancel.addActionListener(e -> {
-
                 inputResult = null;
                 dialog.dispose();
             });
@@ -1506,10 +731,7 @@ public class POSFrame extends JPanel {
             bottomPanel.add(btnOk);
             bottomPanel.add(btnCancel);
 
-            dialog.add(
-                    bottomPanel,
-                    BorderLayout.SOUTH
-            );
+            dialog.add(bottomPanel, BorderLayout.SOUTH);
 
             dialog.setVisible(true);
 
