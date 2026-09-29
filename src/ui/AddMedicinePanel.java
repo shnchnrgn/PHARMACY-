@@ -4,9 +4,17 @@ import db.MedicineDAO;
 import db.SalesDAO;
 import models.Medicine;
 
+import org.jdatepicker.impl.JDatePanelImpl;
+import org.jdatepicker.impl.JDatePickerImpl;
+import org.jdatepicker.impl.UtilDateModel;
+
 import javax.swing.*;
 import javax.swing.border.Border;
 import java.awt.*;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Properties;
 
 public class AddMedicinePanel extends JPanel {
 
@@ -19,7 +27,9 @@ public class AddMedicinePanel extends JPanel {
     private JTextField txtSellPrice;
     private JTextField txtQuantity;
     private JTextField txtCompany;
-    private JTextField txtExpire;
+    
+    private JDatePickerImpl datePickerExpire;
+    private UtilDateModel dateModel;
 
     public AddMedicinePanel() {
 
@@ -156,15 +166,36 @@ public class AddMedicinePanel extends JPanel {
                 true,
                 txtCompany
         );
+        
+        dateModel = new UtilDateModel();
+        Properties p = new Properties();
+        p.put("text.today", "Today");
+        p.put("text.month", "Month");
+        p.put("text.year", "Year");
+        
+        JDatePanelImpl datePanel = new JDatePanelImpl(dateModel, p);
+        datePickerExpire = new JDatePickerImpl(datePanel, new DateLabelFormatter());
+        datePickerExpire.setPreferredSize(new Dimension(350, 30));
+        datePickerExpire.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+        datePickerExpire.setBorder(grayBorder); 
 
-        txtExpire = createStyledTextField("");
+        JFormattedTextField dateTextField = datePickerExpire.getJFormattedTextField();
+        dateTextField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        dateTextField.setBackground(Color.WHITE);
+        dateTextField.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5)); 
+        
+        Component buttonComp = datePickerExpire.getComponent(1);
+        
+        if (buttonComp instanceof JButton) {
+                applyDropdownStyleToButton((JButton) buttonComp);
+        }
 
         addFieldRow(
                 fieldsPanel,
                 gbc,
-                "Expire Date (YYYY-MM-DD)",
+                "Expire Date",
                 true,
-                txtExpire
+                datePickerExpire
         );
 
         gbc.gridx = 1;
@@ -298,8 +329,7 @@ public class AddMedicinePanel extends JPanel {
                 String company =
                         txtCompany.getText().trim();
 
-                String expireDateStr =
-                        txtExpire.getText().trim();
+                String expireDateStr = datePickerExpire.getJFormattedTextField().getText().trim();
 
                 if (
                         name.isEmpty()
@@ -464,7 +494,8 @@ public class AddMedicinePanel extends JPanel {
         txtSellPrice.setText("");
         txtQuantity.setText("");
         txtCompany.setText("");
-        txtExpire.setText("");
+        dateModel.setValue(null);
+        datePickerExpire.getJFormattedTextField().setText("");
     }
 
     private void addFieldRow(
@@ -796,36 +827,70 @@ public class AddMedicinePanel extends JPanel {
                                 )
                         );
 
-                        if (isSelected) {
-
-                            renderer.setBackground(
-                                    new Color(
-                                            210,
-                                            215,
-                                            220
-                                    )
-                            );
-
-                            renderer.setForeground(
-                                    Color.BLACK
-                            );
-
-                        } else {
-
-                            renderer.setBackground(
-                                    Color.WHITE
-                            );
-
-                            renderer.setForeground(
-                                    Color.BLACK
-                            );
-                        }
-
                         return renderer;
                     }
                 }
         );
 
         return comboBox;
+    }
+    
+    private void applyDropdownStyleToButton(JButton btn) {
+
+        btn.setText("");
+        btn.setPreferredSize(new Dimension(30, 30));
+        btn.setFocusable(false);
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btn.setBorder(BorderFactory.createEmptyBorder());
+        btn.setUI(new javax.swing.plaf.basic.BasicButtonUI() {
+                @Override
+                public void paint(Graphics g, JComponent c) {
+                        Graphics2D g2d = (Graphics2D) g.create();
+                        g2d.setRenderingHint(
+                                RenderingHints.KEY_ANTIALIASING, 
+                                RenderingHints.VALUE_ANTIALIAS_ON
+                        );
+                                
+                        g2d.setColor(Color.WHITE);
+                        g2d.fillRect(0, 0, c.getWidth(), c.getHeight());
+                        g2d.setColor(new Color(200, 205, 210));
+                        g2d.drawLine(0, 0, 0, c.getHeight());
+                        g2d.setColor(new Color(80, 80, 80));
+                        int[] xPoints = {
+                                c.getWidth() / 2 - 4, 
+                                c.getWidth() / 2 + 4, 
+                                c.getWidth() / 2
+                        };
+                        int[] yPoints = {                                        
+                                c.getHeight() / 2 - 2, 
+                                c.getHeight() / 2 - 2, 
+                                c.getHeight() / 2 + 3
+                                };
+
+                        g2d.fillPolygon(xPoints, yPoints, 3);
+                        g2d.dispose();
+
+                        }
+                });
+        }
+
+    public static class DateLabelFormatter extends JFormattedTextField.AbstractFormatter {
+
+        private final String datePattern = "yyyy-MM-dd";
+        private final SimpleDateFormat dateFormatter = new SimpleDateFormat(datePattern);
+
+        @Override
+        public Object stringToValue(String text) throws ParseException {
+            return dateFormatter.parseObject(text);
+        }
+
+        @Override
+        public String valueToString(Object value) throws ParseException {
+            if (value != null) {
+                Calendar cal = (Calendar) value;
+                return dateFormatter.format(cal.getTime());
+            }
+            return "";
+        }
     }
 }

@@ -2,7 +2,8 @@ package models;
 
 public class Customer {
     private int id;
-    private String name;
+    private String lastname;
+    private String firstname;
     private String contact;
     private String address;
     private String lastPurchaseDate;
@@ -11,10 +12,11 @@ public class Customer {
     public Customer() {
     }
 
-    public Customer(int id, String name, String contact, String address,
+    public Customer(int id, String lastname, String firstname, String contact, String address,
                      String lastPurchaseDate, String dateRegistered) {
         this.id = id;
-        this.name = name;
+        this.lastname = lastname;
+        this.firstname = firstname;
         this.contact = contact;
         this.address = address;
         this.lastPurchaseDate = lastPurchaseDate;
@@ -22,8 +24,8 @@ public class Customer {
     }
 
     /** Convenience constructor kept for backward compatibility (no address/dateRegistered). */
-    public Customer(int id, String name, String contact, String lastPurchaseDate) {
-        this(id, name, contact, "", lastPurchaseDate, "");
+    public Customer(int id, String name, String firstname, String contact, String lastPurchaseDate) {
+        this(id, lastname, firstname, contact, "", lastPurchaseDate, "");
     }
 
     public int getId() {
@@ -34,12 +36,20 @@ public class Customer {
         this.id = id;
     }
 
-    public String getName() {
-        return name;
+    public String getLastName(){
+        return lastname;
     }
 
-    public void setName(String name) {
-        this.name = name;
+    public String getFirstName() {
+        return firstname;
+    }
+
+    public void setLastName(String lastname) {
+        this.lastname = lastname;
+    }
+
+    public void setFirstName(String firstname){
+        this.firstname = firstname;
     }
 
     public String getContact() {

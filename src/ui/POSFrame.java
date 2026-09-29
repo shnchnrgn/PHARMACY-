@@ -371,22 +371,37 @@ public class POSFrame extends JPanel {
                 return;
             }
 
-            String customerName = CustomDialog.showInput(this,
-                    "Enter Customer Name:", "Customer Details");
+            String customerLastName = CustomDialog.showInput(this,
+                    "Enter Your Last Name:", "Customer Details");
 
-            if (customerName == null) {
+            if (customerLastName == null) {
                 return;
             }
 
-            customerName = customerName.trim();
+            customerLastName = customerLastName.trim();
 
-            if (customerName.isEmpty()) {
-                CustomDialog.showMessage(this, "Customer name is required.",
+            if (customerLastName.isEmpty()) {
+                CustomDialog.showMessage(this, "Last name is required.",
                         "Validation Error", true);
                 return;
             }
 
-            int customerId = CustomerDAO.getCustomerIdByNameIgnoreCase(customerName);
+            String customerFirstName = CustomDialog.showInput(this,
+                "Enter First Name:", "Customer Details");
+
+            if (customerFirstName == null) {
+                return;
+            }
+
+            customerFirstName = customerFirstName.trim();
+
+            if (customerFirstName.isEmpty()) {
+                CustomDialog.showMessage(this, "First name is required.",
+                        "Validation Error", true);
+                return;
+            }
+
+            int customerId = CustomerDAO.getCustomerIdByNameIgnoreCase(customerFirstName, customerLastName);
 
             if (customerId == -1) {
                 CustomDialog.showMessage(this,
@@ -448,7 +463,7 @@ public class POSFrame extends JPanel {
 
             SharedData.addSale(orderNo, currentDate,
                     String.format("%.2f", totalAmount),
-                    customerName, isPwd, pwdId);
+                    customerLastName, isPwd, pwdId);
 
             DashboardPanel.refreshDashboardData();
 

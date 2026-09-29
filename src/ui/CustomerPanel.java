@@ -39,10 +39,10 @@ public class CustomerPanel extends JPanel {
     private JTable customerTable;
     private DefaultTableModel customerModel;
 
-    private JTextField txtCustomerId, txtFullName, txtContactNumber,
+    private JTextField txtCustomerId, txtLastName, txtFirstName, txtContactNumber,
             txtAddress, txtDateRegistered, txtSearch;
 
-    private JLabel lblFullNameError, lblContactError, lblAddressError;
+    private JLabel lblLastNameError, lblFirstNameError, lblContactError, lblAddressError;
 
     private JButton btnSave;
 
@@ -96,10 +96,15 @@ public class CustomerPanel extends JPanel {
 
         row = addFieldRow(fieldsPanel, gbc, row, "Customer ID", false, txtCustomerId, null);
 
-        txtFullName = createStyledTextField();
-        lblFullNameError = createErrorLabel();
+        txtLastName = createStyledTextField();
+        lblLastNameError = createErrorLabel();
 
-        row = addFieldRow(fieldsPanel, gbc, row, "Full Name", true, txtFullName, lblFullNameError);
+        row = addFieldRow(fieldsPanel, gbc, row, "Last Name", true, txtLastName, lblLastNameError);
+
+        txtFirstName = createStyledTextField();
+        lblFirstNameError = createErrorLabel();
+
+        row = addFieldRow(fieldsPanel, gbc, row, "First Name", true, txtFirstName, lblFirstNameError);
 
         txtContactNumber = createStyledTextField();
         lblContactError = createErrorLabel();
@@ -266,7 +271,8 @@ public class CustomerPanel extends JPanel {
 
         String[] columns = {
                 "ID",
-                "Full Name",
+                "Last Name",
+                "First Name",
                 "Contact Number",
                 "Address",
                 "Last Purchase",
@@ -401,7 +407,8 @@ public class CustomerPanel extends JPanel {
 
             customerModel.addRow(new Object[]{
                     c.getId(),
-                    c.getName(),
+                    c.getLastName(),
+                    c.getFirstName(),
                     c.getContact(),
                     (c.getAddress() == null || c.getAddress().isEmpty()) ? "-" : c.getAddress(),
                     formatLastPurchase(c.getLastPurchaseDate()),
@@ -557,16 +564,28 @@ public class CustomerPanel extends JPanel {
 
         boolean valid = true;
 
-        String name = txtFullName.getText().trim();
+        String lastname = txtLastName.getText().trim();
 
-        if (name.isEmpty()) {
-            setFieldError(txtFullName, lblFullNameError, "Full Name is required.");
+        if (lastname.isEmpty()) {
+            setFieldError(txtLastName, lblLastNameError, "Last Name is required.");
             valid = false;
-        } else if (!name.matches("[a-zA-Z .'-]+")) {
-            setFieldError(txtFullName, lblFullNameError, "Letters only (no numbers or symbols).");
+        } else if (!lastname.matches("[a-zA-Z .'-]+")) {
+            setFieldError(txtLastName, lblLastNameError, "Letters only (no numbers or symbols).");
             valid = false;
         } else {
-            clearFieldError(txtFullName, lblFullNameError);
+            clearFieldError(txtLastName, lblLastNameError);
+        }
+
+        String firstname = txtFirstName.getText().trim();
+
+        if (firstname.isEmpty()) {
+            setFieldError(txtLastName, lblFirstNameError, "First Name is required.");
+            valid = false;
+        } else if (!firstname.matches("[a-zA-Z .'-]+")) {
+            setFieldError(txtFirstName, lblFirstNameError, "Letters only (no numbers or symbols).");
+            valid = false;
+        } else {
+            clearFieldError(txtFirstName, lblFirstNameError);
         }
 
         String contact = txtContactNumber.getText().trim();
@@ -613,7 +632,8 @@ public class CustomerPanel extends JPanel {
             return;
         }
 
-        String name = txtFullName.getText().trim();
+        String lastname = txtLastName.getText().trim();
+        String firstname = txtFirstName.getText().trim();
         String contact = txtContactNumber.getText().trim();
         String address = txtAddress.getText().trim();
 
@@ -626,7 +646,7 @@ public class CustomerPanel extends JPanel {
                 int id = Integer.parseInt(txtCustomerId.getText().trim());
 
                 Customer customer = new Customer(
-                        id, name, contact, address, null,
+                        id, lastname, firstname, contact, address, null,
                         txtDateRegistered.getText());
 
                 CustomerDAO.updateCustomer(customer);
@@ -639,7 +659,7 @@ public class CustomerPanel extends JPanel {
                 String today = LocalDate.now().toString();
 
                 Customer customer = new Customer(
-                        0, name, contact, address, "N/A", today);
+                        0, lastname, firstname, contact, address, "N/A", today);
 
                 CustomerDAO.addCustomer(customer);
 
@@ -726,7 +746,8 @@ public class CustomerPanel extends JPanel {
         }
 
         txtCustomerId.setText(String.valueOf(match.getId()));
-        txtFullName.setText(match.getName());
+        txtLastName.setText(match.getLastName());
+        txtFirstName.setText(match.getFirstName());
         txtContactNumber.setText(match.getContact());
         txtAddress.setText(match.getAddress() == null ? "" : match.getAddress());
 
@@ -743,7 +764,8 @@ public class CustomerPanel extends JPanel {
     private void clearForm() {
 
         txtCustomerId.setText("");
-        txtFullName.setText("");
+        txtLastName.setText("");
+        txtFirstName.setText(TOOL_TIP_TEXT_KEY);
         txtContactNumber.setText("");
         txtAddress.setText("");
         txtDateRegistered.setText("");
@@ -756,7 +778,8 @@ public class CustomerPanel extends JPanel {
     }
 
     private void clearAllFieldErrors() {
-        clearFieldError(txtFullName, lblFullNameError);
+        clearFieldError(txtLastName, lblLastNameError);
+        clearFieldError(txtFirstName, lblFirstNameError);
         clearFieldError(txtContactNumber, lblContactError);
         clearFieldError(txtAddress, lblAddressError);
     }
