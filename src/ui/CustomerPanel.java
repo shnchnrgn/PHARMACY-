@@ -97,7 +97,6 @@ public class CustomerPanel extends JPanel {
         txtDateRegistered.setBackground(new Color(240, 240, 240));
         row = addFieldRow(fieldsPanel, gbc, row, "Date Registered", false, txtDateRegistered, null);
 
-        // Buttons nasa ilalim mismo ng mga field (hindi nakadikit sa pinakababa ng panel)
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         buttonPanel.setOpaque(false);
         buttonPanel.setBorder(new EmptyBorder(15, LABEL_WIDTH + 10, 0, 0));
@@ -127,6 +126,7 @@ public class CustomerPanel extends JPanel {
 
     private int addFieldRow(JPanel panel, GridBagConstraints gbc, int row, String labelText,
                              boolean required, JComponent field, JLabel errorLabel) {
+        // Field row
         gbc.gridx = 0;
         gbc.gridy = row;
         gbc.weightx = 0;
@@ -211,7 +211,7 @@ public class CustomerPanel extends JPanel {
         lblFilter.setForeground(COLOR_TEXT);
 
         cmbFilter = new JComboBox<>(new String[]{"All Customers", "Active Only", "Inactive Only"});
-        cmbFilter.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        styleComboBox(cmbFilter);
 
         JLabel lblDays = new JLabel("Inactive after (days):");
         lblDays.setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -611,6 +611,32 @@ public class CustomerPanel extends JPanel {
                 BorderFactory.createEmptyBorder(6, 8, 6, 8)
         ));
         return tf;
+    }
+
+    private void styleComboBox(JComboBox<String> combo) {
+        combo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        combo.setBackground(Color.WHITE);
+        combo.setForeground(COLOR_TEXT);
+        combo.setFocusable(false);
+        combo.setBorder(BorderFactory.createLineBorder(COLOR_BORDER));
+
+        combo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                            boolean isSelected, boolean cellHasFocus) {
+                JLabel lbl = (JLabel) super.getListCellRendererComponent(
+                        list, value, index, isSelected, cellHasFocus);
+                lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                lbl.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(0, 0, 1, 0, COLOR_BORDER),
+                        BorderFactory.createEmptyBorder(6, 10, 6, 10)
+                ));
+                lbl.setBackground(isSelected ? new Color(240, 242, 245) : Color.WHITE);
+                lbl.setForeground(COLOR_TEXT);
+                lbl.setOpaque(true);
+                return lbl;
+            }
+        });
     }
 
     private JButton createStyledButton(String text, Color bgCol) {
