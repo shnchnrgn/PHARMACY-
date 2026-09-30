@@ -177,9 +177,12 @@ public class CustomerPanel extends JPanel {
         buttonPanel.setOpaque(false);
         buttonPanel.setBorder(new EmptyBorder(15, LABEL_WIDTH + 10, 0, 0));
 
-        btnSave = createStyledButton("Save Customer", COLOR_GREEN);
+        btnSave = createStyledButton("Save Customer", COLOR_TEAL);
         JButton btnDelete = createStyledButton("Delete Customer", COLOR_GRAY);
-        JButton btnClear = createStyledButton("Clear Form", COLOR_RED);
+        JButton btnClear = createStyledButton(
+        "Clear Form",
+        new Color(180, 55, 55)
+);
 
         btnSave.addActionListener(e -> saveCustomer());
         btnDelete.addActionListener(e -> deleteCustomer());
