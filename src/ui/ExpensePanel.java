@@ -376,6 +376,161 @@ public class ExpensePanel extends JPanel {
         );
     }
 
+    private boolean showAddExpenseCustomDialog(JPanel panel, String title) {
+        final boolean[] result = {false};
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), title, true);
+        dialog.setLayout(new BorderLayout());
+        dialog.setResizable(false);
+
+        JPanel topHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 12));
+        topHeader.setBackground(new Color(248, 249, 250));
+        topHeader.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 225, 230)));
+        JLabel lblTitle = new JLabel(title);
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblTitle.setForeground(new Color(41, 128, 185));
+        topHeader.add(lblTitle);
+        dialog.add(topHeader, BorderLayout.NORTH);
+
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(new EmptyBorder(20, 20, 20, 20));
+        dialog.add(panel, BorderLayout.CENTER);
+
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
+        bottomPanel.setBackground(new Color(248, 249, 250));
+        bottomPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(220, 225, 230)));
+
+        JButton btnOk = new JButton("OK");
+        btnOk.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnOk.setBackground(new Color(26, 143, 136));
+        btnOk.setForeground(Color.WHITE);
+        btnOk.setFocusPainted(false);
+        btnOk.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
+        btnOk.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        JButton btnCancel = new JButton("Cancel");
+        btnCancel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnCancel.setBackground(new Color(192, 57, 43));
+        btnCancel.setForeground(Color.WHITE);
+        btnCancel.setFocusPainted(false);
+        btnCancel.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
+        btnCancel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        btnOk.addActionListener(e -> {
+            result[0] = true;
+            dialog.dispose();
+        });
+
+        btnCancel.addActionListener(e -> {
+            result[0] = false;
+            dialog.dispose();
+        });
+
+        bottomPanel.add(btnOk);
+        bottomPanel.add(btnCancel);
+        dialog.add(bottomPanel, BorderLayout.SOUTH);
+
+        dialog.pack();
+        dialog.setSize(Math.max(dialog.getWidth() + 100, 450), dialog.getHeight() + 40);
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+
+        return result[0];
+    }
+
+    private void showCustomDialog(String message, String title, boolean isError) {
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), title, true);
+        dialog.setLayout(new BorderLayout());
+        dialog.setResizable(false);
+
+        JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 25));
+        centerPanel.setBackground(Color.WHITE);
+        
+        String colorHex = isError ? "#C0392B" : "#261436";
+        JLabel lblMsg = new JLabel("<html><font color='" + colorHex + "'><b>" + title + ":</b></font> " + message + "</html>");
+        lblMsg.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblMsg.setForeground(new Color(70, 75, 80));
+        centerPanel.add(lblMsg);
+        
+        dialog.add(centerPanel, BorderLayout.CENTER);
+
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
+        bottomPanel.setBackground(new Color(248, 249, 250));
+        bottomPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(220, 225, 230)));
+
+        JButton btnOk = new JButton("OK");
+        btnOk.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnOk.setBackground(new Color(26, 143, 136));
+        btnOk.setForeground(Color.WHITE);
+        btnOk.setFocusPainted(false);
+        btnOk.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
+        btnOk.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnOk.addActionListener(e -> dialog.dispose());
+
+        bottomPanel.add(btnOk);
+        dialog.add(bottomPanel, BorderLayout.SOUTH);
+        
+        dialog.pack();
+        dialog.setSize(Math.max(dialog.getWidth() + 80, 520), Math.max(dialog.getHeight() + 40, 150));
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    private boolean showCustomConfirmDialog(String message, String title) {
+        final boolean[] result = {false};
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), title, true);
+        dialog.setLayout(new BorderLayout());
+        dialog.setResizable(false);
+
+        JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 25));
+        centerPanel.setBackground(Color.WHITE);
+        
+        JLabel lblMsg = new JLabel("<html><font color='#C0392B'><b>" + title + ":</b></font> " + message + "</html>");
+        lblMsg.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblMsg.setForeground(new Color(70, 75, 80));
+        centerPanel.add(lblMsg);
+        
+        dialog.add(centerPanel, BorderLayout.CENTER);
+
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
+        bottomPanel.setBackground(new Color(248, 249, 250));
+        bottomPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(220, 225, 230)));
+
+        JButton btnYes = new JButton("Yes");
+        btnYes.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnYes.setBackground(new Color(26, 143, 136));
+        btnYes.setForeground(Color.WHITE);
+        btnYes.setFocusPainted(false);
+        btnYes.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
+        btnYes.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnYes.addActionListener(e -> {
+            result[0] = true;
+            dialog.dispose();
+        });
+
+        JButton btnNo = new JButton("No");
+        btnNo.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnNo.setBackground(new Color(192, 57, 43));
+        btnNo.setForeground(Color.WHITE);
+        btnNo.setFocusPainted(false);
+        btnNo.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
+        btnNo.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnNo.addActionListener(e -> {
+            result[0] = false;
+            dialog.dispose();
+        });
+
+        bottomPanel.add(btnYes);
+        bottomPanel.add(btnNo);
+        dialog.add(bottomPanel, BorderLayout.SOUTH);
+        
+        dialog.pack();
+        dialog.setSize(Math.max(dialog.getWidth() + 80, 520), Math.max(dialog.getHeight() + 40, 150));
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+
+        return result[0];
+    }
+
     private void showAddExpenseDialog() {
 
         JTextField descriptionField =
@@ -412,32 +567,39 @@ public class ExpensePanel extends JPanel {
                 )
         );
 
-        panel.add(
-                new JLabel("Expense Description:")
-        );
+        JLabel lblDesc = new JLabel("Expense Description:");
+        lblDesc.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblDesc.setForeground(new Color(70, 75, 80));
+        panel.add(lblDesc);
 
+        descriptionField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 205, 210)),
+                BorderFactory.createEmptyBorder(5, 8, 5, 8)
+        ));
         panel.add(
                 descriptionField
         );
 
-        panel.add(
-                new JLabel("Amount:")
-        );
+        JLabel lblAmt = new JLabel("Amount:");
+        lblAmt.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        lblAmt.setForeground(new Color(70, 75, 80));
+        panel.add(lblAmt);
 
+        amountField.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 205, 210)),
+                BorderFactory.createEmptyBorder(5, 8, 5, 8)
+        ));
         panel.add(
                 amountField
         );
 
-        int result =
-                JOptionPane.showConfirmDialog(
-                        this,
+        boolean okClicked =
+                showAddExpenseCustomDialog(
                         panel,
-                        "Add Expense",
-                        JOptionPane.OK_CANCEL_OPTION,
-                        JOptionPane.PLAIN_MESSAGE
+                        "Add Expense"
                 );
 
-        if (result != JOptionPane.OK_OPTION) {
+        if (!okClicked) {
             return;
         }
 
@@ -455,11 +617,10 @@ public class ExpensePanel extends JPanel {
 
         if (description.isEmpty()) {
 
-            JOptionPane.showMessageDialog(
-                    this,
+            showCustomDialog(
                     "Expense description is required.",
                     "Validation Error",
-                    JOptionPane.WARNING_MESSAGE
+                    true
             );
 
             return;
@@ -476,11 +637,10 @@ public class ExpensePanel extends JPanel {
 
         } catch (NumberFormatException e) {
 
-            JOptionPane.showMessageDialog(
-                    this,
+            showCustomDialog(
                     "Please enter a valid amount.",
                     "Validation Error",
-                    JOptionPane.WARNING_MESSAGE
+                    true
             );
 
             return;
@@ -488,11 +648,10 @@ public class ExpensePanel extends JPanel {
 
         if (amount <= 0) {
 
-            JOptionPane.showMessageDialog(
-                    this,
+            showCustomDialog(
                     "Amount must be greater than zero.",
                     "Validation Error",
-                    JOptionPane.WARNING_MESSAGE
+                    true
             );
 
             return;
@@ -510,23 +669,21 @@ public class ExpensePanel extends JPanel {
 
             DashboardPanel.refreshDashboardData();
 
-            JOptionPane.showMessageDialog(
-                    this,
+            showCustomDialog(
                     "Expense saved successfully.",
                     "Success",
-                    JOptionPane.INFORMATION_MESSAGE
+                    false
             );
 
         } catch (Exception e) {
 
             e.printStackTrace();
 
-            JOptionPane.showMessageDialog(
-                    this,
+            showCustomDialog(
                     "Unable to save expense:\n" +
                     e.getMessage(),
                     "Database Error",
-                    JOptionPane.ERROR_MESSAGE
+                    true
             );
         }
     }
@@ -538,11 +695,10 @@ public class ExpensePanel extends JPanel {
 
         if (row == -1) {
 
-            JOptionPane.showMessageDialog(
-                    this,
+            showCustomDialog(
                     "Please select an expense first.",
                     "Selection Error",
-                    JOptionPane.WARNING_MESSAGE
+                    true
             );
 
             return;
@@ -558,16 +714,13 @@ public class ExpensePanel extends JPanel {
                                 .toString()
                 );
 
-        int confirm =
-                JOptionPane.showConfirmDialog(
-                        this,
+        boolean confirm =
+                showCustomConfirmDialog(
                         "Delete the selected expense?",
-                        "Confirm Delete",
-                        JOptionPane.YES_NO_OPTION,
-                        JOptionPane.WARNING_MESSAGE
+                        "Confirm Delete"
                 );
 
-        if (confirm != JOptionPane.YES_OPTION) {
+        if (!confirm) {
             return;
         }
 
@@ -579,23 +732,21 @@ public class ExpensePanel extends JPanel {
 
             DashboardPanel.refreshDashboardData();
 
-            JOptionPane.showMessageDialog(
-                    this,
+            showCustomDialog(
                     "Expense deleted successfully.",
                     "Success",
-                    JOptionPane.INFORMATION_MESSAGE
+                    false
             );
 
         } catch (Exception e) {
 
             e.printStackTrace();
 
-            JOptionPane.showMessageDialog(
-                    this,
+            showCustomDialog(
                     "Unable to delete expense:\n" +
                     e.getMessage(),
                     "Database Error",
-                    JOptionPane.ERROR_MESSAGE
+                    true
             );
         }
     }

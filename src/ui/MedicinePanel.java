@@ -5,22 +5,41 @@ import models.Medicine;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.plaf.basic.BasicTabbedPaneUI;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public class MedicinePanel extends JPanel {
 
-    private JTable table;
+    private JTable activeTable, outOfStockTable, expiredTable;
+    private DefaultTableModel activeModel, outOfStockModel, expiredModel;
     private JTextField txtSearch;
+    private TableRowSorter<DefaultTableModel> activeRowSorter, outOfStockRowSorter, expiredRowSorter;
+    private JTabbedPane tabbedPane;
 
     public MedicinePanel() {
+        // I-force ang UIManager para sa Windows L&F na alisin ang asul na highlight
+        UIManager.put("TabbedPane.highlight", new Color(200, 205, 210));
+        UIManager.put("TabbedPane.lightHighlight", new Color(220, 224, 230));
+        UIManager.put("TabbedPane.selected", new Color(230, 235, 240));
+        UIManager.put("TabbedPane.selectHighlight", new Color(200, 205, 210));
+        UIManager.put("TabbedPane.focus", new Color(200, 205, 210));
+        UIManager.put("TabbedPane.borderHighlightColor", new Color(200, 205, 210));
+        UIManager.put("TabbedPane.darkShadow", new Color(180, 185, 190));
+        UIManager.put("TabbedPane.shadow", new Color(180, 185, 190));
+
         setLayout(new BorderLayout(0, 15));
         setBackground(new Color(245, 247, 250));
         setBorder(new EmptyBorder(20, 20, 20, 20));
@@ -33,7 +52,7 @@ public class MedicinePanel extends JPanel {
         JPanel contentPanel = new JPanel(new BorderLayout(0, 10));
         contentPanel.setBackground(Color.WHITE);
         contentPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(210, 215, 220)),
+            BorderFactory.createLineBorder(new Color(200, 205, 210), 1),
             new EmptyBorder(15, 15, 15, 15)
         ));
 
@@ -60,22 +79,24 @@ public class MedicinePanel extends JPanel {
         }
 
         btnCopy.addActionListener(e -> {
+            JTable currentTable = getActiveTableByTab();
             StringBuilder sb = new StringBuilder();
-            for (int i = 0; i < table.getRowCount(); i++) {
-                for (int j = 0; j < table.getColumnCount() - 1; j++) {
-                    sb.append(table.getValueAt(i, j)).append("\t");
+            for (int i = 0; i < currentTable.getRowCount(); i++) {
+                for (int j = 0; j < currentTable.getColumnCount() - 1; j++) {
+                    sb.append(currentTable.getValueAt(i, j)).append("\t");
                 }
                 sb.append("\n");
             }
             StringSelection selection = new StringSelection(sb.toString());
             Toolkit.getDefaultToolkit().getSystemClipboard().setContents(selection, selection);
-            CustomDialog.showMessage(this, "Table data copied to clipboard successfully!", "Copy Success", false);
+            CustomDialog.showMessage(this, "Table data copied to clipboard successfully!", "Information", false);
         });
 
         btnCsv.addActionListener(e -> {
             try {
+                JTable currentTable = getActiveTableByTab();
                 FileDialog fileDialog = new FileDialog((Frame) SwingUtilities.getWindowAncestor(this), "Save CSV", FileDialog.SAVE);
-                fileDialog.setFile("medicine_list.csv");
+                fileDialog.setFile("medicines_export.csv");
                 fileDialog.setVisible(true);
                 
                 String fileName = fileDialog.getFile();
@@ -84,13 +105,13 @@ public class MedicinePanel extends JPanel {
                 if (fileName != null) {
                     File file = new File(directory, fileName);
                     PrintWriter pw = new PrintWriter(new FileWriter(file));
-                    for (int i = 0; i < table.getColumnCount() - 1; i++) {
-                        pw.print(table.getColumnName(i).replace(" ↕", "") + (i == table.getColumnCount() - 2 ? "" : ","));
+                    for (int i = 0; i < currentTable.getColumnCount() - 1; i++) {
+                        pw.print(currentTable.getColumnName(i) + (i == currentTable.getColumnCount() - 2 ? "" : ","));
                     }
                     pw.println();
-                    for (int i = 0; i < table.getRowCount(); i++) {
-                        for (int j = 0; j < table.getColumnCount() - 1; j++) {
-                            pw.print(table.getValueAt(i, j) + (j == table.getColumnCount() - 2 ? "" : ","));
+                    for (int i = 0; i < currentTable.getRowCount(); i++) {
+                        for (int j = 0; j < currentTable.getColumnCount() - 1; j++) {
+                            pw.print(currentTable.getValueAt(i, j) + (j == currentTable.getColumnCount() - 2 ? "" : ","));
                         }
                         pw.println();
                     }
@@ -104,8 +125,9 @@ public class MedicinePanel extends JPanel {
 
         btnExcel.addActionListener(e -> {
             try {
+                JTable currentTable = getActiveTableByTab();
                 FileDialog fileDialog = new FileDialog((Frame) SwingUtilities.getWindowAncestor(this), "Save Excel", FileDialog.SAVE);
-                fileDialog.setFile("medicine_list.xls");
+                fileDialog.setFile("medicines_export.xls");
                 fileDialog.setVisible(true);
                 
                 String fileName = fileDialog.getFile();
@@ -117,14 +139,14 @@ public class MedicinePanel extends JPanel {
                     pw.println("<html xmlns:o=\"urn:schemas-microsoft-com:office:office\" xmlns:x=\"urn:schemas-microsoft-com:office:excel\" xmlns=\"http://www.w3.org/TR/REC-html40\">");
                     pw.println("<head><meta charset='UTF-8'></head><body>");
                     pw.println("<table border='1'><tr>");
-                    for (int i = 0; i < table.getColumnCount() - 1; i++) {
-                        pw.println("<th>" + table.getColumnName(i).replace(" ↕", "") + "</th>");
+                    for (int i = 0; i < currentTable.getColumnCount() - 1; i++) {
+                        pw.println("<th>" + currentTable.getColumnName(i) + "</th>");
                     }
                     pw.println("</tr>");
-                    for (int i = 0; i < table.getRowCount(); i++) {
+                    for (int i = 0; i < currentTable.getRowCount(); i++) {
                         pw.println("<tr>");
-                        for (int j = 0; j < table.getColumnCount() - 1; j++) {
-                            pw.println("<td>" + table.getValueAt(i, j) + "</td>");
+                        for (int j = 0; j < currentTable.getColumnCount() - 1; j++) {
+                            pw.println("<td>" + currentTable.getValueAt(i, j) + "</td>");
                         }
                         pw.println("</tr>");
                     }
@@ -139,6 +161,7 @@ public class MedicinePanel extends JPanel {
 
         btnPdf.addActionListener(e -> {
             try {
+                JTable currentTable = getActiveTableByTab();
                 FileDialog fileDialog = new FileDialog((Frame) SwingUtilities.getWindowAncestor(this), "Save PDF", FileDialog.SAVE);
                 fileDialog.setFile("medicine_list.pdf");
                 fileDialog.setVisible(true);
@@ -147,7 +170,7 @@ public class MedicinePanel extends JPanel {
                 String directory = fileDialog.getDirectory();
                 
                 if (fileName != null) {
-                    boolean complete = table.print(JTable.PrintMode.FIT_WIDTH, null, null);
+                    boolean complete = currentTable.print(JTable.PrintMode.FIT_WIDTH, null, null);
                     if (complete) {
                         CustomDialog.showMessage(this, "Document saved to PDF successfully!", "PDF Export", false);
                     }
@@ -159,6 +182,7 @@ public class MedicinePanel extends JPanel {
 
         btnPrint.addActionListener(e -> {
             try {
+                JTable currentTable = getActiveTableByTab();
                 FileDialog fileDialog = new FileDialog((Frame) SwingUtilities.getWindowAncestor(this), "Print Document", FileDialog.SAVE);
                 fileDialog.setFile("medicine_print.pdf");
                 fileDialog.setVisible(true);
@@ -167,7 +191,7 @@ public class MedicinePanel extends JPanel {
                 String directory = fileDialog.getDirectory();
                 
                 if (fileName != null) {
-                    boolean complete = table.print();
+                    boolean complete = currentTable.print();
                     if (complete) {
                         CustomDialog.showMessage(this, "Printing completed successfully.", "Print Success", false);
                     }
@@ -183,6 +207,26 @@ public class MedicinePanel extends JPanel {
             BorderFactory.createLineBorder(new Color(200, 205, 210)),
             BorderFactory.createEmptyBorder(4, 6, 4, 6)
         ));
+
+        txtSearch.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { filterTable(); }
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { filterTable(); }
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { filterTable(); }
+
+            private void filterTable() {
+                String text = txtSearch.getText().trim();
+                RowFilter<DefaultTableModel, Object> rf = null;
+                if (!text.isEmpty()) {
+                    rf = RowFilter.regexFilter("(?i)" + text);
+                }
+                if (activeRowSorter != null) activeRowSorter.setRowFilter(rf);
+                if (outOfStockRowSorter != null) outOfStockRowSorter.setRowFilter(rf);
+                if (expiredRowSorter != null) expiredRowSorter.setRowFilter(rf);
+            }
+        });
         
         JLabel lblSearch = new JLabel("Search:");
         lblSearch.setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -200,80 +244,266 @@ public class MedicinePanel extends JPanel {
         topBar.add(rightTopPanel, BorderLayout.EAST);
         contentPanel.add(topBar, BorderLayout.NORTH);
 
-        JPanel centerContainer = new JPanel(new BorderLayout(0, 10));
-        centerContainer.setOpaque(false);
-
         String[] columns = {
-            "ID",
-            "Medicine Name ↕", 
-            "Medicine Category ↕", 
-            "Buy Price ↕", 
-            "Sell Price ↕", 
-            "Quantity ↕", 
-            "Company Name ↕", 
-            "Expire Date ↕", 
-            "Action ↕"
+            "ID", "Medicine Name", "Medicine Category", "Buy Price", 
+            "Sell Price", "Quantity", "Company Name", "Expire Date", "Status", "Action"
         };
         
-        DefaultTableModel tableModel = new DefaultTableModel(columns, 0) {
+        activeModel = new DefaultTableModel(columns, 0) {
+            @Override public boolean isCellEditable(int row, int column) { return false; }
+        };
+        outOfStockModel = new DefaultTableModel(columns, 0) {
+            @Override public boolean isCellEditable(int row, int column) { return false; }
+        };
+        expiredModel = new DefaultTableModel(columns, 0) {
+            @Override public boolean isCellEditable(int row, int column) { return false; }
+        };
+
+        activeTable = new JTable(activeModel);
+        outOfStockTable = new JTable(outOfStockModel);
+        expiredTable = new JTable(expiredModel);
+
+        for (JTable t : new JTable[]{activeTable, outOfStockTable, expiredTable}) {
+            t.setSelectionBackground(new Color(210, 215, 220));
+            t.setSelectionForeground(Color.BLACK);
+            t.setRowHeight(36);
+            t.setShowVerticalLines(false);
+            t.setShowHorizontalLines(true);
+            t.setGridColor(new Color(235, 238, 242));
+            t.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            t.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+            t.getTableHeader().setBackground(new Color(248, 249, 250));
+            t.getTableHeader().setForeground(new Color(80, 85, 90));
+
+            t.getColumnModel().getColumn(0).setPreferredWidth(40);   
+            t.getColumnModel().getColumn(1).setPreferredWidth(150);
+            t.getColumnModel().getColumn(2).setPreferredWidth(110);
+            t.getColumnModel().getColumn(3).setPreferredWidth(80); 
+            t.getColumnModel().getColumn(4).setPreferredWidth(80);  
+            t.getColumnModel().getColumn(5).setPreferredWidth(70); 
+            t.getColumnModel().getColumn(6).setPreferredWidth(130);
+            t.getColumnModel().getColumn(7).setPreferredWidth(90); 
+            t.getColumnModel().getColumn(8).setPreferredWidth(100); 
+            t.getColumnModel().getColumn(9).setPreferredWidth(160);
+
+            t.getColumnModel().getColumn(9).setCellRenderer(new ActionButtonPanel());
+        }
+
+        DefaultTableCellRenderer activeTableRenderer = new DefaultTableCellRenderer() {
             @Override
-            public boolean isCellEditable(int row, int column) {
-                return column == 8;
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                setHorizontalAlignment(column == 5 || column == 8 ? JLabel.CENTER : JLabel.LEFT);
+                
+                int modelRow = table.convertRowIndexToModel(row);
+                try {
+                    String qtyStr = table.getModel().getValueAt(modelRow, 5).toString().replaceAll("[^0-9\\-]", "");
+                    int qty = Integer.parseInt(qtyStr);
+                    if (qty <= 0) {
+                        c.setForeground(new Color(192, 57, 43)); // Pula
+                        setFont(new Font("Segoe UI", Font.BOLD, 12));
+                    } else {
+                        if (!isSelected) {
+                            c.setForeground(new Color(70, 75, 80));
+                        }
+                        setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                    }
+                } catch (Exception ignored) {}
+
+                if (isSelected) {
+                    c.setBackground(table.getSelectionBackground());
+                    c.setForeground(table.getSelectionForeground());
+                } else {
+                    c.setBackground(Color.WHITE);
+                }
+                return c;
             }
         };
 
-        table = new JTable(tableModel);
-        loadTableData(tableModel);
-
-        table.setLayout(new FlowLayout(FlowLayout.CENTER,0,1));
-        table.setRowHeight(32);
-        table.setShowVerticalLines(false);
-        table.setShowHorizontalLines(true);
-        table.setGridColor(new Color(235, 238, 242));
-        table.getColumnModel().getColumn(8).setCellRenderer(new ActionButtonRenderer());
-        table.getColumnModel().getColumn(8).setCellEditor(new ActionButtonEditor(new JCheckBox()));
-
-        table.getColumnModel().getColumn(0).setPreferredWidth(50);   
-        table.getColumnModel().getColumn(1).setPreferredWidth(160);
-        table.getColumnModel().getColumn(2).setPreferredWidth(120);
-        table.getColumnModel().getColumn(3).setPreferredWidth(90); 
-        table.getColumnModel().getColumn(4).setPreferredWidth(90);  
-        table.getColumnModel().getColumn(5).setPreferredWidth(70); 
-        table.getColumnModel().getColumn(6).setPreferredWidth(150);
-        table.getColumnModel().getColumn(7).setPreferredWidth(100); 
-        table.getColumnModel().getColumn(8).setPreferredWidth(180);
-
-        CenterTableCellRenderer centerRenderer = new CenterTableCellRenderer();
-        for (int i = 0; i < 8; i++) {
-            table.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
+        for (int i = 0; i < 9; i++) {
+            activeTable.getColumnModel().getColumn(i).setCellRenderer(activeTableRenderer);
         }
-        
-        table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-        table.getTableHeader().setBackground(new Color(248, 249, 250));
-        table.getTableHeader().setForeground(new Color(80, 85, 90));
 
-        JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.getViewport().setBackground(Color.WHITE);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(220, 224, 230)));
-        centerContainer.add(scrollPane, BorderLayout.CENTER);
+        activeRowSorter = new TableRowSorter<>(activeModel);
+        activeTable.setRowSorter(activeRowSorter);
 
-        contentPanel.add(centerContainer, BorderLayout.CENTER);
+        outOfStockRowSorter = new TableRowSorter<>(outOfStockModel);
+        outOfStockTable.setRowSorter(outOfStockRowSorter);
+
+        expiredRowSorter = new TableRowSorter<>(expiredModel);
+        expiredTable.setRowSorter(expiredRowSorter);
+
+        setupTableListeners(activeTable);
+        setupTableListeners(outOfStockTable);
+        setupTableListeners(expiredTable);
+
+        loadTableData();
+
+        tabbedPane = new JTabbedPane();
+        tabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        tabbedPane.setBackground(new Color(245, 247, 250));
+        tabbedPane.setFocusable(false);
+        tabbedPane.setBorder(BorderFactory.createLineBorder(new Color(200, 205, 210), 1));
+
+        // Gamitin ang Metal TabbedPaneUI o BasicTabbedPaneUI upang maalis ang Windows L&F default blue highlight
+        tabbedPane.setUI(new BasicTabbedPaneUI() {
+            @Override
+            protected void paintTabBackground(Graphics g, int tabPlacement, int tabIndex, int x, int y, int w, int h, boolean isSelected) {
+                if (isSelected) {
+                    g.setColor(new Color(230, 235, 240));
+                } else {
+                    g.setColor(Color.WHITE);
+                }
+                g.fillRect(x, y, w, h);
+            }
+
+            @Override
+            protected void paintTabBorder(Graphics g, int tabPlacement, int tabIndex, int x, int y, int w, int h, boolean isSelected) {
+                g.setColor(new Color(200, 205, 210));
+                g.drawRect(x, y, w, h);
+            }
+
+            @Override
+            protected void paintFocusIndicator(Graphics g, int tabPlacement, Rectangle[] rects, int tabIndex, Rectangle iconRect, Rectangle textRect, boolean isSelected) {
+                // Huwag mag-draw ng focus indicator/blue line
+            }
+
+            @Override
+            protected void paintContentBorder(Graphics g, int tabPlacement, int selectedIndex) {
+                int width = tabPane.getWidth();
+                int height = tabPane.getHeight();
+                Insets insets = tabPane.getInsets();
+                Insets tabAreaInsets = getTabAreaInsets(tabPlacement);
+
+                int x = insets.left;
+                int y = insets.top;
+                int w = width - insets.right - insets.left;
+                int h = height - insets.top - insets.bottom;
+
+                g.setColor(new Color(200, 205, 210));
+                g.drawRect(x, y + calculateTabAreaHeight(tabPlacement, runCount, maxTabHeight), w - 1, h - calculateTabAreaHeight(tabPlacement, runCount, maxTabHeight) - 1);
+            }
+        });
+
+        JScrollPane activeScroll = new JScrollPane(activeTable);
+        activeScroll.getViewport().setBackground(Color.WHITE);
+        activeScroll.setBorder(BorderFactory.createLineBorder(new Color(220, 224, 230)));
+
+        JScrollPane outOfStockScroll = new JScrollPane(outOfStockTable);
+        outOfStockScroll.getViewport().setBackground(Color.WHITE);
+        outOfStockScroll.setBorder(BorderFactory.createLineBorder(new Color(220, 224, 230)));
+
+        JScrollPane expiredScroll = new JScrollPane(expiredTable);
+        expiredScroll.getViewport().setBackground(Color.WHITE);
+        expiredScroll.setBorder(BorderFactory.createLineBorder(new Color(220, 224, 230)));
+
+        tabbedPane.addTab("Active Medicines", activeScroll);
+        tabbedPane.addTab("Out of Stock", outOfStockScroll);
+        tabbedPane.addTab("Expired Medicines", expiredScroll);
+
+        contentPanel.add(tabbedPane, BorderLayout.CENTER);
         add(contentPanel, BorderLayout.CENTER);
 
         this.addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override
             public void componentShown(java.awt.event.ComponentEvent e) {
-                loadTableData((DefaultTableModel) table.getModel());
+                loadTableData();
             }
         });
     }
 
-    public void loadTableData(DefaultTableModel model) {
-        model.setRowCount(0);
+    private JTable getActiveTableByTab() {
+        int index = tabbedPane.getSelectedIndex();
+        if (index == 0) return activeTable;
+        if (index == 1) return outOfStockTable;
+        return expiredTable;
+    }
+
+    private void setupTableListeners(JTable targetTable) {
+        targetTable.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                int row = targetTable.rowAtPoint(e.getPoint());
+                int col = targetTable.columnAtPoint(e.getPoint());
+                
+                if (col == 9 && row != -1) {
+                    int modelRow = targetTable.convertRowIndexToModel(row);
+                    Rectangle cellRect = targetTable.getCellRect(row, col, false);
+                    int clickX = e.getX() - cellRect.x;
+                    
+                    DefaultTableModel model = (DefaultTableModel) targetTable.getModel();
+
+                    if (clickX < cellRect.width / 2) {
+                        // Edit Button
+                        try {
+                            int id = Integer.parseInt(model.getValueAt(modelRow, 0).toString());
+                            String name = model.getValueAt(modelRow, 1).toString();
+                            String category = model.getValueAt(modelRow, 2).toString();
+                            double buyPrice = Double.parseDouble(model.getValueAt(modelRow, 3).toString().replace("₱", "").replace(",", "").trim());
+                            double sellPrice = Double.parseDouble(model.getValueAt(modelRow, 4).toString().replace("₱", "").replace(",", "").trim());
+                            
+                            String qtyRaw = model.getValueAt(modelRow, 5).toString().replaceAll("[^0-9\\-]", "");
+                            int stock = Integer.parseInt(qtyRaw);
+
+                            String company = model.getValueAt(modelRow, 6).toString();
+                            String expiry = model.getValueAt(modelRow, 7).toString();
+
+                            Medicine medToEdit = new Medicine();
+                            medToEdit.setId(id);
+                            medToEdit.setName(name);
+                            medToEdit.setMedicineCategory(category);
+                            medToEdit.setBuyPrice(buyPrice);
+                            medToEdit.setSellPrice(sellPrice);
+                            medToEdit.setStock(stock);
+                            medToEdit.setCompanyName(company);
+                            medToEdit.setExpiryDate(expiry);
+
+                            EditMedicineDialog editDialog = new EditMedicineDialog((Frame) SwingUtilities.getWindowAncestor(targetTable), medToEdit);
+                            editDialog.setVisible(true);
+                            if (editDialog.isUpdated()) {
+                                loadTableData();
+                            }
+                        } catch (Exception ex) {
+                            CustomDialog.showMessage(targetTable, "Error opening edit form: " + ex.getMessage(), "Error", true);
+                        }
+                    } else {
+                        // Delete Button
+                        int medicineId = Integer.parseInt(model.getValueAt(modelRow, 0).toString());
+                        boolean confirmed = CustomDialog.showConfirm(targetTable, "Are you sure you want to delete this medicine? Click \"Yes\" to delete.", "Warning");
+                        if (confirmed) {
+                            MedicineDAO.deleteMedicine(medicineId);
+                            loadTableData();
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    public void loadTableData() {
+        activeModel.setRowCount(0);
+        outOfStockModel.setRowCount(0);
+        expiredModel.setRowCount(0);
+
         List<Medicine> list = MedicineDAO.getAllMedicines();
+        LocalDate today = LocalDate.now();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
         for (Medicine m : list) {
-            model.addRow(new Object[]{
+            boolean isExpired = false;
+            try {
+                if (m.getExpiryDate() != null && !m.getExpiryDate().isEmpty()) {
+                    LocalDate expiryDate = LocalDate.parse(m.getExpiryDate().trim(), formatter);
+                    if (expiryDate.isBefore(today) || expiryDate.isEqual(today)) {
+                        isExpired = true;
+                    }
+                }
+            } catch (Exception ignored) {}
+
+            boolean isOutOfStock = m.getStock() <= 0;
+            String status = isExpired ? "Expired" : (isOutOfStock ? "Out of Stock" : "Available");
+
+            Object[] rowData = new Object[]{
                 m.getId(),
                 m.getName(),
                 m.getMedicineCategory(), 
@@ -282,41 +512,49 @@ public class MedicinePanel extends JPanel {
                 m.getStock(),
                 m.getCompanyName(),
                 m.getExpiryDate(),
+                status,
                 ""
-            });
+            };
+
+            if (isExpired) {
+                expiredModel.addRow(rowData);
+            } else if (isOutOfStock) {
+                outOfStockModel.addRow(rowData);
+                activeModel.addRow(rowData); 
+            } else {
+                activeModel.addRow(rowData);
+            }
         }
     }
 
     @Override
     public void addNotify() {
         super.addNotify();
-        if (table != null) {
-            loadTableData((DefaultTableModel) table.getModel());
-        }
+        loadTableData();
     }
 
-    class ActionButtonRenderer extends JPanel implements TableCellRenderer {
+    class ActionButtonPanel extends JPanel implements TableCellRenderer {
         private JButton btnEdit, btnDelete;
         
-        public ActionButtonRenderer() {
-            setLayout(new FlowLayout(FlowLayout.CENTER, 1, 2));
+        public ActionButtonPanel() {
+            setLayout(new FlowLayout(FlowLayout.CENTER, 4, 4));
             setOpaque(true);
             
             btnEdit = new JButton("Edit");
-            btnEdit.setBackground(new Color(51, 122, 183));
+            btnEdit.setBackground(new Color(41, 128, 185)); 
             btnEdit.setForeground(Color.WHITE); 
-            btnEdit.setOpaque(true);
             btnEdit.setFocusPainted(false);
             btnEdit.setFont(new Font("Segoe UI", Font.BOLD, 11));
             btnEdit.setPreferredSize(new Dimension(70, 26)); 
+            btnEdit.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
             btnDelete = new JButton("Delete");
-            btnDelete.setBackground(new Color(220, 53, 69));
+            btnDelete.setBackground(new Color(192, 57, 43)); // Dark Red
             btnDelete.setForeground(Color.WHITE); 
-            btnDelete.setOpaque(true);
             btnDelete.setFocusPainted(false);
             btnDelete.setFont(new Font("Segoe UI", Font.BOLD, 11));
             btnDelete.setPreferredSize(new Dimension(70, 26)); 
+            btnDelete.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
             add(btnEdit);
             add(btnDelete);
@@ -329,95 +567,22 @@ public class MedicinePanel extends JPanel {
         }
     }
 
-    class ActionButtonEditor extends DefaultCellEditor {
-        private JPanel panel;
-        private JButton btnEdit, btnDelete;
-        private int currentRow;
-
-        public ActionButtonEditor(JCheckBox checkBox) {
-            super(checkBox);
-            panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 1, 2));
-            panel.setOpaque(true);
-
-            btnEdit = new JButton("Edit");
-            btnEdit.setBackground(new Color(51, 122, 183));
-            btnEdit.setForeground(Color.WHITE);
-            btnEdit.setOpaque(true);
-            btnEdit.setFocusPainted(false);
-            btnEdit.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            btnEdit.setPreferredSize(new Dimension(70, 26));
-
-            btnDelete = new JButton("Delete");
-            btnDelete.setBackground(new Color(220, 53, 69));
-            btnDelete.setForeground(Color.WHITE);
-            btnDelete.setOpaque(true);
-            btnDelete.setFocusPainted(false);
-            btnDelete.setFont(new Font("Segoe UI", Font.BOLD, 11));
-            btnDelete.setPreferredSize(new Dimension(70, 26));
-
-            btnEdit.addActionListener(e -> {
-                fireEditingStopped();
-                int medicineId = Integer.parseInt(table.getValueAt(currentRow, 0).toString());
-                CustomDialog.showMessage(table, "Edit medicine ID: " + medicineId, "Information", false);
-            });
-
-            btnDelete.addActionListener(e -> {
-                fireEditingStopped();
-                int medicineId = Integer.parseInt(table.getValueAt(currentRow, 0).toString());
-                boolean confirmed = CustomDialog.showConfirm(table, "Are you sure you want to delete this medicine? Click \"Yes\" to delete.", "Confirm Delete");
-                if (confirmed) {
-                    MedicineDAO.deleteMedicine(medicineId);
-                    loadTableData((DefaultTableModel) table.getModel());
-                }
-            });
-
-            panel.add(btnEdit);
-            panel.add(btnDelete);
-        }
-
-        @Override
-        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
-            currentRow = row;
-            panel.setBackground(table.getSelectionBackground());
-            return panel;
-        }
-
-        @Override
-        public Object getCellEditorValue() {
-            return "";
-        }
-    } 
-
-    class CenterTableCellRenderer extends DefaultTableCellRenderer {
-        public CenterTableCellRenderer() {
-            setHorizontalAlignment(JLabel.CENTER);
-        }
-    }
-
     private static class CustomDialog {
         private static boolean confirmResult = false;
 
         public static void showMessage(Component parent, String message, String title, boolean isWarning) {
             JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(parent), title, true);
-            dialog.setSize(450, 180);
-            dialog.setLocationRelativeTo(parent);
             dialog.setLayout(new BorderLayout());
+            dialog.setResizable(false);
 
-            JPanel topHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
-            topHeader.setBackground(new Color(248, 249, 250));
-            topHeader.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 225, 230)));
-            JLabel lblTitle = new JLabel(title);
-            lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
-            lblTitle.setForeground(isWarning ? new Color(217, 119, 6) : new Color(50, 60, 70));
-            topHeader.add(lblTitle);
-            dialog.add(topHeader, BorderLayout.NORTH);
-
-            JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 20));
+            JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 25));
             centerPanel.setBackground(Color.WHITE);
-            JLabel lblMsg = new JLabel(message);
+            
+            JLabel lblMsg = new JLabel("<html><font color='#C0392B'><b>" + title + ":</b></font> " + message + "</html>");
             lblMsg.setFont(new Font("Segoe UI", Font.PLAIN, 13));
             lblMsg.setForeground(new Color(70, 75, 80));
             centerPanel.add(lblMsg);
+            
             dialog.add(centerPanel, BorderLayout.CENTER);
 
             JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
@@ -426,60 +591,56 @@ public class MedicinePanel extends JPanel {
 
             JButton btnOk = new JButton("OK");
             btnOk.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            btnOk.setBackground(new Color(13, 148, 136));
+            btnOk.setBackground(new Color(26, 143, 136));
             btnOk.setForeground(Color.WHITE);
             btnOk.setFocusPainted(false);
-            btnOk.setBorder(BorderFactory.createEmptyBorder(6, 18, 6, 18));
+            btnOk.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
             btnOk.setCursor(new Cursor(Cursor.HAND_CURSOR));
             btnOk.addActionListener(e -> dialog.dispose());
 
             bottomPanel.add(btnOk);
             dialog.add(bottomPanel, BorderLayout.SOUTH);
+            
+            dialog.pack();
+            dialog.setSize(Math.max(dialog.getWidth() + 80, 520), Math.max(dialog.getHeight() + 40, 150));
+            dialog.setLocationRelativeTo(parent);
             dialog.setVisible(true);
         }
 
         public static boolean showConfirm(Component parent, String message, String title) {
             confirmResult = false;
             JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(parent), title, true);
-            dialog.setSize(450, 180);
-            dialog.setLocationRelativeTo(parent);
             dialog.setLayout(new BorderLayout());
+            dialog.setResizable(false);
 
-            JPanel topHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
-            topHeader.setBackground(new Color(248, 249, 250));
-            topHeader.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 225, 230)));
-            JLabel lblTitle = new JLabel(title);
-            lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
-            lblTitle.setForeground(new Color(217, 119, 6));
-            topHeader.add(lblTitle);
-            dialog.add(topHeader, BorderLayout.NORTH);
-
-            JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 20));
+            JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 25));
             centerPanel.setBackground(Color.WHITE);
-            JLabel lblMsg = new JLabel(message);
+            
+            JLabel lblMsg = new JLabel("<html><font color='#C0392B'><b>" + title + ":</b></font> " + message + "</html>");
             lblMsg.setFont(new Font("Segoe UI", Font.PLAIN, 13));
             lblMsg.setForeground(new Color(70, 75, 80));
             centerPanel.add(lblMsg);
+            
             dialog.add(centerPanel, BorderLayout.CENTER);
 
             JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
             bottomPanel.setBackground(new Color(248, 249, 250));
             bottomPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(220, 225, 230)));
 
-            JButton btnYes = new JButton("✓ Yes");
+            JButton btnYes = new JButton("Yes");
             btnYes.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            btnYes.setBackground(new Color(13, 148, 136));
+            btnYes.setBackground(new Color(26, 143, 136));
             btnYes.setForeground(Color.WHITE);
             btnYes.setFocusPainted(false);
-            btnYes.setBorder(BorderFactory.createEmptyBorder(6, 18, 6, 18));
+            btnYes.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
             btnYes.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-            JButton btnNo = new JButton("✕ No");
+            JButton btnNo = new JButton("No");
             btnNo.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            btnNo.setBackground(new Color(220, 53, 69));
+            btnNo.setBackground(new Color(192, 57, 43));
             btnNo.setForeground(Color.WHITE);
             btnNo.setFocusPainted(false);
-            btnNo.setBorder(BorderFactory.createEmptyBorder(6, 18, 6, 18));
+            btnNo.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
             btnNo.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
             btnYes.addActionListener(e -> {
@@ -495,6 +656,10 @@ public class MedicinePanel extends JPanel {
             bottomPanel.add(btnYes);
             bottomPanel.add(btnNo);
             dialog.add(bottomPanel, BorderLayout.SOUTH);
+            
+            dialog.pack();
+            dialog.setSize(Math.max(dialog.getWidth() + 80, 520), Math.max(dialog.getHeight() + 40, 150));
+            dialog.setLocationRelativeTo(parent);
             dialog.setVisible(true);
 
             return confirmResult;

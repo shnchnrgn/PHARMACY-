@@ -3,10 +3,16 @@ package ui;
 import javax.swing.*;
 import javax.swing.border.Border;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
 public class SystemSettingsPanel extends JPanel {
 
     private final Border grayBorder = BorderFactory.createLineBorder(new Color(200, 205, 210), 1);
+
+    private JTextField txtStoreTitle, txtStoreName, txtStoreEmail, txtStorePhone;
+    private JTextArea txtAddress;
+    private JComboBox<String> cmbCurrency, cmbDiscountType;
 
     public SystemSettingsPanel() {
         setLayout(new BorderLayout());
@@ -43,16 +49,16 @@ public class SystemSettingsPanel extends JPanel {
         gbc.gridy = 0;
 
         addLabel(fieldsPanel, gbc, "Store Title", true);
-        addTextFieldWithHelper(fieldsPanel, gbc, "Pharmacy Management System", "eg. XYZ Management System");
+        txtStoreTitle = addTextFieldWithHelper(fieldsPanel, gbc, "Pharmacy Management System", "eg. XYZ Management System");
 
         addLabel(fieldsPanel, gbc, "Store Name", true);
-        addTextFieldWithHelper(fieldsPanel, gbc, "Vanguard Pharmacy", "eg. Your store name (ABC or XYZ)");
+        txtStoreName = addTextFieldWithHelper(fieldsPanel, gbc, "Vanguard Pharmacy", "eg. Your store name (ABC or XYZ)");
 
         addLabel(fieldsPanel, gbc, "Store Email", false);
-        addStandardField(fieldsPanel, gbc, "Vanguard.p.m.s@gmail.com");
+        txtStoreEmail = addStandardField(fieldsPanel, gbc, "Vanguard.p.m.s@gmail.com");
 
         addLabel(fieldsPanel, gbc, "Store Phone", false);
-        addStandardField(fieldsPanel, gbc, "null");
+        txtStorePhone = addStandardField(fieldsPanel, gbc, "");
 
         gbc.gridx = 0; gbc.gridy++;
         gbc.weightx = 0.0;
@@ -63,20 +69,20 @@ public class SystemSettingsPanel extends JPanel {
 
         gbc.gridx = 1;
         gbc.weightx = 1.0;
-        JTextArea txtAddress = new JTextArea("null", 3, 20);
+        txtAddress = new JTextArea("", 3, 20);
         txtAddress.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         txtAddress.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        txtAddress.setSelectionColor(new Color(220, 225, 230));
+        txtAddress.setSelectionColor(new Color(210, 215, 220));
         txtAddress.setSelectedTextColor(Color.BLACK);
         JScrollPane scrollAddress = new JScrollPane(txtAddress);
         scrollAddress.setBorder(grayBorder);
         fieldsPanel.add(scrollAddress, gbc);
 
         String[] currencies = {"PHP (₱)", "USD ($)", "EUR (€)", "GBP (£)", "JPY (¥)", "SGD ($)"};
-        addEditableDropdownField(fieldsPanel, gbc, "Store Currency", true, currencies);
+        cmbCurrency = addEditableDropdownField(fieldsPanel, gbc, "Store Currency", true, currencies);
 
         String[] discountTypes = {"Flat", "Percentage (%)", "Senior Citizen (20%)", "PWD (20%)"};
-        addEditableDropdownField(fieldsPanel, gbc, "Store Discount Type", true, discountTypes);
+        cmbDiscountType = addEditableDropdownField(fieldsPanel, gbc, "Store Discount Type", true, discountTypes);
 
         gbc.gridx = 1; gbc.gridy++;
         gbc.weightx = 1.0;
@@ -84,13 +90,29 @@ public class SystemSettingsPanel extends JPanel {
         gbc.fill = GridBagConstraints.NONE;
         gbc.insets = new Insets(15, 10, 10, 10);
         
-        JButton btnSave = new JButton("✔ Save");
-        btnSave.setBackground(new Color(26, 188, 156));
+        JButton btnSave = new JButton("Save");
+        btnSave.setBackground(new Color(26, 143, 136));
         btnSave.setForeground(Color.WHITE);
         btnSave.setFont(new Font("Segoe UI", Font.BOLD, 13));
         btnSave.setFocusPainted(false);
         btnSave.setBorder(BorderFactory.createEmptyBorder(8, 25, 8, 25));
         btnSave.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        btnSave.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String storeTitle = txtStoreTitle.getText().trim();
+                String storeName = txtStoreName.getText().trim();
+
+                if (storeTitle.isEmpty() || storeName.isEmpty()) {
+                    showCustomDialog("Store Title and Store Name are required.", "Error");
+                    return;
+                }
+
+                showCustomDialog("Store information saved successfully!", "Information");
+            }
+        });
+
         fieldsPanel.add(btnSave, gbc);
 
         formCard.add(fieldsPanel, BorderLayout.CENTER);
@@ -100,6 +122,43 @@ public class SystemSettingsPanel extends JPanel {
         mainScroll.setBorder(null);
         mainScroll.setBackground(new Color(240, 242, 245));
         add(mainScroll, BorderLayout.CENTER);
+    }
+
+    private void showCustomDialog(String message, String title) {
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), title, true);
+        dialog.setLayout(new BorderLayout());
+        dialog.setResizable(false);
+
+        JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 25));
+        centerPanel.setBackground(Color.WHITE);
+        
+        JLabel lblMsg = new JLabel("<html><font color='" + (title.equals("Error") ? "#C0392B" : "#1A8F88") + "'><b>" + title + ":</b></font> " + message + "</html>");
+        lblMsg.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblMsg.setForeground(new Color(70, 75, 80));
+        centerPanel.add(lblMsg);
+        
+        dialog.add(centerPanel, BorderLayout.CENTER);
+
+        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
+        bottomPanel.setBackground(new Color(248, 249, 250));
+        bottomPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(220, 225, 230)));
+
+        JButton btnOk = new JButton("OK");
+        btnOk.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnOk.setBackground(new Color(26, 143, 136));
+        btnOk.setForeground(Color.WHITE);
+        btnOk.setFocusPainted(false);
+        btnOk.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
+        btnOk.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnOk.addActionListener(e -> dialog.dispose());
+
+        bottomPanel.add(btnOk);
+        dialog.add(bottomPanel, BorderLayout.SOUTH);
+        
+        dialog.pack();
+        dialog.setSize(Math.max(dialog.getWidth() + 80, 520), Math.max(dialog.getHeight() + 40, 150));
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
     }
 
     private void addLabel(JPanel panel, GridBagConstraints gbc, String text, boolean isRequired) {
@@ -122,7 +181,7 @@ public class SystemSettingsPanel extends JPanel {
         panel.add(lblPanel, gbc);
     }
 
-    private void addTextFieldWithHelper(JPanel panel, GridBagConstraints gbc, String defaultValue, String helperText) {
+    private JTextField addTextFieldWithHelper(JPanel panel, GridBagConstraints gbc, String defaultValue, String helperText) {
         gbc.gridx = 1; 
         gbc.weightx = 1.0;
         
@@ -142,13 +201,15 @@ public class SystemSettingsPanel extends JPanel {
         }
 
         panel.add(fieldWrapper, gbc);
+        return textField;
     }
 
-    private void addStandardField(JPanel panel, GridBagConstraints gbc, String defaultValue) {
+    private JTextField addStandardField(JPanel panel, GridBagConstraints gbc, String defaultValue) {
         gbc.gridx = 1; 
         gbc.weightx = 1.0;
         JTextField textField = createStyledTextField(defaultValue);
         panel.add(textField, gbc);
+        return textField;
     }
 
     private JTextField createStyledTextField(String defaultValue) {
@@ -156,13 +217,13 @@ public class SystemSettingsPanel extends JPanel {
         textField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         textField.setPreferredSize(new Dimension(350, 30));
         textField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
-        textField.setBorder(BorderFactory.createCompoundBorder(grayBorder, BorderFactory.createEmptyBorder(0, 5, 0, 5)));
-        textField.setSelectionColor(new Color(220, 225, 230));
+        textField.setBorder(BorderFactory.createCompoundBorder(grayBorder, BorderFactory.createEmptyBorder(0, 8, 0, 8)));
+        textField.setSelectionColor(new Color(210, 215, 220));
         textField.setSelectedTextColor(Color.BLACK);
         return textField;
     }
 
-    private void addEditableDropdownField(JPanel panel, GridBagConstraints gbc, String labelText, boolean isRequired, String[] items) {
+    private JComboBox<String> addEditableDropdownField(JPanel panel, GridBagConstraints gbc, String labelText, boolean isRequired, String[] items) {
         addLabel(panel, gbc, labelText, isRequired);
         
         gbc.gridx = 1; 
@@ -171,21 +232,14 @@ public class SystemSettingsPanel extends JPanel {
         comboBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         comboBox.setPreferredSize(new Dimension(350, 30));
         comboBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
-        comboBox.setEditable(true);
+        comboBox.setEditable(false);
         comboBox.setBackground(Color.WHITE);
         comboBox.setBorder(grayBorder);
-
-        Component editorComp = comboBox.getEditor().getEditorComponent();
-        if (editorComp instanceof JTextField) {
-            JTextField editorField = (JTextField) editorComp;
-            editorField.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
-            editorField.setSelectionColor(new Color(210, 215, 220));
-            editorField.setSelectedTextColor(Color.BLACK);
-        }
+        comboBox.setFocusable(true);
 
         comboBox.setUI(new javax.swing.plaf.basic.BasicComboBoxUI() {
             @Override
-            protected javax.swing.plaf.basic.ComboPopup createPopup() {
+            protected javax.swing.plaf.basic.BasicComboPopup createPopup() {
                 javax.swing.plaf.basic.BasicComboPopup popup = new javax.swing.plaf.basic.BasicComboPopup(comboBox);
                 popup.setBorder(grayBorder);
                 return popup;
@@ -242,5 +296,6 @@ public class SystemSettingsPanel extends JPanel {
         });
         
         panel.add(comboBox, gbc);
+        return comboBox;
     }
 }

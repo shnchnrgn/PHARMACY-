@@ -7,7 +7,9 @@ import models.Medicine;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -20,6 +22,7 @@ public class POSFrame extends JPanel {
     private DefaultTableModel medicineModel;
     private DefaultTableModel cartModel;
     private JTextField searchField;
+    private TableRowSorter<DefaultTableModel> medicineRowSorter;
 
     private JLabel lblSubtotalVal;
     private JCheckBox chkPwd;
@@ -52,12 +55,12 @@ public class POSFrame extends JPanel {
 
         add(contentPanel, BorderLayout.CENTER);
 
-        loadMedicinesToPOS("");
+        loadMedicinesToPOS();
 
         addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override
             public void componentShown(java.awt.event.ComponentEvent e) {
-                loadMedicinesToPOS(searchField.getText().trim());
+                loadMedicinesToPOS();
             }
         });
     }
@@ -83,18 +86,29 @@ public class POSFrame extends JPanel {
         searchField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         searchField.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(200, 205, 210)),
-                BorderFactory.createEmptyBorder(6, 8, 6, 8)
+                new EmptyBorder(6, 8, 6, 8)
         ));
 
-        JButton btnSearch = createButton(
-                "Search",
-                new Color(51, 122, 183),
-                Color.WHITE
-        );
+        searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override
+            public void insertUpdate(javax.swing.event.DocumentEvent e) { filterTable(); }
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e) { filterTable(); }
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e) { filterTable(); }
+
+            private void filterTable() {
+                String text = searchField.getText().trim();
+                if (text.isEmpty()) {
+                    medicineRowSorter.setRowFilter(null);
+                } else {
+                    medicineRowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+                }
+            }
+        });
 
         searchPanel.add(lblSearch, BorderLayout.WEST);
         searchPanel.add(searchField, BorderLayout.CENTER);
-        searchPanel.add(btnSearch, BorderLayout.EAST);
 
         leftPanel.add(searchPanel, BorderLayout.NORTH);
 
@@ -114,6 +128,10 @@ public class POSFrame extends JPanel {
         };
 
         medicineTable = new JTable(medicineModel);
+        
+        medicineRowSorter = new TableRowSorter<>(medicineModel);
+        medicineTable.setRowSorter(medicineRowSorter);
+
         medicineTable.setRowHeight(32);
         medicineTable.setShowVerticalLines(false);
         medicineTable.setShowHorizontalLines(true);
@@ -130,6 +148,47 @@ public class POSFrame extends JPanel {
         );
         medicineTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
+        // Renderer para maging kulay pula ang buong linya ng gamot kapag out of stock na
+        DefaultTableCellRenderer outOfStockRenderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                
+                int modelRow = table.convertRowIndexToModel(row);
+                try {
+                    int stock = Integer.parseInt(table.getModel().getValueAt(modelRow, 3).toString());
+                    if (stock <= 0) {
+                        if (isSelected) {
+                            c.setBackground(new Color(150, 40, 30));
+                        } else {
+                            c.setBackground(Color.WHITE);
+                        }
+                        c.setForeground(new Color(192, 57, 43)); // Pulang teksto katulad ng reference
+                        setFont(new Font("Segoe UI", column == 0 ? Font.BOLD : Font.PLAIN, 12));
+                    } else {
+                        if (isSelected) {
+                            c.setBackground(table.getSelectionBackground());
+                            c.setForeground(table.getSelectionForeground());
+                        } else {
+                            c.setBackground(Color.WHITE);
+                            c.setForeground(new Color(70, 75, 80));
+                        }
+                        setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                    }
+                } catch (Exception ex) {
+                    if (!isSelected) {
+                        c.setBackground(Color.WHITE);
+                        c.setForeground(new Color(70, 75, 80));
+                    }
+                }
+                return c;
+            }
+        };
+
+        for (int i = 0; i < medicineTable.getColumnCount(); i++) {
+            medicineTable.getColumnModel().getColumn(i).setCellRenderer(outOfStockRenderer);
+        }
+
         medicineTable.getColumnModel().getColumn(4).setMinWidth(0);
         medicineTable.getColumnModel().getColumn(4).setMaxWidth(0);
         medicineTable.getColumnModel().getColumn(4).setPreferredWidth(0);
@@ -144,7 +203,7 @@ public class POSFrame extends JPanel {
 
         JButton btnAddToCart = createButton(
                 "Add to Cart",
-                new Color(51, 122, 183),
+                new Color(41, 128, 185), // Blue
                 Color.WHITE
         );
 
@@ -158,14 +217,6 @@ public class POSFrame extends JPanel {
         btnAddWrapper.add(btnAddToCart, BorderLayout.CENTER);
 
         leftPanel.add(btnAddWrapper, BorderLayout.SOUTH);
-
-        btnSearch.addActionListener(e ->
-                loadMedicinesToPOS(searchField.getText().trim())
-        );
-
-        searchField.addActionListener(e ->
-                loadMedicinesToPOS(searchField.getText().trim())
-        );
 
         medicineTable.addMouseListener(new java.awt.event.MouseAdapter() {
             @Override
@@ -259,13 +310,13 @@ public class POSFrame extends JPanel {
 
         JButton btnRemove = createButton(
                 "Remove Item",
-                new Color(220, 53, 69),
+                new Color(192, 57, 43), // Dark Red
                 Color.WHITE
         );
 
         JButton btnCheckout = createButton(
                 "Checkout",
-                new Color(40, 167, 69),
+                new Color(26, 143, 136), // Dark Teal
                 Color.WHITE
         );
 
@@ -434,25 +485,27 @@ public class POSFrame extends JPanel {
             return;
         }
 
+        int modelRow = medicineTable.convertRowIndexToModel(selectedRow);
+
         try {
 
             String name = medicineModel
-                    .getValueAt(selectedRow, 0)
+                    .getValueAt(modelRow, 0)
                     .toString();
 
             String priceText = medicineModel
-                    .getValueAt(selectedRow, 2)
+                    .getValueAt(modelRow, 2)
                     .toString();
 
             int availableStock = Integer.parseInt(
                     medicineModel
-                            .getValueAt(selectedRow, 3)
+                            .getValueAt(modelRow, 3)
                             .toString()
             );
 
             int medicineId = Integer.parseInt(
                     medicineModel
-                            .getValueAt(selectedRow, 4)
+                            .getValueAt(modelRow, 4)
                             .toString()
             );
 
@@ -784,12 +837,10 @@ public class POSFrame extends JPanel {
 
         updateSubtotal();
 
-        loadMedicinesToPOS(
-                searchField.getText().trim()
-        );
+        loadMedicinesToPOS();
     }
 
-    private void loadMedicinesToPOS(String filterKeyword) {
+    public void loadMedicinesToPOS() {
 
         medicineModel.setRowCount(0);
 
@@ -797,12 +848,6 @@ public class POSFrame extends JPanel {
 
             List<Medicine> medicines =
                     MedicineDAO.getAllMedicines();
-
-            String keyword =
-                    filterKeyword == null
-                            ? ""
-                            : filterKeyword.trim()
-                                    .toLowerCase();
 
             for (Medicine med : medicines) {
 
@@ -816,25 +861,18 @@ public class POSFrame extends JPanel {
                                 ? ""
                                 : med.getMedicineCategory();
 
-                if (keyword.isEmpty()
-                        || name.toLowerCase()
-                                .contains(keyword)
-                        || category.toLowerCase()
-                                .contains(keyword)) {
-
-                    medicineModel.addRow(
-                            new Object[]{
-                                    name,
-                                    category,
-                                    String.format(
-                                            "₱%.2f",
-                                            med.getSellPrice()
-                                    ),
-                                    med.getStock(),
-                                    med.getId()
-                            }
-                    );
-                }
+                medicineModel.addRow(
+                        new Object[]{
+                                name,
+                                category,
+                                String.format(
+                                        "₱%.2f",
+                                        med.getSellPrice()
+                                ),
+                                med.getStock(),
+                                med.getId()
+                        }
+                );
             }
 
         } catch (Exception e) {
@@ -1055,7 +1093,7 @@ public class POSFrame extends JPanel {
             );
 
             Color blue =
-                    new Color(51, 122, 183);
+                    new Color(41, 128, 185);
 
             g2.setColor(
                     checked
@@ -1140,77 +1178,15 @@ public class POSFrame extends JPanel {
                             Dialog.ModalityType.APPLICATION_MODAL
                     );
 
-            dialog.setSize(450, 190);
-            dialog.setLocationRelativeTo(parent);
-            dialog.setLayout(
-                    new BorderLayout()
-            );
-
-            JPanel topHeader =
-                    new JPanel(
-                            new FlowLayout(
-                                    FlowLayout.LEFT,
-                                    15,
-                                    10
-                            )
-                    );
-
-            topHeader.setBackground(
-                    new Color(248, 249, 250)
-            );
-
-            topHeader.setBorder(
-                    BorderFactory.createMatteBorder(
-                            0,
-                            0,
-                            1,
-                            0,
-                            new Color(
-                                    220,
-                                    225,
-                                    230
-                            )
-                    )
-            );
-
-            JLabel lblTitle =
-                    new JLabel(title);
-
-            lblTitle.setFont(
-                    new Font(
-                            "Segoe UI",
-                            Font.BOLD,
-                            13
-                    )
-            );
-
-            lblTitle.setForeground(
-                    isWarning
-                            ? new Color(
-                                    217,
-                                    119,
-                                    6
-                            )
-                            : new Color(
-                                    50,
-                                    60,
-                                    70
-                            )
-            );
-
-            topHeader.add(lblTitle);
-
-            dialog.add(
-                    topHeader,
-                    BorderLayout.NORTH
-            );
+            dialog.setLayout(new BorderLayout());
+            dialog.setResizable(false);
 
             JPanel centerPanel =
                     new JPanel(
                             new FlowLayout(
                                     FlowLayout.LEFT,
                                     20,
-                                    20
+                                    25
                             )
                     );
 
@@ -1218,9 +1194,10 @@ public class POSFrame extends JPanel {
                     Color.WHITE
             );
 
+            String colorHex = isWarning ? "#C0392B" : "#261436";
             JLabel lblMsg =
                     new JLabel(
-                            "<html>" +
+                            "<html><font color='" + colorHex + "'><b>" + title + ":</b></font> " +
                                     message.replace(
                                             "\n",
                                             "<br>"
@@ -1295,9 +1272,9 @@ public class POSFrame extends JPanel {
 
             btnOk.setBackground(
                     new Color(
-                            13,
-                            148,
-                            136
+                            41,
+                            128,
+                            185
                     )
             );
 
@@ -1306,9 +1283,9 @@ public class POSFrame extends JPanel {
             btnOk.setBorder(
                     BorderFactory.createEmptyBorder(
                             6,
-                            18,
+                            20,
                             6,
-                            18
+                            20
                     )
             );
 
@@ -1329,9 +1306,9 @@ public class POSFrame extends JPanel {
                     BorderLayout.SOUTH
             );
 
-            dialog.getRootPane()
-                    .setDefaultButton(btnOk);
-
+            dialog.pack();
+            dialog.setSize(Math.max(dialog.getWidth() + 80, 520), Math.max(dialog.getHeight() + 40, 150));
+            dialog.setLocationRelativeTo(parent);
             dialog.setVisible(true);
         }
 
@@ -1354,68 +1331,10 @@ public class POSFrame extends JPanel {
                             Dialog.ModalityType.APPLICATION_MODAL
                     );
 
-            dialog.setSize(450, 220);
-            dialog.setLocationRelativeTo(parent);
             dialog.setLayout(
                     new BorderLayout()
             );
-
-            JPanel topHeader =
-                    new JPanel(
-                            new FlowLayout(
-                                    FlowLayout.LEFT,
-                                    15,
-                                    10
-                            )
-                    );
-
-            topHeader.setBackground(
-                    new Color(
-                            248,
-                            249,
-                            250
-                    )
-            );
-
-            topHeader.setBorder(
-                    BorderFactory.createMatteBorder(
-                            0,
-                            0,
-                            1,
-                            0,
-                            new Color(
-                                    220,
-                                    225,
-                                    230
-                            )
-                    )
-            );
-
-            JLabel lblTitle =
-                    new JLabel(title);
-
-            lblTitle.setFont(
-                    new Font(
-                            "Segoe UI",
-                            Font.BOLD,
-                            13
-                    )
-            );
-
-            lblTitle.setForeground(
-                    new Color(
-                            50,
-                            60,
-                            70
-                    )
-            );
-
-            topHeader.add(lblTitle);
-
-            dialog.add(
-                    topHeader,
-                    BorderLayout.NORTH
-            );
+            dialog.setResizable(false);
 
             JPanel centerPanel =
                     new JPanel();
@@ -1433,9 +1352,9 @@ public class POSFrame extends JPanel {
 
             centerPanel.setBorder(
                     new EmptyBorder(
-                            15,
                             20,
-                            15,
+                            20,
+                            20,
                             20
                     )
             );
@@ -1520,7 +1439,7 @@ public class POSFrame extends JPanel {
                     new JPanel(
                             new FlowLayout(
                                     FlowLayout.RIGHT,
-                                    10,
+                                    15,
                                     10
                             )
                     );
@@ -1560,9 +1479,9 @@ public class POSFrame extends JPanel {
 
             btnOk.setBackground(
                     new Color(
-                            13,
-                            148,
-                            136
+                            41,
+                            128,
+                            185
                     )
             );
 
@@ -1571,9 +1490,9 @@ public class POSFrame extends JPanel {
             btnOk.setBorder(
                     BorderFactory.createEmptyBorder(
                             6,
-                            18,
+                            20,
                             6,
-                            18
+                            20
                     )
             );
 
@@ -1596,9 +1515,9 @@ public class POSFrame extends JPanel {
 
             btnCancel.setBackground(
                     new Color(
-                            220,
-                            53,
-                            69
+                            192,
+                            57,
+                            43
                     )
             );
 
@@ -1607,9 +1526,9 @@ public class POSFrame extends JPanel {
             btnCancel.setBorder(
                     BorderFactory.createEmptyBorder(
                             6,
-                            18,
+                            20,
                             6,
-                            18
+                            20
                     )
             );
 
@@ -1650,9 +1569,9 @@ public class POSFrame extends JPanel {
                     BorderLayout.SOUTH
             );
 
-            dialog.getRootPane()
-                    .setDefaultButton(btnOk);
-
+            dialog.pack();
+            dialog.setSize(Math.max(dialog.getWidth() + 80, 480), Math.max(dialog.getHeight() + 40, 160));
+            dialog.setLocationRelativeTo(parent);
             dialog.setVisible(true);
 
             return inputResult;

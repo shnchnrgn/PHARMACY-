@@ -167,13 +167,20 @@ public class AddMedicinePanel extends JPanel {
                 txtCompany
         );
         
-        dateModel = new UtilDateModel();
+       dateModel = new UtilDateModel();
         Properties p = new Properties();
         p.put("text.today", "Today");
         p.put("text.month", "Month");
         p.put("text.year", "Year");
         
         JDatePanelImpl datePanel = new JDatePanelImpl(dateModel, p);
+        
+        // --- GAWIN MEDICINE MODERN ANG CALENDAR PANEL ---
+        datePanel.setBackground(Color.WHITE);
+        for (Component comp : datePanel.getComponents()) {
+            comp.setBackground(Color.WHITE);
+        }
+        
         datePickerExpire = new JDatePickerImpl(datePanel, new DateLabelFormatter());
         datePickerExpire.setPreferredSize(new Dimension(350, 30));
         datePickerExpire.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
@@ -184,10 +191,11 @@ public class AddMedicinePanel extends JPanel {
         dateTextField.setBackground(Color.WHITE);
         dateTextField.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5)); 
         
-        Component buttonComp = datePickerExpire.getComponent(1);
-        
-        if (buttonComp instanceof JButton) {
+        if (datePickerExpire.getComponentCount() > 1) {
+            Component buttonComp = datePickerExpire.getComponent(1);
+            if (buttonComp instanceof JButton) {
                 applyDropdownStyleToButton((JButton) buttonComp);
+            }
         }
 
         addFieldRow(
@@ -804,6 +812,15 @@ public class AddMedicinePanel extends JPanel {
                                                 isSelected,
                                                 cellHasFocus
                                         );
+
+                        // --- ITAMA ANG SELECTION COLOR TULAD NG CUSTOMER PANEL ---
+                        if (isSelected) {
+                            renderer.setBackground(new Color(210, 215, 220)); // Tamang gray highlight color
+                            renderer.setForeground(Color.BLACK);
+                        } else {
+                            renderer.setBackground(Color.WHITE);
+                            renderer.setForeground(Color.BLACK);
+                        }
 
                         renderer.setBorder(
                                 BorderFactory.createCompoundBorder(
