@@ -2,17 +2,12 @@ package ui;
 
 import db.MedicineDAO;
 import models.Medicine;
-import org.jdatepicker.impl.JDatePanelImpl;
-import org.jdatepicker.impl.JDatePickerImpl;
-import org.jdatepicker.impl.UtilDateModel;
 
 import javax.swing.*;
 import javax.swing.border.Border;
 import java.awt.*;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Properties;
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 
 public class EditMedicineDialog extends JDialog {
 
@@ -24,8 +19,7 @@ public class EditMedicineDialog extends JDialog {
     private JTextField txtSellPrice;
     private JTextField txtQuantity;
     private JTextField txtCompany;
-    private JDatePickerImpl datePickerExpire;
-    private UtilDateModel dateModel;
+    private JTextField txtExpireDate;
 
     private boolean updated = false;
     private Medicine medicine;
@@ -68,67 +62,66 @@ public class EditMedicineDialog extends JDialog {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.gridy = 0;
 
-        txtName = createStyledTextField(med.getName());
+        String medName = (med != null) ? med.getName() : "";
+        txtName = createStyledTextField(medName);
         addFieldRow(fieldsPanel, gbc, "Medicine Name", true, txtName);
 
-        String[] categories = {"-- Select Category --", "Tablet", "Capsule", "Syrup", "Injection", "Ointment"};
-        cmbCategory = createStyledDropdown(categories);
-        cmbCategory.setSelectedItem(med.getMedicineCategory());
+        String[] categories = {"-- Select Category --", "Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Drops", "Supplements / Vitamins"};
+        cmbCategory = createStyledDropdown(categories, 350);
+        if (med != null && med.getMedicineCategory() != null) {
+            cmbCategory.setSelectedItem(med.getMedicineCategory());
+        }
         addDropdownRow(fieldsPanel, gbc, "Medicine Category", true, cmbCategory);
 
-        txtBuyPrice = createStyledTextField(String.valueOf(med.getBuyPrice()));
+        String buyPriceStr = (med != null) ? String.valueOf(med.getBuyPrice()) : "";
+        txtBuyPrice = createStyledTextField(buyPriceStr);
         addFieldRow(fieldsPanel, gbc, "Buy Price", true, txtBuyPrice);
 
-        txtSellPrice = createStyledTextField(String.valueOf(med.getSellPrice()));
+        String sellPriceStr = (med != null) ? String.valueOf(med.getSellPrice()) : "";
+        txtSellPrice = createStyledTextField(sellPriceStr);
         addFieldRow(fieldsPanel, gbc, "Sell Price", true, txtSellPrice);
 
-        txtQuantity = createStyledTextField(String.valueOf(med.getStock()));
+        String stockStr = (med != null) ? String.valueOf(med.getStock()) : "";
+        txtQuantity = createStyledTextField(stockStr);
         addFieldRow(fieldsPanel, gbc, "Quantity", true, txtQuantity);
 
-        txtCompany = createStyledTextField(med.getCompanyName() != null ? med.getCompanyName() : "");
+        String companyStr = (med != null && med.getCompanyName() != null) ? med.getCompanyName() : "";
+        txtCompany = createStyledTextField(companyStr);
         addFieldRow(fieldsPanel, gbc, "Company Name", true, txtCompany);
 
-        dateModel = new UtilDateModel();
-        try {
-            if (med.getExpiryDate() != null && !med.getExpiryDate().isEmpty()) {
-                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd");
-                Date date = sdf.parse(med.getExpiryDate());
-                Calendar cal = Calendar.getInstance();
-                cal.setTime(date);
-                dateModel.setDate(cal.get(Calendar.YEAR), cal.get(Calendar.MONTH), cal.get(Calendar.DAY_OF_MONTH));
-                dateModel.setSelected(true);
+        // --- EXPIRATION DATE SELECTOR (THEME-MATCHED) ---
+        JPanel datePanel = new JPanel(new BorderLayout(5, 0));
+        datePanel.setOpaque(false);
+        datePanel.setPreferredSize(new Dimension(350, 30));
+        datePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
+
+        String expiryStr = (med != null && med.getExpiryDate() != null) ? med.getExpiryDate() : "";
+        txtExpireDate = createStyledTextField(expiryStr);
+        txtExpireDate.setEditable(false);
+        txtExpireDate.setBackground(Color.WHITE);
+
+        JButton btnCalendar = new JButton("...");
+        btnCalendar.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnCalendar.setBackground(new Color(240, 242, 245));
+        btnCalendar.setForeground(new Color(70, 75, 80));
+        btnCalendar.setFocusPainted(false);
+        btnCalendar.setBorder(grayBorder);
+        btnCalendar.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnCalendar.setPreferredSize(new Dimension(40, 30));
+
+        btnCalendar.addActionListener(e -> {
+            // Ipinasa ang 'this' dialog bilang parent para lumitaw nang sigurado ang dialog
+            CustomDropdownDateDialog dateDialog = new CustomDropdownDateDialog(this, txtExpireDate.getText().trim());
+            dateDialog.setVisible(true);
+            if (dateDialog.getSelectedDate() != null) {
+                txtExpireDate.setText(dateDialog.getSelectedDate().toString());
             }
-        } catch (Exception ignored) {}
+        });
 
-        Properties p = new Properties();
-        p.put("text.today", "Today");
-        p.put("text.month", "Month");
-        p.put("text.year", "Year");
-        
-        JDatePanelImpl datePanel = new JDatePanelImpl(dateModel, p);
-        datePanel.setBackground(Color.WHITE);
-        for (Component comp : datePanel.getComponents()) {
-            comp.setBackground(Color.WHITE);
-        }
-        
-        datePickerExpire = new JDatePickerImpl(datePanel, new AddMedicinePanel.DateLabelFormatter());
-        datePickerExpire.setPreferredSize(new Dimension(350, 30));
-        datePickerExpire.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
-        datePickerExpire.setBorder(grayBorder);
+        datePanel.add(txtExpireDate, BorderLayout.CENTER);
+        datePanel.add(btnCalendar, BorderLayout.EAST);
 
-        JFormattedTextField dateTextField = datePickerExpire.getJFormattedTextField();
-        dateTextField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        dateTextField.setBackground(Color.WHITE);
-        dateTextField.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
-
-        if (datePickerExpire.getComponentCount() > 1) {
-            Component buttonComp = datePickerExpire.getComponent(1);
-            if (buttonComp instanceof JButton) {
-                applyDropdownStyleToButton((JButton) buttonComp);
-            }
-        }
-
-        addFieldRow(fieldsPanel, gbc, "Expire Date", true, datePickerExpire);
+        addFieldRow(fieldsPanel, gbc, "Expire Date", true, datePanel);
 
         gbc.gridx = 1;
         gbc.gridy++;
@@ -177,7 +170,7 @@ public class EditMedicineDialog extends JDialog {
                 double sellPrice = Double.parseDouble(txtSellPrice.getText().trim());
                 int stock = Integer.parseInt(txtQuantity.getText().trim());
                 String company = txtCompany.getText().trim();
-                String expireDateStr = datePickerExpire.getJFormattedTextField().getText().trim();
+                String expireDateStr = txtExpireDate.getText().trim();
 
                 if (name.isEmpty() || category.equals("-- Select Category --") || company.isEmpty() || expireDateStr.isEmpty()) {
                     JOptionPane.showMessageDialog(this, "Please fill up all required fields.", "Error", JOptionPane.WARNING_MESSAGE);
@@ -244,29 +237,57 @@ public class EditMedicineDialog extends JDialog {
         return tf;
     }
 
-    // Eksaktong istilo galing sa AddMedicinePanel para mawala ang blue highlight/line at maging malinis
-    private JComboBox<String> createStyledDropdown(String[] items) {
-        JComboBox<String> comboBox = new JComboBox<>(items);
-        comboBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        comboBox.setPreferredSize(new Dimension(350, 30));
+    private <T> JComboBox<T> createStyledDropdown(T[] items, int width) {
+        JComboBox<T> comboBox = new JComboBox<>(items);
+        comboBox.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        comboBox.setPreferredSize(new Dimension(width, 30));
         comboBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
-        comboBox.setEditable(true);
         comboBox.setBackground(Color.WHITE);
+        comboBox.setForeground(new Color(70, 75, 80));
         comboBox.setBorder(grayBorder);
-
-        Component editorComp = comboBox.getEditor().getEditorComponent();
-        if (editorComp instanceof JTextField) {
-            JTextField editorField = (JTextField) editorComp;
-            editorField.setBorder(BorderFactory.createEmptyBorder(0, 5, 0, 5));
-            editorField.setSelectionColor(new Color(210, 215, 220));
-            editorField.setSelectedTextColor(Color.BLACK);
-        }
 
         comboBox.setUI(new javax.swing.plaf.basic.BasicComboBoxUI() {
             @Override
             protected javax.swing.plaf.basic.BasicComboPopup createPopup() {
                 javax.swing.plaf.basic.BasicComboPopup popup = new javax.swing.plaf.basic.BasicComboPopup(comboBox);
                 popup.setBorder(grayBorder);
+                popup.setBackground(Color.WHITE);
+
+                for (Component c : popup.getComponents()) {
+                    if (c instanceof JScrollPane) {
+                        JScrollPane scrollPane = (JScrollPane) c;
+                        scrollPane.setBackground(Color.WHITE);
+                        scrollPane.getViewport().setBackground(Color.WHITE);
+                        scrollPane.setBorder(null);
+
+                        JScrollBar verticalBar = scrollPane.getVerticalScrollBar();
+                        verticalBar.setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
+                            @Override
+                            protected void configureScrollBarColors() {
+                                this.thumbColor = new Color(200, 205, 210);
+                                this.trackColor = Color.WHITE;
+                            }
+
+                            @Override
+                            protected JButton createDecreaseButton(int orientation) {
+                                return createZeroButton();
+                            }
+
+                            @Override
+                            protected JButton createIncreaseButton(int orientation) {
+                                return createZeroButton();
+                            }
+
+                            private JButton createZeroButton() {
+                                JButton btn = new JButton();
+                                btn.setPreferredSize(new Dimension(0, 0));
+                                btn.setMinimumSize(new Dimension(0, 0));
+                                btn.setMaximumSize(new Dimension(0, 0));
+                                return btn;
+                            }
+                        });
+                    }
+                }
                 return popup;
             }
 
@@ -306,10 +327,7 @@ public class EditMedicineDialog extends JDialog {
                     renderer.setBackground(Color.WHITE);
                     renderer.setForeground(Color.BLACK);
                 }
-                renderer.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 225, 230)),
-                        BorderFactory.createEmptyBorder(6, 10, 6, 10)
-                ));
+                renderer.setBorder(BorderFactory.createEmptyBorder(6, 10, 6, 10));
                 return renderer;
             }
         });
@@ -317,27 +335,109 @@ public class EditMedicineDialog extends JDialog {
         return comboBox;
     }
 
-    private void applyDropdownStyleToButton(JButton btn) {
-        btn.setText("");
-        btn.setPreferredSize(new Dimension(30, 30));
-        btn.setFocusable(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btn.setBorder(BorderFactory.createEmptyBorder());
-        btn.setUI(new javax.swing.plaf.basic.BasicButtonUI() {
-            @Override
-            public void paint(Graphics g, JComponent c) {
-                Graphics2D g2d = (Graphics2D) g.create();
-                g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2d.setColor(Color.WHITE);
-                g2d.fillRect(0, 0, c.getWidth(), c.getHeight());
-                g2d.setColor(new Color(200, 205, 210));
-                g2d.drawLine(0, 0, 0, c.getHeight());
-                g2d.setColor(new Color(80, 80, 80));
-                int[] xPoints = {c.getWidth() / 2 - 4, c.getWidth() / 2 + 4, c.getWidth() / 2};
-                int[] yPoints = {c.getHeight() / 2 - 2, c.getHeight() / 2 - 2, c.getHeight() / 2 + 3};
-                g2d.fillPolygon(xPoints, yPoints, 3);
-                g2d.dispose();
-            }
-        });
+    // =====================================================================
+    // CUSTOM DROPDOWN DATE DIALOG (THEME-MATCHED)
+    // =====================================================================
+    private static class CustomDropdownDateDialog extends JDialog {
+        private LocalDate selectedDate = null;
+        private JComboBox<String> cmbMonth;
+        private JComboBox<Integer> cmbDay;
+        private JComboBox<Integer> cmbYear;
+
+        public CustomDropdownDateDialog(Dialog owner, String initialDateStr) {
+            super(owner, "Select Expiry Date", Dialog.ModalityType.APPLICATION_MODAL);
+            setLayout(new BorderLayout());
+            setSize(390, 190);
+            setResizable(false);
+            setLocationRelativeTo(owner);
+            getContentPane().setBackground(Color.WHITE);
+
+            JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 12));
+            headerPanel.setBackground(new Color(248, 249, 250));
+            headerPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 225, 230)));
+            JLabel lblTitle = new JLabel("Select Expiry Date");
+            lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            lblTitle.setForeground(new Color(70, 75, 80));
+            headerPanel.add(lblTitle);
+            add(headerPanel, BorderLayout.NORTH);
+
+            JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 20));
+            centerPanel.setBackground(Color.WHITE);
+
+            String[] months = {
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+            };
+            
+            EditMedicineDialog dummyPanel = new EditMedicineDialog(null, null);
+            cmbMonth = dummyPanel.createStyledDropdown(months, 110);
+            
+            Integer[] days = new Integer[31];
+            for (int i = 1; i <= 31; i++) days[i - 1] = i;
+            cmbDay = dummyPanel.createStyledDropdown(days, 70);
+
+            int currentYear = LocalDate.now().getYear();
+            Integer[] years = new Integer[20];
+            for (int i = 0; i < 20; i++) years[i] = currentYear + i;
+            cmbYear = dummyPanel.createStyledDropdown(years, 90);
+
+            // Parse initial date kung mayroon man, kung wala gagamitin ang ngayon
+            LocalDate targetDate = LocalDate.now();
+            try {
+                if (initialDateStr != null && !initialDateStr.isEmpty()) {
+                    targetDate = LocalDate.parse(initialDateStr.trim());
+                }
+            } catch (DateTimeParseException ignored) {}
+
+            cmbMonth.setSelectedIndex(targetDate.getMonthValue() - 1);
+            cmbDay.setSelectedItem(targetDate.getDayOfMonth());
+            cmbYear.setSelectedItem(targetDate.getYear());
+
+            centerPanel.add(cmbMonth);
+            centerPanel.add(cmbDay);
+            centerPanel.add(cmbYear);
+            add(centerPanel, BorderLayout.CENTER);
+
+            JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
+            footerPanel.setBackground(new Color(248, 249, 250));
+            footerPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(220, 225, 230)));
+
+            JButton btnSelect = new JButton("Select");
+            btnSelect.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            btnSelect.setBackground(new Color(26, 143, 136));
+            btnSelect.setForeground(Color.WHITE);
+            btnSelect.setFocusPainted(false);
+            btnSelect.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
+            btnSelect.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+            btnSelect.addActionListener(e -> {
+                int month = cmbMonth.getSelectedIndex() + 1;
+                int day = (Integer) cmbDay.getSelectedItem();
+                int year = (Integer) cmbYear.getSelectedItem();
+                try {
+                    selectedDate = LocalDate.of(year, month, day);
+                    dispose();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Invalid date combination (e.g. Feb 30). Please check.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+
+            JButton btnCancel = new JButton("Cancel");
+            btnCancel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            btnCancel.setBackground(new Color(192, 57, 43));
+            btnCancel.setForeground(Color.WHITE);
+            btnCancel.setFocusPainted(false);
+            btnCancel.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
+            btnCancel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            btnCancel.addActionListener(e -> dispose());
+
+            footerPanel.add(btnSelect);
+            footerPanel.add(btnCancel);
+            add(footerPanel, BorderLayout.SOUTH);
+        }
+
+        public LocalDate getSelectedDate() {
+            return selectedDate;
+        }
     }
 }

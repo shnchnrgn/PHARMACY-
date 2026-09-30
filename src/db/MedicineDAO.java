@@ -99,8 +99,8 @@ public class MedicineDAO {
 
     public static int getExpiredCount() {
         int count = 0;
-        // Matches column 'expirydate' in YYYY-MM-DD format against current date
-        String sql = "SELECT COUNT(*) FROM medicines WHERE expirydate < DATE('now')";
+        // Gumamit ng 'localtime' para tumugma sa lokal na petsa ng computer[cite: 12]
+        String sql = "SELECT COUNT(*) FROM medicines WHERE expirydate <= DATE('now', 'localtime')";
         try (Connection conn = Database.getConnection();
              Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
@@ -114,7 +114,6 @@ public class MedicineDAO {
         return count;
     }
 
-    // Helper method to extract data from ResultSet into Medicine model object
     private static Medicine mapResultSetToMedicine(ResultSet rs) throws SQLException {
         Medicine m = new Medicine();
         m.setId(rs.getInt("id"));
@@ -129,14 +128,14 @@ public class MedicineDAO {
     }
 
     public static void decreaseStock(String medicineName, int qtySold) {
-    String sql = "UPDATE medicines SET stock = stock - ? WHERE name = ?";
-    try (Connection conn = Database.getConnection();
-         PreparedStatement pstmt = conn.prepareStatement(sql)) {
-        pstmt.setInt(1, qtySold);
-        pstmt.setString(2, medicineName);
-        pstmt.executeUpdate();
-    } catch (SQLException e) {
-        e.printStackTrace();
+        String sql = "UPDATE medicines SET stock = stock - ? WHERE name = ?";
+        try (Connection conn = Database.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, qtySold);
+            pstmt.setString(2, medicineName);
+            pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
-}
 }

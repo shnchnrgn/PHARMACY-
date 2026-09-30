@@ -1,5 +1,8 @@
 package ui;
 
+import db.MedicineDAO;
+import models.Medicine;
+
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
@@ -7,6 +10,7 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
+import java.util.List;
 
 public class MedicineCategoryPanel extends JPanel {
 
@@ -167,10 +171,7 @@ public class MedicineCategoryPanel extends JPanel {
             }
         };
 
-        categoryModel.addRow(new Object[]{"Tablet", "Active", "Action"});
-        categoryModel.addRow(new Object[]{"Syrup", "Active", "Action"});
-        categoryModel.addRow(new Object[]{"Capsule", "Active", "Action"});
-        categoryModel.addRow(new Object[]{"Injection", "Active", "Action"});
+        loadCategoriesWithDynamicStatus();
 
         categoryTable = new JTable(categoryModel);
         
@@ -237,6 +238,51 @@ public class MedicineCategoryPanel extends JPanel {
         mainContainer.add(bottomTableContainer, BorderLayout.CENTER);
 
         add(mainContainer, BorderLayout.CENTER);
+
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentShown(java.awt.event.ComponentEvent e) {
+                loadCategoriesWithDynamicStatus();
+            }
+        });
+    }
+
+    private void loadCategoriesWithDynamicStatus() {
+        categoryModel.setRowCount(0);
+
+        List<Medicine> allMeds = MedicineDAO.getAllMedicines();
+
+        java.util.Set<String> uniqueCategories = new java.util.LinkedHashSet<>();
+        uniqueCategories.add("Tablet");
+        uniqueCategories.add("Syrup");
+        uniqueCategories.add("Capsule");
+        uniqueCategories.add("Injection");
+        uniqueCategories.add("Ointment");
+        uniqueCategories.add("Drops");
+        uniqueCategories.add("Supplements / Vitamins");
+
+        if (allMeds != null) {
+            for (Medicine med : allMeds) {
+                if (med.getMedicineCategory() != null && !med.getMedicineCategory().trim().isEmpty()) {
+                    uniqueCategories.add(med.getMedicineCategory().trim());
+                }
+            }
+        }
+
+        for (String catName : uniqueCategories) {
+            boolean hasMedicine = false;
+            if (allMeds != null) {
+                for (Medicine med : allMeds) {
+                    if (med.getMedicineCategory() != null && med.getMedicineCategory().equalsIgnoreCase(catName)) {
+                        hasMedicine = true;
+                        break;
+                    }
+                }
+            }
+
+            String status = hasMedicine ? "Active" : "Inactive";
+            categoryModel.addRow(new Object[]{catName, status, "Action"});
+        }
     }
 
     private JTextField createStyledTextField() {

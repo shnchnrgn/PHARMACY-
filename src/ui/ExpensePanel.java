@@ -199,6 +199,10 @@ public class ExpensePanel extends JPanel {
                 new Color(235, 238, 242)
         );
 
+        // --- CUSTOM GRAY SELECTION BACKGROUND PARA SA TABLE ---
+        expenseTable.setSelectionBackground(new Color(210, 215, 220));
+        expenseTable.setSelectionForeground(Color.BLACK);
+
         expenseTable.getColumnModel()
                 .getColumn(0)
                 .setPreferredWidth(60);

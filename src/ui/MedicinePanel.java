@@ -9,11 +9,12 @@ import javax.swing.plaf.basic.BasicTabbedPaneUI;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableCellEditor;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.awt.datatransfer.StringSelection;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.PrintWriter;
@@ -30,7 +31,6 @@ public class MedicinePanel extends JPanel {
     private JTabbedPane tabbedPane;
 
     public MedicinePanel() {
-        // I-force ang UIManager para sa Windows L&F na alisin ang asul na highlight
         UIManager.put("TabbedPane.highlight", new Color(200, 205, 210));
         UIManager.put("TabbedPane.lightHighlight", new Color(220, 224, 230));
         UIManager.put("TabbedPane.selected", new Color(230, 235, 240));
@@ -250,13 +250,13 @@ public class MedicinePanel extends JPanel {
         };
         
         activeModel = new DefaultTableModel(columns, 0) {
-            @Override public boolean isCellEditable(int row, int column) { return false; }
+            @Override public boolean isCellEditable(int row, int column) { return column == 9; }
         };
         outOfStockModel = new DefaultTableModel(columns, 0) {
-            @Override public boolean isCellEditable(int row, int column) { return false; }
+            @Override public boolean isCellEditable(int row, int column) { return column == 9; }
         };
         expiredModel = new DefaultTableModel(columns, 0) {
-            @Override public boolean isCellEditable(int row, int column) { return false; }
+            @Override public boolean isCellEditable(int row, int column) { return column == 9; }
         };
 
         activeTable = new JTable(activeModel);
@@ -276,17 +276,19 @@ public class MedicinePanel extends JPanel {
             t.getTableHeader().setForeground(new Color(80, 85, 90));
 
             t.getColumnModel().getColumn(0).setPreferredWidth(40);   
-            t.getColumnModel().getColumn(1).setPreferredWidth(150);
-            t.getColumnModel().getColumn(2).setPreferredWidth(110);
-            t.getColumnModel().getColumn(3).setPreferredWidth(80); 
-            t.getColumnModel().getColumn(4).setPreferredWidth(80);  
-            t.getColumnModel().getColumn(5).setPreferredWidth(70); 
-            t.getColumnModel().getColumn(6).setPreferredWidth(130);
-            t.getColumnModel().getColumn(7).setPreferredWidth(90); 
-            t.getColumnModel().getColumn(8).setPreferredWidth(100); 
+            t.getColumnModel().getColumn(1).setPreferredWidth(140);
+            t.getColumnModel().getColumn(2).setPreferredWidth(100);
+            t.getColumnModel().getColumn(3).setPreferredWidth(75); 
+            t.getColumnModel().getColumn(4).setPreferredWidth(75);  
+            t.getColumnModel().getColumn(5).setPreferredWidth(65); 
+            t.getColumnModel().getColumn(6).setPreferredWidth(110);
+            t.getColumnModel().getColumn(7).setPreferredWidth(85); 
+            t.getColumnModel().getColumn(8).setPreferredWidth(95); 
             t.getColumnModel().getColumn(9).setPreferredWidth(160);
 
-            t.getColumnModel().getColumn(9).setCellRenderer(new ActionButtonPanel());
+            ActionButtonPanel actionPanel = new ActionButtonPanel();
+            t.getColumnModel().getColumn(9).setCellRenderer(actionPanel);
+            t.getColumnModel().getColumn(9).setCellEditor(actionPanel);
         }
 
         DefaultTableCellRenderer activeTableRenderer = new DefaultTableCellRenderer() {
@@ -300,7 +302,7 @@ public class MedicinePanel extends JPanel {
                     String qtyStr = table.getModel().getValueAt(modelRow, 5).toString().replaceAll("[^0-9\\-]", "");
                     int qty = Integer.parseInt(qtyStr);
                     if (qty <= 0) {
-                        c.setForeground(new Color(192, 57, 43)); // Pula
+                        c.setForeground(new Color(192, 57, 43));
                         setFont(new Font("Segoe UI", Font.BOLD, 12));
                     } else {
                         if (!isSelected) {
@@ -322,6 +324,8 @@ public class MedicinePanel extends JPanel {
 
         for (int i = 0; i < 9; i++) {
             activeTable.getColumnModel().getColumn(i).setCellRenderer(activeTableRenderer);
+            outOfStockTable.getColumnModel().getColumn(i).setCellRenderer(activeTableRenderer);
+            expiredTable.getColumnModel().getColumn(i).setCellRenderer(activeTableRenderer);
         }
 
         activeRowSorter = new TableRowSorter<>(activeModel);
@@ -333,10 +337,6 @@ public class MedicinePanel extends JPanel {
         expiredRowSorter = new TableRowSorter<>(expiredModel);
         expiredTable.setRowSorter(expiredRowSorter);
 
-        setupTableListeners(activeTable);
-        setupTableListeners(outOfStockTable);
-        setupTableListeners(expiredTable);
-
         loadTableData();
 
         tabbedPane = new JTabbedPane();
@@ -345,7 +345,6 @@ public class MedicinePanel extends JPanel {
         tabbedPane.setFocusable(false);
         tabbedPane.setBorder(BorderFactory.createLineBorder(new Color(200, 205, 210), 1));
 
-        // Gamitin ang Metal TabbedPaneUI o BasicTabbedPaneUI upang maalis ang Windows L&F default blue highlight
         tabbedPane.setUI(new BasicTabbedPaneUI() {
             @Override
             protected void paintTabBackground(Graphics g, int tabPlacement, int tabIndex, int x, int y, int w, int h, boolean isSelected) {
@@ -365,7 +364,6 @@ public class MedicinePanel extends JPanel {
 
             @Override
             protected void paintFocusIndicator(Graphics g, int tabPlacement, Rectangle[] rects, int tabIndex, Rectangle iconRect, Rectangle textRect, boolean isSelected) {
-                // Huwag mag-draw ng focus indicator/blue line
             }
 
             @Override
@@ -373,7 +371,6 @@ public class MedicinePanel extends JPanel {
                 int width = tabPane.getWidth();
                 int height = tabPane.getHeight();
                 Insets insets = tabPane.getInsets();
-                Insets tabAreaInsets = getTabAreaInsets(tabPlacement);
 
                 int x = insets.left;
                 int y = insets.top;
@@ -417,67 +414,6 @@ public class MedicinePanel extends JPanel {
         if (index == 0) return activeTable;
         if (index == 1) return outOfStockTable;
         return expiredTable;
-    }
-
-    private void setupTableListeners(JTable targetTable) {
-        targetTable.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                int row = targetTable.rowAtPoint(e.getPoint());
-                int col = targetTable.columnAtPoint(e.getPoint());
-                
-                if (col == 9 && row != -1) {
-                    int modelRow = targetTable.convertRowIndexToModel(row);
-                    Rectangle cellRect = targetTable.getCellRect(row, col, false);
-                    int clickX = e.getX() - cellRect.x;
-                    
-                    DefaultTableModel model = (DefaultTableModel) targetTable.getModel();
-
-                    if (clickX < cellRect.width / 2) {
-                        // Edit Button
-                        try {
-                            int id = Integer.parseInt(model.getValueAt(modelRow, 0).toString());
-                            String name = model.getValueAt(modelRow, 1).toString();
-                            String category = model.getValueAt(modelRow, 2).toString();
-                            double buyPrice = Double.parseDouble(model.getValueAt(modelRow, 3).toString().replace("₱", "").replace(",", "").trim());
-                            double sellPrice = Double.parseDouble(model.getValueAt(modelRow, 4).toString().replace("₱", "").replace(",", "").trim());
-                            
-                            String qtyRaw = model.getValueAt(modelRow, 5).toString().replaceAll("[^0-9\\-]", "");
-                            int stock = Integer.parseInt(qtyRaw);
-
-                            String company = model.getValueAt(modelRow, 6).toString();
-                            String expiry = model.getValueAt(modelRow, 7).toString();
-
-                            Medicine medToEdit = new Medicine();
-                            medToEdit.setId(id);
-                            medToEdit.setName(name);
-                            medToEdit.setMedicineCategory(category);
-                            medToEdit.setBuyPrice(buyPrice);
-                            medToEdit.setSellPrice(sellPrice);
-                            medToEdit.setStock(stock);
-                            medToEdit.setCompanyName(company);
-                            medToEdit.setExpiryDate(expiry);
-
-                            EditMedicineDialog editDialog = new EditMedicineDialog((Frame) SwingUtilities.getWindowAncestor(targetTable), medToEdit);
-                            editDialog.setVisible(true);
-                            if (editDialog.isUpdated()) {
-                                loadTableData();
-                            }
-                        } catch (Exception ex) {
-                            CustomDialog.showMessage(targetTable, "Error opening edit form: " + ex.getMessage(), "Error", true);
-                        }
-                    } else {
-                        // Delete Button
-                        int medicineId = Integer.parseInt(model.getValueAt(modelRow, 0).toString());
-                        boolean confirmed = CustomDialog.showConfirm(targetTable, "Are you sure you want to delete this medicine? Click \"Yes\" to delete.", "Warning");
-                        if (confirmed) {
-                            MedicineDAO.deleteMedicine(medicineId);
-                            loadTableData();
-                        }
-                    }
-                }
-            }
-        });
     }
 
     public void loadTableData() {
@@ -533,12 +469,13 @@ public class MedicinePanel extends JPanel {
         loadTableData();
     }
 
-    class ActionButtonPanel extends JPanel implements TableCellRenderer {
+    class ActionButtonPanel extends AbstractCellEditor implements TableCellRenderer, TableCellEditor {
+        private JPanel panel;
         private JButton btnEdit, btnDelete;
         
         public ActionButtonPanel() {
-            setLayout(new FlowLayout(FlowLayout.CENTER, 4, 4));
-            setOpaque(true);
+            panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 4));
+            panel.setOpaque(true);
             
             btnEdit = new JButton("Edit");
             btnEdit.setBackground(new Color(41, 128, 185)); 
@@ -549,21 +486,95 @@ public class MedicinePanel extends JPanel {
             btnEdit.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
             btnDelete = new JButton("Delete");
-            btnDelete.setBackground(new Color(192, 57, 43)); // Dark Red
+            btnDelete.setBackground(new Color(192, 57, 43));
             btnDelete.setForeground(Color.WHITE); 
             btnDelete.setFocusPainted(false);
             btnDelete.setFont(new Font("Segoe UI", Font.BOLD, 11));
             btnDelete.setPreferredSize(new Dimension(70, 26)); 
             btnDelete.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-            add(btnEdit);
-            add(btnDelete);
+            panel.add(btnEdit);
+            panel.add(btnDelete);
+
+            btnEdit.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    fireEditingStopped();
+                    JTable currentTable = getActiveTableByTab();
+                    int row = currentTable.getSelectedRow();
+                    if (row != -1) {
+                        int modelRow = currentTable.convertRowIndexToModel(row);
+                        DefaultTableModel model = (DefaultTableModel) currentTable.getModel();
+                        try {
+                            int id = Integer.parseInt(model.getValueAt(modelRow, 0).toString());
+                            String name = model.getValueAt(modelRow, 1).toString();
+                            String category = model.getValueAt(modelRow, 2).toString();
+                            double buyPrice = Double.parseDouble(model.getValueAt(modelRow, 3).toString().replace("₱", "").replace(",", "").trim());
+                            double sellPrice = Double.parseDouble(model.getValueAt(modelRow, 4).toString().replace("₱", "").replace(",", "").trim());
+                            
+                            String qtyRaw = model.getValueAt(modelRow, 5).toString().replaceAll("[^0-9\\-]", "");
+                            int stock = Integer.parseInt(qtyRaw);
+
+                            String company = model.getValueAt(modelRow, 6).toString();
+                            String expiry = model.getValueAt(modelRow, 7).toString();
+
+                            Medicine medToEdit = new Medicine();
+                            medToEdit.setId(id);
+                            medToEdit.setName(name);
+                            medToEdit.setMedicineCategory(category);
+                            medToEdit.setBuyPrice(buyPrice);
+                            medToEdit.setSellPrice(sellPrice);
+                            medToEdit.setStock(stock);
+                            medToEdit.setCompanyName(company);
+                            medToEdit.setExpiryDate(expiry);
+
+                            EditMedicineDialog editDialog = new EditMedicineDialog((Frame) SwingUtilities.getWindowAncestor(currentTable), medToEdit);
+                            editDialog.setVisible(true);
+                            if (editDialog.isUpdated()) {
+                                loadTableData();
+                            }
+                        } catch (Exception ex) {
+                            CustomDialog.showMessage(currentTable, "Error opening edit form: " + ex.getMessage(), "Error", true);
+                        }
+                    }
+                }
+            });
+
+            btnDelete.addActionListener(new ActionListener() {
+                @Override
+                public void actionPerformed(ActionEvent e) {
+                    fireEditingStopped();
+                    JTable currentTable = getActiveTableByTab();
+                    int row = currentTable.getSelectedRow();
+                    if (row != -1) {
+                        int modelRow = currentTable.convertRowIndexToModel(row);
+                        DefaultTableModel model = (DefaultTableModel) currentTable.getModel();
+                        int medicineId = Integer.parseInt(model.getValueAt(modelRow, 0).toString());
+                        boolean confirmed = CustomDialog.showConfirm(currentTable, "Are you sure you want to delete this medicine? Click \"Yes\" to delete.", "Warning");
+                        if (confirmed) {
+                            MedicineDAO.deleteMedicine(medicineId);
+                            loadTableData();
+                        }
+                    }
+                }
+            });
         }
 
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-            setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
-            return this;
+            panel.setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
+            return panel;
+        }
+
+        @Override
+        public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
+            panel.setBackground(table.getSelectionBackground());
+            return panel;
+        }
+
+        @Override
+        public Object getCellEditorValue() {
+            return null;
         }
     }
 
