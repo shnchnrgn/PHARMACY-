@@ -116,7 +116,7 @@ public class Database {
     private static void migrateCustomerNames() {
 
         String checkSql =
-                "SELECT name, first_name, last_name " +
+                "SELECT id, name, first_name, last_name " +
                 "FROM customers";
 
         String updateSql =
@@ -146,12 +146,15 @@ public class Database {
                             oldName.trim().split("\\s+", 2);
 
                     String migratedFirstName = parts[0];
+
                     String migratedLastName =
-                            parts.length > 1 ? parts[1] : "";
+                            parts.length > 1
+                                    ? parts[1]
+                                    : "";
 
                     migrations.add(
                             new CustomerNameMigration(
-                                    rs.getInt("rowid"),
+                                    rs.getInt("id"),
                                     migratedFirstName,
                                     migratedLastName
                             )
