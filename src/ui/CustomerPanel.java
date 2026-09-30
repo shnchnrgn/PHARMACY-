@@ -6,11 +6,14 @@ import models.Customer;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.plaf.basic.BasicComboBoxUI;
+import javax.swing.plaf.basic.BasicScrollBarUI;
 import javax.swing.plaf.basic.BasicComboPopup;
 import javax.swing.plaf.basic.ComboPopup;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
@@ -39,13 +42,19 @@ public class CustomerPanel extends JPanel {
     private DefaultTableModel customerModel;
 
     private JTextField txtCustomerId;
-    private JTextField txtFullName;
+    private JTextField txtFirstName;
+    private JTextField txtLastName;
     private JTextField txtContactNumber;
     private JTextField txtAddress;
     private JTextField txtDateRegistered;
     private JTextField txtSearch;
+    private JTextField txtPwdId;
+    private JTextField txtSeniorCitizenId;
+    private JComboBox<String> cmbDiscountType;
+    private JTextField txtDiscountPercent;
 
-    private JLabel lblFullNameError;
+    private JLabel lblFirstNameError;
+    private JLabel lblLastNameError;
     private JLabel lblContactError;
     private JLabel lblAddressError;
 
@@ -64,22 +73,22 @@ public class CustomerPanel extends JPanel {
         JLabel lblTitle = new JLabel("Customer Management");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
         lblTitle.setForeground(COLOR_TEXT);
-
         add(lblTitle, BorderLayout.NORTH);
 
         JPanel contentPanel = new JPanel(new GridLayout(1, 2, 15, 0));
         contentPanel.setOpaque(false);
-
         contentPanel.add(buildFormPanel());
         contentPanel.add(buildTablePanel());
-
         add(contentPanel, BorderLayout.CENTER);
 
         loadCustomers();
     }
 
-    private JPanel buildFormPanel() {
+    // =====================================================================
+    // FORM PANEL
+    // =====================================================================
 
+    private JPanel buildFormPanel() {
         JPanel container = new JPanel(new BorderLayout());
         container.setBackground(Color.WHITE);
         container.setBorder(BorderFactory.createCompoundBorder(
@@ -98,90 +107,79 @@ public class CustomerPanel extends JPanel {
         txtCustomerId = createStyledTextField();
         txtCustomerId.setEditable(false);
         txtCustomerId.setBackground(new Color(240, 240, 240));
+        row = addFieldRow(fieldsPanel, gbc, row, "Customer ID", false, txtCustomerId, null);
 
-        row = addFieldRow(
-                fieldsPanel,
-                gbc,
-                row,
-                "Customer ID",
-                false,
-                txtCustomerId,
-                null
-        );
+        txtFirstName = createStyledTextField();
+        lblFirstNameError = createErrorLabel();
+        row = addFieldRow(fieldsPanel, gbc, row, "First Name", true, txtFirstName, lblFirstNameError);
 
-        txtFullName = createStyledTextField();
-        lblFullNameError = createErrorLabel();
-
-        row = addFieldRow(
-                fieldsPanel,
-                gbc,
-                row,
-                "Full Name",
-                true,
-                txtFullName,
-                lblFullNameError
-        );
+        txtLastName = createStyledTextField();
+        lblLastNameError = createErrorLabel();
+        row = addFieldRow(fieldsPanel, gbc, row, "Last Name", true, txtLastName, lblLastNameError);
 
         txtContactNumber = createStyledTextField();
         lblContactError = createErrorLabel();
-
-        row = addFieldRow(
-                fieldsPanel,
-                gbc,
-                row,
-                "Contact Number",
-                true,
-                txtContactNumber,
-                lblContactError
-        );
+        row = addFieldRow(fieldsPanel, gbc, row, "Contact Number", true, txtContactNumber, lblContactError);
 
         txtAddress = createStyledTextField();
         lblAddressError = createErrorLabel();
+        row = addFieldRow(fieldsPanel, gbc, row, "Address", true, txtAddress, lblAddressError);
 
-        row = addFieldRow(
-                fieldsPanel,
-                gbc,
-                row,
-                "Address",
-                true,
-                txtAddress,
-                lblAddressError
-        );
+        txtPwdId = createStyledTextField();
+        row = addFieldRow(fieldsPanel, gbc, row, "PWD ID Number", false, txtPwdId, null);
+
+        txtSeniorCitizenId = createStyledTextField();
+        row = addFieldRow(fieldsPanel, gbc, row, "Senior Citizen ID", false, txtSeniorCitizenId, null);
+
+        cmbDiscountType = new JComboBox<>(new String[]{
+                "No Discount",
+                "PWD",
+                "Senior Citizen"
+        });
+        styleComboBox(cmbDiscountType);
+        row = addFieldRow(fieldsPanel, gbc, row, "Discount Type", false, cmbDiscountType, null);
+
+        txtDiscountPercent = createStyledTextField();
+        txtDiscountPercent.setText("0");
+        row = addFieldRow(fieldsPanel, gbc, row, "Discount (%)", false, txtDiscountPercent, null);
 
         txtDateRegistered = createStyledTextField();
         txtDateRegistered.setEditable(false);
         txtDateRegistered.setBackground(new Color(240, 240, 240));
+        row = addFieldRow(fieldsPanel, gbc, row, "Date Registered", false, txtDateRegistered, null);
 
-        row = addFieldRow(
-                fieldsPanel,
-                gbc,
-                row,
-                "Date Registered",
-                false,
-                txtDateRegistered,
-                null
-        );
+        cmbDiscountType.addActionListener(e -> {
+            String type = String.valueOf(cmbDiscountType.getSelectedItem());
+
+            if ("No Discount".equals(type)) {
+                txtDiscountPercent.setText("0");
+                txtDiscountPercent.setEnabled(false);
+                txtPwdId.setEnabled(false);
+                txtSeniorCitizenId.setEnabled(false);
+
+            } else if ("PWD".equals(type)) {
+                txtDiscountPercent.setText("20");
+                txtDiscountPercent.setEnabled(true);
+                txtPwdId.setEnabled(true);
+                txtSeniorCitizenId.setEnabled(false);
+                txtSeniorCitizenId.setText("");
+
+            } else {
+                txtDiscountPercent.setText("20");
+                txtDiscountPercent.setEnabled(true);
+                txtPwdId.setEnabled(false);
+                txtPwdId.setText("");
+                txtSeniorCitizenId.setEnabled(true);
+            }
+        });
 
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         buttonPanel.setOpaque(false);
-        buttonPanel.setBorder(
-                new EmptyBorder(15, LABEL_WIDTH + 10, 0, 0)
-        );
+        buttonPanel.setBorder(new EmptyBorder(15, LABEL_WIDTH + 10, 0, 0));
 
-        btnSave = createStyledButton(
-                "Save Customer",
-                COLOR_GREEN
-        );
-
-        JButton btnDelete = createStyledButton(
-                "Delete Customer",
-                COLOR_GRAY
-        );
-
-        JButton btnClear = createStyledButton(
-                "Clear Form",
-                COLOR_RED
-        );
+        btnSave = createStyledButton("Save Customer", COLOR_GREEN);
+        JButton btnDelete = createStyledButton("Delete Customer", COLOR_GRAY);
+        JButton btnClear = createStyledButton("Clear Form", COLOR_RED);
 
         btnSave.addActionListener(e -> saveCustomer());
         btnDelete.addActionListener(e -> deleteCustomer());
@@ -193,22 +191,126 @@ public class CustomerPanel extends JPanel {
 
         JPanel formContent = new JPanel(new BorderLayout());
         formContent.setOpaque(false);
-        formContent.add(fieldsPanel, BorderLayout.CENTER);
+        formContent.add(fieldsPanel, BorderLayout.NORTH);
         formContent.add(buttonPanel, BorderLayout.SOUTH);
 
-        container.add(formContent, BorderLayout.NORTH);
+        JScrollPane formScroll = new JScrollPane(formContent);
+
+        formScroll.setBorder(null);
+        formScroll.setHorizontalScrollBarPolicy(
+                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
+        );
+        formScroll.setVerticalScrollBarPolicy(
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
+        );
+        formScroll.setWheelScrollingEnabled(true);
+        formScroll.getViewport().setBackground(Color.WHITE);
+
+        // Clean, thin form scrollbars (same style for vertical + horizontal)
+        JScrollBar verticalBar = formScroll.getVerticalScrollBar();
+        verticalBar.setPreferredSize(new Dimension(7, 0));
+        verticalBar.setUnitIncrement(16);
+        verticalBar.setBlockIncrement(80);
+        verticalBar.setUI(createCleanScrollBarUI());
+
+        JScrollBar horizontalBar = formScroll.getHorizontalScrollBar();
+        horizontalBar.setPreferredSize(new Dimension(0, 7));
+        horizontalBar.setUnitIncrement(16);
+        horizontalBar.setBlockIncrement(80);
+        horizontalBar.setUI(createCleanScrollBarUI());
+
+        container.add(formScroll, BorderLayout.CENTER);
+
+        // Start with no discount selected.
+        cmbDiscountType.setSelectedItem("No Discount");
+        txtDiscountPercent.setEnabled(false);
+        txtPwdId.setEnabled(false);
+        txtSeniorCitizenId.setEnabled(false);
 
         return container;
     }
 
-    private int addFieldRow(
-            JPanel panel,
-            GridBagConstraints gbc,
-            int row,
-            String labelText,
-            boolean required,
-            JComponent field,
-            JLabel errorLabel) {
+    private BasicScrollBarUI createCleanScrollBarUI() {
+        return new BasicScrollBarUI() {
+
+            @Override
+            protected JButton createDecreaseButton(int orientation) {
+                return createInvisibleButton();
+            }
+
+            @Override
+            protected JButton createIncreaseButton(int orientation) {
+                return createInvisibleButton();
+            }
+
+            private JButton createInvisibleButton() {
+                JButton button = new JButton();
+                button.setPreferredSize(new Dimension(0, 0));
+                button.setMinimumSize(new Dimension(0, 0));
+                button.setMaximumSize(new Dimension(0, 0));
+                button.setOpaque(false);
+                button.setContentAreaFilled(false);
+                button.setBorderPainted(false);
+                return button;
+            }
+
+            @Override
+            protected void paintTrack(
+                    Graphics g,
+                    JComponent c,
+                    Rectangle trackBounds) {
+
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setColor(new Color(248, 249, 250));
+                g2.fillRect(
+                        trackBounds.x,
+                        trackBounds.y,
+                        trackBounds.width,
+                        trackBounds.height
+                );
+                g2.dispose();
+            }
+
+            @Override
+            protected void paintThumb(
+                    Graphics g,
+                    JComponent c,
+                    Rectangle thumbBounds) {
+
+                if (thumbBounds.isEmpty()) {
+                    return;
+                }
+
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(
+                        RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON
+                );
+
+                g2.setColor(new Color(185, 190, 195));
+
+                int x = thumbBounds.x + 1;
+                int y = thumbBounds.y + 1;
+                int width = Math.max(1, thumbBounds.width - 2);
+                int height = Math.max(1, thumbBounds.height - 2);
+
+                g2.fillRoundRect(
+                        x,
+                        y,
+                        width,
+                        height,
+                        6,
+                        6
+                );
+
+                g2.dispose();
+            }
+        };
+    }
+
+    private int addFieldRow(JPanel panel, GridBagConstraints gbc, int row,
+                            String labelText, boolean required,
+                            JComponent field, JLabel errorLabel) {
 
         gbc.gridx = 0;
         gbc.gridy = row;
@@ -217,180 +319,106 @@ public class CustomerPanel extends JPanel {
         gbc.gridwidth = 1;
         gbc.insets = new Insets(6, 0, 0, 10);
 
-        JLabel label = new JLabel(
-                required
-                        ? "<html>" + labelText
-                        + " <span style='color:#DC3545;'>*</span></html>"
-                        : labelText
-        );
+        JLabel label = new JLabel(required
+                ? "<html>" + labelText + " <span style='color:#DC3545;'>*</span></html>"
+                : labelText);
 
         label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         label.setForeground(COLOR_TEXT);
-        label.setPreferredSize(
-                new Dimension(LABEL_WIDTH, 34)
-        );
-
+        label.setPreferredSize(new Dimension(LABEL_WIDTH, 34));
         panel.add(label, gbc);
 
         gbc.gridx = 1;
         gbc.weightx = 1;
-
-        field.setPreferredSize(
-                new Dimension(100, 34)
-        );
-
+        field.setPreferredSize(new Dimension(100, 34));
         panel.add(field, gbc);
 
         row++;
 
-        JLabel errLbl =
-                errorLabel != null
-                        ? errorLabel
-                        : createErrorLabel();
+        JLabel errLbl = errorLabel != null ? errorLabel : createErrorLabel();
 
         gbc.gridx = 1;
         gbc.gridy = row;
         gbc.weightx = 1;
         gbc.weighty = 0;
         gbc.insets = new Insets(0, 0, 0, 10);
-
         panel.add(errLbl, gbc);
 
-        row++;
-
-        return row;
+        return row + 1;
     }
 
     private JLabel createErrorLabel() {
-
         JLabel lbl = new JLabel(" ");
         lbl.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         lbl.setForeground(COLOR_RED);
-
         return lbl;
     }
 
-    private JPanel buildTablePanel() {
+    // =====================================================================
+    // TABLE PANEL
+    // =====================================================================
 
+    private JPanel buildTablePanel() {
         JPanel container = new JPanel(new BorderLayout(0, 10));
         container.setBackground(Color.WHITE);
         container.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(
-                        new Color(210, 215, 220)
-                ),
-                new EmptyBorder(15, 15, 15, 15)
-        ));
+                BorderFactory.createLineBorder(new Color(210, 215, 220)),
+                new EmptyBorder(15, 15, 15, 15)));
 
         JPanel toolbar = new JPanel();
-        toolbar.setLayout(
-                new BoxLayout(toolbar, BoxLayout.Y_AXIS)
-        );
+        toolbar.setLayout(new BoxLayout(toolbar, BoxLayout.Y_AXIS));
         toolbar.setOpaque(false);
 
-        JPanel searchRow =
-                new JPanel(new BorderLayout(8, 0));
+        // Search row
+        JPanel searchRow = new JPanel(new BorderLayout(8, 0));
         searchRow.setOpaque(false);
 
         JLabel lblSearch = new JLabel("Search:");
-        lblSearch.setFont(
-                new Font("Segoe UI", Font.BOLD, 12)
-        );
+        lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblSearch.setForeground(COLOR_TEXT);
 
         txtSearch = createStyledTextField();
 
-        JButton btnSearch =
-                createStyledButton("Search", COLOR_BLUE);
+        JButton btnSearch = createStyledButton("Search", COLOR_BLUE);
+        JButton btnShowAll = createStyledButton("Show All", COLOR_GRAY);
+        JButton btnHistory = createStyledButton("Purchase History", COLOR_GREEN);
 
-        JButton btnShowAll =
-                createStyledButton("Show All", COLOR_GRAY);
-
-        JButton btnHistory =
-                createStyledButton(
-                        "Purchase History",
-                        COLOR_GREEN
-                );
-
-        JPanel searchButtons =
-                new JPanel(
-                        new FlowLayout(
-                                FlowLayout.RIGHT,
-                                5,
-                                0
-                        )
-                );
-
+        JPanel searchButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
         searchButtons.setOpaque(false);
-
         searchButtons.add(btnSearch);
         searchButtons.add(btnShowAll);
         searchButtons.add(btnHistory);
 
-        searchRow.add(
-                lblSearch,
-                BorderLayout.WEST
-        );
+        searchRow.add(lblSearch, BorderLayout.WEST);
+        searchRow.add(txtSearch, BorderLayout.CENTER);
+        searchRow.add(searchButtons, BorderLayout.EAST);
 
-        searchRow.add(
-                txtSearch,
-                BorderLayout.CENTER
-        );
-
-        searchRow.add(
-                searchButtons,
-                BorderLayout.EAST
-        );
-
-        JPanel filterRow =
-                new JPanel(
-                        new FlowLayout(
-                                FlowLayout.LEFT,
-                                8,
-                                8
-                        )
-                );
-
+        // Filter row
+        JPanel filterRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
         filterRow.setOpaque(false);
 
         JLabel lblFilter = new JLabel("Show:");
-        lblFilter.setFont(
-                new Font("Segoe UI", Font.BOLD, 12)
-        );
+        lblFilter.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblFilter.setForeground(COLOR_TEXT);
 
-        cmbFilter = new JComboBox<>(
-                new String[]{
-                        "-- Select Filter --",
-                        "All Customers",
-                        "Active Only",
-                        "Inactive Only"
-                }
-        );
+        cmbFilter = new JComboBox<>(new String[]{
+                "-- Select Filter --",
+                "All Customers",
+                "Active Only",
+                "Inactive Only"
+        });
 
         styleComboBox(cmbFilter);
 
-        JLabel lblDays =
-                new JLabel("Inactive after (days):");
-
-        lblDays.setFont(
-                new Font("Segoe UI", Font.PLAIN, 12)
-        );
-
+        JLabel lblDays = new JLabel("Inactive after (days):");
+        lblDays.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblDays.setForeground(COLOR_TEXT);
 
-        spinnerDays =
-                new JSpinner(
-                        new SpinnerNumberModel(
-                                DEFAULT_INACTIVE_DAYS,
-                                1,
-                                3650,
-                                1
-                        )
-                );
-
-        spinnerDays.setPreferredSize(
-                new Dimension(70, 26)
+        spinnerDays = new JSpinner(
+                new SpinnerNumberModel(DEFAULT_INACTIVE_DAYS, 1, 3650, 1)
         );
+
+        spinnerDays.setPreferredSize(new Dimension(70, 26));
 
         filterRow.add(lblFilter);
         filterRow.add(cmbFilter);
@@ -399,44 +427,33 @@ public class CustomerPanel extends JPanel {
 
         toolbar.add(searchRow);
         toolbar.add(filterRow);
+        container.add(toolbar, BorderLayout.NORTH);
 
-        container.add(
-                toolbar,
-                BorderLayout.NORTH
-        );
-
+        // Table
         String[] columns = {
                 "ID",
-                "Full Name",
+                "First Name",
+                "Last Name",
                 "Contact Number",
-                "Address",
+                "Discount",
                 "Last Purchase",
                 "Status"
         };
 
-        customerModel =
-                new DefaultTableModel(columns, 0) {
+        customerModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
 
-                    @Override
-                    public boolean isCellEditable(
-                            int row,
-                            int column) {
-                        return false;
-                    }
-                };
-
-        customerTable =
-                new JTable(customerModel);
+        customerTable = new JTable(customerModel);
 
         customerTable.setRowHeight(32);
         customerTable.setShowVerticalLines(false);
         customerTable.setShowHorizontalLines(true);
-        customerTable.setGridColor(
-                new Color(235, 238, 242)
-        );
-        customerTable.setFont(
-                new Font("Segoe UI", Font.PLAIN, 12)
-        );
+        customerTable.setGridColor(new Color(235, 238, 242));
+        customerTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
 
         customerTable.getTableHeader().setFont(
                 new Font("Segoe UI", Font.BOLD, 12)
@@ -450,171 +467,178 @@ public class CustomerPanel extends JPanel {
                 new Color(80, 85, 90)
         );
 
-        customerTable.getColumnModel()
-                .getColumn(0)
-                .setPreferredWidth(40);
+        int[] widths = {
+                40,
+                100,
+                100,
+                110,
+                90,
+                100,
+                80
+        };
 
-        customerTable.getColumnModel()
-                .getColumn(1)
-                .setPreferredWidth(130);
+        for (int i = 0; i < widths.length; i++) {
+            customerTable.getColumnModel()
+                    .getColumn(i)
+                    .setPreferredWidth(widths[i]);
+        }
 
-        customerTable.getColumnModel()
-                .getColumn(2)
-                .setPreferredWidth(110);
+        // Status column is drawn as a rounded badge
+        customerTable.getColumnModel().getColumn(6)
+                .setCellRenderer(new DefaultTableCellRenderer() {
 
-        customerTable.getColumnModel()
-                .getColumn(3)
-                .setPreferredWidth(150);
+                    private Color badgeColor;
+                    private Color rowColor = Color.WHITE;
 
-        customerTable.getColumnModel()
-                .getColumn(4)
-                .setPreferredWidth(100);
+                    @Override
+                    public Component getTableCellRendererComponent(
+                            JTable table,
+                            Object value,
+                            boolean isSelected,
+                            boolean hasFocus,
+                            int rowIdx,
+                            int col) {
 
-        customerTable.getColumnModel()
-                .getColumn(5)
-                .setPreferredWidth(80);
+                        super.getTableCellRendererComponent(
+                                table,
+                                value,
+                                isSelected,
+                                hasFocus,
+                                rowIdx,
+                                col
+                        );
 
-        customerTable.getColumnModel()
-                .getColumn(5)
-                .setCellRenderer(
-                        new DefaultTableCellRenderer() {
+                        setOpaque(false);
+                        setBorder(BorderFactory.createEmptyBorder());
+                        setHorizontalAlignment(CENTER);
+                        setFont(new Font("Segoe UI", Font.BOLD, 12));
 
-                            @Override
-                            public Component
-                            getTableCellRendererComponent(
-                                    JTable table,
-                                    Object value,
-                                    boolean isSelected,
-                                    boolean hasFocus,
-                                    int rowIdx,
-                                    int col) {
+                        rowColor = isSelected
+                                ? table.getSelectionBackground()
+                                : Color.WHITE;
 
-                                Component c =
-                                        super.getTableCellRendererComponent(
-                                                table,
-                                                value,
-                                                isSelected,
-                                                hasFocus,
-                                                rowIdx,
-                                                col
-                                        );
+                        if ("Active".equals(value)) {
+                            badgeColor = COLOR_TEAL;
+                            setForeground(Color.WHITE);
 
-                                setHorizontalAlignment(
-                                        CENTER
-                                );
+                        } else if ("Inactive".equals(value)) {
+                            badgeColor = COLOR_INACTIVE;
+                            setForeground(Color.WHITE);
 
-                                setFont(
-                                        getFont().deriveFont(
-                                                Font.BOLD
-                                        )
-                                );
-
-                                if ("Inactive".equals(value)) {
-
-                                    setForeground(
-                                            isSelected
-                                                    ? Color.WHITE
-                                                    : COLOR_INACTIVE
-                                    );
-
-                                } else if (
-                                        "Active".equals(value)) {
-
-                                    setForeground(
-                                            isSelected
-                                                    ? Color.WHITE
-                                                    : COLOR_ACTIVE
-                                    );
-
-                                } else {
-
-                                    setForeground(
-                                            isSelected
-                                                    ? Color.WHITE
-                                                    : COLOR_TEXT
-                                    );
-                                }
-
-                                return c;
-                            }
+                        } else {
+                            badgeColor = null;
+                            setForeground(
+                                    isSelected
+                                            ? table.getSelectionForeground()
+                                            : COLOR_TEXT
+                            );
                         }
-                );
 
-        JScrollPane scrollPane =
-                new JScrollPane(customerTable);
+                        return this;
+                    }
 
-        scrollPane.getViewport()
-                .setBackground(Color.WHITE);
+                    @Override
+                    protected void paintComponent(Graphics g) {
+                        Graphics2D g2 = (Graphics2D) g.create();
 
+                        g2.setRenderingHint(
+                                RenderingHints.KEY_ANTIALIASING,
+                                RenderingHints.VALUE_ANTIALIAS_ON
+                        );
+
+                        // Row background
+                        g2.setColor(rowColor);
+                        g2.fillRect(
+                                0,
+                                0,
+                                getWidth(),
+                                getHeight()
+                        );
+
+                        // Badge
+                        if (badgeColor != null) {
+                            int w = Math.min(getWidth() - 16, 76);
+                            int h = 24;
+                            int x = (getWidth() - w) / 2;
+                            int y = (getHeight() - h) / 2;
+
+                            g2.setColor(badgeColor);
+                            g2.fillRoundRect(
+                                    x,
+                                    y,
+                                    w,
+                                    h,
+                                    10,
+                                    10
+                            );
+                        }
+
+                        g2.dispose();
+
+                        super.paintComponent(g);
+                    }
+                });
+
+        JScrollPane scrollPane = new JScrollPane(customerTable);
+        scrollPane.getViewport().setBackground(Color.WHITE);
         scrollPane.setBorder(
                 BorderFactory.createLineBorder(
                         new Color(220, 224, 230)
                 )
         );
 
-        container.add(
-                scrollPane,
-                BorderLayout.CENTER
-        );
+        // Smoother mouse-wheel scrolling
+        JScrollBar tableScrollBar = scrollPane.getVerticalScrollBar();
+        tableScrollBar.setUnitIncrement(16);
+        tableScrollBar.setBlockIncrement(80);
 
-        customerTable.getSelectionModel()
-                .addListSelectionListener(e -> {
+        scrollPane.setWheelScrollingEnabled(true);
 
-                    if (!e.getValueIsAdjusting()) {
-                        loadSelectedCustomer();
-                    }
-                });
+        container.add(scrollPane, BorderLayout.CENTER);
+
+        // Listeners
+        customerTable.getSelectionModel().addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                loadSelectedCustomer();
+            }
+        });
 
         btnShowAll.addActionListener(e -> {
             txtSearch.setText("");
             loadCustomers();
         });
 
-        btnSearch.addActionListener(
-                e -> searchCustomers()
-        );
+        btnSearch.addActionListener(e -> searchCustomers());
 
-        txtSearch.addActionListener(
-                e -> searchCustomers()
-        );
+        txtSearch.addActionListener(e -> searchCustomers());
 
-        btnHistory.addActionListener(
-                e -> showPurchaseHistory()
-        );
+        btnHistory.addActionListener(e -> showPurchaseHistory());
 
-        cmbFilter.addActionListener(
-                e -> refreshTable()
-        );
+        cmbFilter.addActionListener(e -> refreshTable());
 
-        spinnerDays.addChangeListener(
-                e -> refreshTable()
-        );
+        spinnerDays.addChangeListener(e -> refreshTable());
 
         return container;
     }
 
+    // =====================================================================
+    // DATA
+    // =====================================================================
+
     private void loadCustomers() {
-
         try {
-
-            displayedCustomers =
-                    CustomerDAO.getAllCustomers();
-
+            displayedCustomers = CustomerDAO.getAllCustomers();
             refreshTable();
 
         } catch (Exception e) {
-
             showError(
-                    "Unable to load customers.\n"
-                            + e.getMessage()
+                    "Unable to load customers.\n" + e.getMessage()
             );
         }
     }
 
     private void searchCustomers() {
-
-        String keyword =
-                txtSearch.getText().trim();
+        String keyword = txtSearch.getText().trim();
 
         if (keyword.isEmpty()) {
             loadCustomers();
@@ -622,84 +646,87 @@ public class CustomerPanel extends JPanel {
         }
 
         try {
-
-            displayedCustomers =
-                    CustomerDAO.searchCustomers(
-                            keyword
-                    );
-
+            displayedCustomers = CustomerDAO.searchCustomers(keyword);
             refreshTable();
 
         } catch (Exception e) {
-
             showError(
-                    "Search failed.\n"
-                            + e.getMessage()
+                    "Search failed.\n" + e.getMessage()
             );
         }
     }
 
     private void refreshTable() {
-
         customerModel.setRowCount(0);
 
         if (displayedCustomers == null) {
             return;
         }
 
-        int thresholdDays =
-                (Integer) spinnerDays.getValue();
-
-        String filter =
-                (String) cmbFilter.getSelectedItem();
+        int thresholdDays = (Integer) spinnerDays.getValue();
+        String filter = (String) cmbFilter.getSelectedItem();
 
         int shown = 0;
 
         for (Customer c : displayedCustomers) {
 
-            boolean inactive =
-                    isInactive(
-                            c.getLastPurchaseDate(),
-                            thresholdDays
-                    );
-
-            if ("Active Only".equals(filter)
-                    && inactive) {
-                continue;
-            }
-
-            if ("Inactive Only".equals(filter)
-                    && !inactive) {
-                continue;
-            }
-
-            customerModel.addRow(
-                    new Object[]{
-                            c.getId(),
-                            c.getName(),
-                            c.getContact(),
-                            c.getAddress() == null
-                                    || c.getAddress().isEmpty()
-                                    ? "-"
-                                    : c.getAddress(),
-                            formatLastPurchase(
-                                    c.getLastPurchaseDate()
-                            ),
-                            inactive
-                                    ? "Inactive"
-                                    : "Active"
-                    }
+            boolean inactive = isInactive(
+                    c.getLastPurchaseDate(),
+                    thresholdDays
             );
+
+            if ("Active Only".equals(filter) && inactive) {
+                continue;
+            }
+
+            if ("Inactive Only".equals(filter) && !inactive) {
+                continue;
+            }
+
+            String address = (
+                    c.getAddress() == null ||
+                    c.getAddress().isEmpty()
+            )
+                    ? "-"
+                    : c.getAddress();
+
+            String discount = c.getDiscountType();
+
+            if (discount == null ||
+                    discount.trim().isEmpty() ||
+                    discount.equalsIgnoreCase("No Discount")) {
+
+                discount = "None";
+
+            } else {
+                discount = discount +
+                        " " +
+                        formatDiscountPercent(
+                                c.getDiscountPercent()
+                        );
+            }
+
+            customerModel.addRow(new Object[]{
+                    c.getId(),
+                    c.getFirstName(),
+                    c.getLastName(),
+                    c.getContact(),
+                    discount,
+                    formatLastPurchase(
+                            c.getLastPurchaseDate()
+                    ),
+                    inactive ? "Inactive" : "Active"
+            });
 
             shown++;
         }
 
         if (shown == 0) {
-
             customerModel.addRow(
                     new Object[]{
                             "",
                             "No customers found.",
+                            "",
                             "",
                             "",
                             "",
@@ -709,49 +736,74 @@ public class CustomerPanel extends JPanel {
         }
     }
 
+    private String formatDiscountPercent(double percent) {
+        if (percent <= 0) {
+            return "";
+        }
+
+        if (percent == Math.rint(percent)) {
+            return String.format(
+                    "(%d%%)",
+                    (int) percent
+            );
+        }
+
+        return String.format(
+                "(%.1f%%)",
+                percent
+        );
+    }
+
     private boolean isInactive(
             String lastPurchaseDate,
             int thresholdDays) {
 
-        if (lastPurchaseDate == null
-                || lastPurchaseDate.trim().isEmpty()
-                || lastPurchaseDate.equalsIgnoreCase("N/A")) {
+        if (lastPurchaseDate == null ||
+                lastPurchaseDate.trim().isEmpty() ||
+                lastPurchaseDate.equalsIgnoreCase("N/A")) {
 
             return true;
         }
 
         try {
-
-            LocalDate last =
-                    LocalDate.parse(
-                            lastPurchaseDate.trim()
-                    );
+            LocalDate last = LocalDate.parse(
+                    lastPurchaseDate.trim()
+            );
 
             return last.isBefore(
-                    LocalDate.now()
-                            .minusDays(thresholdDays)
+                    LocalDate.now().minusDays(thresholdDays)
             );
 
         } catch (DateTimeParseException e) {
-
             return true;
         }
     }
 
+    private String formatLastPurchase(String date) {
+        if (date == null ||
+                date.trim().isEmpty() ||
+                date.equalsIgnoreCase("N/A")) {
+
+            return "No purchase yet";
+        }
+
+        return date;
+    }
+
+    // =====================================================================
+    // PURCHASE HISTORY
+    // =====================================================================
+
     private void showPurchaseHistory() {
 
-        int selectedRow =
-                customerTable.getSelectedRow();
+        int selectedRow = customerTable.getSelectedRow();
 
         if (selectedRow == -1) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Please select a customer first.",
+            showMessage(
                     "Purchase History",
-                    JOptionPane.WARNING_MESSAGE
+                    "Purchase History",
+                    "Please select a customer first."
             );
-
             return;
         }
 
@@ -762,42 +814,32 @@ public class CustomerPanel extends JPanel {
                 );
 
         if (!(idValue instanceof Integer)) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Please select a valid customer.",
+            showMessage(
                     "Purchase History",
-                    JOptionPane.WARNING_MESSAGE
+                    "Purchase History",
+                    "Please select a valid customer."
             );
-
             return;
         }
 
-        int customerId =
-                (Integer) idValue;
+        int customerId = (Integer) idValue;
 
         String customerName =
-                customerModel.getValueAt(
-                        selectedRow,
-                        1
-                ).toString();
+                customerModel
+                        .getValueAt(selectedRow, 1)
+                        .toString();
 
         List<String[]> history =
-                CustomerDAO.getPurchaseHistory(
-                        customerId
-                );
+                CustomerDAO.getPurchaseHistory(customerId);
 
         if (history.isEmpty()) {
-
-            JOptionPane.showMessageDialog(
-                    this,
+            showMessage(
+                    "Purchase History",
+                    customerName + " - Orders",
                     "No purchase history found for "
                             + customerName
-                            + ".",
-                    "Purchase History",
-                    JOptionPane.INFORMATION_MESSAGE
+                            + "."
             );
-
             return;
         }
 
@@ -810,11 +852,11 @@ public class CustomerPanel extends JPanel {
                         },
                         0
                 ) {
-
                     @Override
                     public boolean isCellEditable(
                             int row,
                             int column) {
+
                         return false;
                     }
                 };
@@ -828,7 +870,11 @@ public class CustomerPanel extends JPanel {
 
         historyTable.setRowHeight(28);
         historyTable.setFont(
-                new Font("Segoe UI", Font.PLAIN, 12)
+                new Font(
+                        "Segoe UI",
+                        Font.PLAIN,
+                        12
+                )
         );
 
         historyTable.setShowVerticalLines(false);
@@ -846,7 +892,11 @@ public class CustomerPanel extends JPanel {
         );
 
         historyTable.getTableHeader().setFont(
-                new Font("Segoe UI", Font.BOLD, 12)
+                new Font(
+                        "Segoe UI",
+                        Font.BOLD,
+                        12
+                )
         );
 
         historyTable.getTableHeader().setBackground(
@@ -866,36 +916,225 @@ public class CustomerPanel extends JPanel {
                 )
         );
 
-        scroll.getViewport()
-                .setBackground(Color.WHITE);
-
-        int tableHeight =
-                Math.min(
-                        history.size() * 28 + 30,
-                        220
-                );
-
-        scroll.setPreferredSize(
-                new Dimension(500, tableHeight)
+        scroll.getViewport().setBackground(
+                Color.WHITE
         );
 
+        scroll.setPreferredSize(
+                new Dimension(
+                        500,
+                        Math.min(
+                                history.size() * 28 + 30,
+                                220
+                        )
+                )
+        );
+
+        // Smoother scrolling for purchase history
+        scroll.getVerticalScrollBar()
+                .setUnitIncrement(16);
+
+        scroll.getVerticalScrollBar()
+                .setBlockIncrement(80);
+
+        scroll.setWheelScrollingEnabled(true);
+
+        JPanel body =
+                new JPanel(new BorderLayout());
+
+        body.setBackground(Color.WHITE);
+
+        body.setBorder(
+                new EmptyBorder(
+                        16,
+                        16,
+                        16,
+                        16
+                )
+        );
+
+        body.add(
+                scroll,
+                BorderLayout.CENTER
+        );
+
+        JDialog dialog =
+                createDialog("Purchase History");
+
+        JButton btnOk =
+                createTealButton("OK");
+
+        btnOk.addActionListener(
+                e -> dialog.dispose()
+        );
+
+        showDialog(
+                dialog,
+                buildDialogHeader(
+                        customerName + " - Orders"
+                ),
+                body,
+                buildDialogFooter(btnOk),
+                btnOk
+        );
+    }
+
+    // =====================================================================
+    // STYLED DIALOGS
+    // =====================================================================
+
+    private void showMessage(
+            String title,
+            String header,
+            String message) {
+
+        openMessageDialog(
+                title,
+                header,
+                message,
+                false
+        );
+    }
+
+    private void showSuccess(String message) {
+        openMessageDialog(
+                "Success",
+                "Customer Management",
+                message,
+                true
+        );
+    }
+
+    private void openMessageDialog(
+            String title,
+            String header,
+            String message,
+            boolean success) {
+
+        JDialog dialog =
+                createDialog(title);
+
+        JButton btnOk =
+                createTealButton("OK");
+
+        btnOk.addActionListener(
+                e -> dialog.dispose()
+        );
+
+        showDialog(
+                dialog,
+                buildDialogHeader(header),
+                buildMessageBody(
+                        message,
+                        success
+                ),
+                buildDialogFooter(btnOk),
+                btnOk
+        );
+    }
+
+    private boolean showConfirm(
+            String title,
+            String header,
+            String message,
+            String confirmText) {
+
+        JDialog dialog =
+                createDialog(title);
+
+        boolean[] result = {false};
+
+        JButton btnConfirm =
+                createTealButton(confirmText);
+
+        btnConfirm.addActionListener(e -> {
+            result[0] = true;
+            dialog.dispose();
+        });
+
+        JButton btnCancel =
+                createGrayOutlineButton("Cancel");
+
+        btnCancel.addActionListener(
+                e -> dialog.dispose()
+        );
+
+        showDialog(
+                dialog,
+                buildDialogHeader(header),
+                buildMessageBody(
+                        message,
+                        false
+                ),
+                buildDialogFooter(
+                        btnCancel,
+                        btnConfirm
+                ),
+                btnConfirm
+        );
+
+        return result[0];
+    }
+
+    private JDialog createDialog(String title) {
         Window owner =
                 SwingUtilities.getWindowAncestor(this);
 
-        JDialog dialog =
-                new JDialog(
-                        owner,
-                        "Purchase History",
-                        Dialog.ModalityType.APPLICATION_MODAL
-                );
+        return new JDialog(
+                owner,
+                title,
+                Dialog.ModalityType.APPLICATION_MODAL
+        );
+    }
 
-        JLabel lblHeader =
-                new JLabel(
-                        customerName
-                                + " - Orders"
-                );
+    private void showDialog(
+            JDialog dialog,
+            JPanel header,
+            JPanel body,
+            JPanel footer,
+            JButton defaultButton) {
 
-        lblHeader.setFont(
+        dialog.setLayout(
+                new BorderLayout()
+        );
+
+        dialog.add(
+                header,
+                BorderLayout.NORTH
+        );
+
+        dialog.add(
+                body,
+                BorderLayout.CENTER
+        );
+
+        dialog.add(
+                footer,
+                BorderLayout.SOUTH
+        );
+
+        dialog.getRootPane()
+                .setDefaultButton(defaultButton);
+
+        dialog.pack();
+
+        dialog.setMinimumSize(
+                new Dimension(420, 0)
+        );
+
+        dialog.setResizable(false);
+
+        dialog.setLocationRelativeTo(this);
+
+        dialog.setVisible(true);
+    }
+
+    private JPanel buildDialogHeader(String text) {
+
+        JLabel lbl =
+                new JLabel(text);
+
+        lbl.setFont(
                 new Font(
                         "Segoe UI",
                         Font.BOLD,
@@ -903,14 +1142,10 @@ public class CustomerPanel extends JPanel {
                 )
         );
 
-        lblHeader.setForeground(
-                COLOR_TEXT
-        );
+        lbl.setForeground(COLOR_TEXT);
 
         JPanel header =
-                new JPanel(
-                        new BorderLayout()
-                );
+                new JPanel(new BorderLayout());
 
         header.setBackground(
                 COLOR_DIALOG_BG
@@ -935,99 +1170,185 @@ public class CustomerPanel extends JPanel {
         );
 
         header.add(
-                lblHeader,
+                lbl,
                 BorderLayout.WEST
+        );
+
+        return header;
+    }
+
+    private JPanel buildMessageBody(
+            String message,
+            boolean success) {
+
+        String html =
+                "<html><div style='width:280px;'>"
+                        + message.replace(
+                                "\n",
+                                "<br>"
+                        )
+                        + "</div></html>";
+
+        JLabel lblMessage =
+                new JLabel(html);
+
+        lblMessage.setFont(
+                new Font(
+                        "Segoe UI",
+                        Font.PLAIN,
+                        13
+                )
+        );
+
+        lblMessage.setForeground(
+                COLOR_TEXT
+        );
+
+        JComponent icon =
+                new JComponent() {
+
+                    @Override
+                    protected void paintComponent(
+                            Graphics g) {
+
+                        Graphics2D g2 =
+                                (Graphics2D) g.create();
+
+                        g2.setRenderingHint(
+                                RenderingHints.KEY_ANTIALIASING,
+                                RenderingHints.VALUE_ANTIALIAS_ON
+                        );
+
+                        g2.setRenderingHint(
+                                RenderingHints.KEY_TEXT_ANTIALIASING,
+                                RenderingHints.VALUE_TEXT_ANTIALIAS_ON
+                        );
+
+                        g2.setColor(
+                                COLOR_TEAL
+                        );
+
+                        g2.fillOval(
+                                0,
+                                0,
+                                getWidth() - 1,
+                                getHeight() - 1
+                        );
+
+                        g2.setColor(Color.WHITE);
+
+                        if (success) {
+
+                            g2.setStroke(
+                                    new BasicStroke(
+                                            2.6f,
+                                            BasicStroke.CAP_ROUND,
+                                            BasicStroke.JOIN_ROUND
+                                    )
+                            );
+
+                            g2.drawPolyline(
+                                    new int[]{
+                                            9,
+                                            14,
+                                            23
+                                    },
+                                    new int[]{
+                                            17,
+                                            22,
+                                            11
+                                    },
+                                    3
+                            );
+
+                        } else {
+
+                            g2.setFont(
+                                    new Font(
+                                            "Segoe UI",
+                                            Font.BOLD,
+                                            18
+                                    )
+                            );
+
+                            FontMetrics fm =
+                                    g2.getFontMetrics();
+
+                            int x =
+                                    (getWidth()
+                                            - fm.stringWidth("!"))
+                                            / 2;
+
+                            int y =
+                                    (getHeight()
+                                            - fm.getHeight())
+                                            / 2
+                                            + fm.getAscent();
+
+                            g2.drawString(
+                                    "!",
+                                    x,
+                                    y
+                            );
+                        }
+
+                        g2.dispose();
+                    }
+                };
+
+        icon.setPreferredSize(
+                new Dimension(32, 32)
+        );
+
+        JPanel iconWrap =
+                new JPanel(new BorderLayout());
+
+        iconWrap.setOpaque(false);
+
+        iconWrap.add(
+                icon,
+                BorderLayout.NORTH
         );
 
         JPanel body =
                 new JPanel(
-                        new BorderLayout()
+                        new BorderLayout(14, 0)
                 );
 
-        body.setBackground(Color.WHITE);
+        body.setBackground(
+                Color.WHITE
+        );
 
         body.setBorder(
                 new EmptyBorder(
-                        16,
-                        16,
-                        16,
-                        16
+                        24,
+                        20,
+                        24,
+                        20
                 )
         );
 
         body.add(
-                scroll,
+                iconWrap,
+                BorderLayout.WEST
+        );
+
+        body.add(
+                lblMessage,
                 BorderLayout.CENTER
         );
 
-        JButton btnOk =
-                new JButton("OK");
+        return body;
+    }
 
-        btnOk.setFont(
-                new Font(
-                        "Segoe UI",
-                        Font.BOLD,
-                        12
-                )
-        );
-
-        btnOk.setBackground(
-                COLOR_TEAL
-        );
-
-        btnOk.setForeground(
-                Color.WHITE
-        );
-
-        btnOk.setFocusPainted(false);
-
-        btnOk.setBorder(
-                new EmptyBorder(
-                        8,
-                        26,
-                        8,
-                        26
-                )
-        );
-
-        btnOk.setCursor(
-                new Cursor(
-                        Cursor.HAND_CURSOR
-                )
-        );
-
-        btnOk.addMouseListener(
-                new java.awt.event.MouseAdapter() {
-
-                    @Override
-                    public void mouseEntered(
-                            java.awt.event.MouseEvent e) {
-
-                        btnOk.setBackground(
-                                COLOR_TEAL_HOVER
-                        );
-                    }
-
-                    @Override
-                    public void mouseExited(
-                            java.awt.event.MouseEvent e) {
-
-                        btnOk.setBackground(
-                                COLOR_TEAL
-                        );
-                    }
-                }
-        );
-
-        btnOk.addActionListener(
-                e -> dialog.dispose()
-        );
+    private JPanel buildDialogFooter(
+            JButton... buttons) {
 
         JPanel footer =
                 new JPanel(
                         new FlowLayout(
                                 FlowLayout.RIGHT,
-                                0,
+                                8,
                                 0
                         )
                 );
@@ -1049,74 +1370,231 @@ public class CustomerPanel extends JPanel {
                                 10,
                                 16,
                                 10,
-                                16
+                                8
                         )
                 )
         );
 
-        footer.add(btnOk);
+        for (JButton b : buttons) {
+            footer.add(b);
+        }
 
-        dialog.setLayout(
-                new BorderLayout()
-        );
-
-        dialog.add(
-                header,
-                BorderLayout.NORTH
-        );
-
-        dialog.add(
-                body,
-                BorderLayout.CENTER
-        );
-
-        dialog.add(
-                footer,
-                BorderLayout.SOUTH
-        );
-
-        dialog.getRootPane()
-                .setDefaultButton(btnOk);
-
-        dialog.pack();
-        dialog.setResizable(false);
-        dialog.setLocationRelativeTo(this);
-        dialog.setVisible(true);
+        return footer;
     }
+
+    private JButton createTealButton(String text) {
+
+        JButton btn =
+                new JButton(text);
+
+        btn.setFont(
+                new Font(
+                        "Segoe UI",
+                        Font.BOLD,
+                        12
+                )
+        );
+
+        btn.setBackground(
+                COLOR_TEAL
+        );
+
+        btn.setForeground(
+                Color.WHITE
+        );
+
+        btn.setFocusPainted(false);
+
+        btn.setBorder(
+                new EmptyBorder(
+                        8,
+                        26,
+                        8,
+                        26
+                )
+        );
+
+        btn.setCursor(
+                new Cursor(
+                        Cursor.HAND_CURSOR
+                )
+        );
+
+        btn.addMouseListener(
+                new MouseAdapter() {
+
+                    @Override
+                    public void mouseEntered(
+                            MouseEvent e) {
+
+                        btn.setBackground(
+                                COLOR_TEAL_HOVER
+                        );
+                    }
+
+                    @Override
+                    public void mouseExited(
+                            MouseEvent e) {
+
+                        btn.setBackground(
+                                COLOR_TEAL
+                        );
+                    }
+                }
+        );
+
+        return btn;
+    }
+
+    private JButton createGrayOutlineButton(
+            String text) {
+
+        JButton btn =
+                new JButton(text);
+
+        btn.setFont(
+                new Font(
+                        "Segoe UI",
+                        Font.BOLD,
+                        12
+                )
+        );
+
+        btn.setBackground(
+                Color.WHITE
+        );
+
+        btn.setForeground(
+                COLOR_TEXT
+        );
+
+        btn.setFocusPainted(false);
+
+        btn.setBorder(
+                BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(
+                                COLOR_BORDER
+                        ),
+                        new EmptyBorder(
+                                7,
+                                25,
+                                7,
+                                25
+                        )
+                )
+        );
+
+        btn.setCursor(
+                new Cursor(
+                        Cursor.HAND_CURSOR
+                )
+        );
+
+        btn.addMouseListener(
+                new MouseAdapter() {
+
+                    @Override
+                    public void mouseEntered(
+                            MouseEvent e) {
+
+                        btn.setBackground(
+                                new Color(
+                                        240,
+                                        242,
+                                        245
+                                )
+                        );
+                    }
+
+                    @Override
+                    public void mouseExited(
+                            MouseEvent e) {
+
+                        btn.setBackground(
+                                Color.WHITE
+                        );
+                    }
+                }
+        );
+
+        return btn;
+    }
+
+    private void showError(String message) {
+        showMessage(
+                "Error",
+                "Error",
+                message
+        );
+    }
+
+    // =====================================================================
+    // VALIDATION
+    // =====================================================================
 
     private boolean validateForm() {
 
         boolean valid = true;
 
-        String name =
-                txtFullName.getText().trim();
+        String firstName =
+                txtFirstName.getText().trim();
 
-        if (name.isEmpty()) {
+        if (firstName.isEmpty()) {
 
             setFieldError(
-                    txtFullName,
-                    lblFullNameError,
-                    "Full Name is required."
+                    txtFirstName,
+                    lblFirstNameError,
+                    "First Name is required."
             );
 
             valid = false;
 
-        } else if (!name.matches(
+        } else if (!firstName.matches(
                 "[a-zA-Z .'-]+")) {
 
             setFieldError(
-                    txtFullName,
-                    lblFullNameError,
-                    "Letters only (no numbers or symbols)."
+                    txtFirstName,
+                    lblFirstNameError,
+                    "Letters only."
             );
 
             valid = false;
 
         } else {
-
             clearFieldError(
-                    txtFullName,
-                    lblFullNameError
+                    txtFirstName,
+                    lblFirstNameError
+            );
+        }
+
+        String lastName =
+                txtLastName.getText().trim();
+
+        if (lastName.isEmpty()) {
+
+            setFieldError(
+                    txtLastName,
+                    lblLastNameError,
+                    "Last Name is required."
+            );
+
+            valid = false;
+
+        } else if (!lastName.matches(
+                "[a-zA-Z .'-]+")) {
+
+            setFieldError(
+                    txtLastName,
+                    lblLastNameError,
+                    "Letters only."
+            );
+
+            valid = false;
+
+        } else {
+            clearFieldError(
+                    txtLastName,
+                    lblLastNameError
             );
         }
 
@@ -1145,7 +1623,6 @@ public class CustomerPanel extends JPanel {
             valid = false;
 
         } else {
-
             clearFieldError(
                     txtContactNumber,
                     lblContactError
@@ -1166,350 +1643,77 @@ public class CustomerPanel extends JPanel {
             valid = false;
 
         } else {
-
             clearFieldError(
                     txtAddress,
                     lblAddressError
             );
         }
 
-        return valid;
-    }
-
-    private String[] splitFullName(String fullName) {
-
-        String cleaned =
-                fullName.trim()
-                        .replaceAll("\\s+", " ");
-
-        String[] parts =
-                cleaned.split(" ");
-
-        if (parts.length == 1) {
-            return new String[]{
-                    parts[0],
-                    ""
-            };
-        }
-
-        String lastName =
-                parts[parts.length - 1];
-
-        StringBuilder firstName =
-                new StringBuilder();
-
-        for (int i = 0; i < parts.length - 1; i++) {
-
-            if (i > 0) {
-                firstName.append(" ");
-            }
-
-            firstName.append(parts[i]);
-        }
-
-        return new String[]{
-                firstName.toString(),
-                lastName
-        };
-    }
-
-    private void saveCustomer() {
-
-        if (!validateForm()) {
-            return;
-        }
-
-        String fullName =
-                txtFullName.getText().trim();
-
-        String contact =
-                txtContactNumber.getText().trim();
-
-        String address =
-                txtAddress.getText().trim();
-
-        String[] nameParts =
-                splitFullName(fullName);
-
-        String firstName =
-                nameParts[0];
-
-        String lastName =
-                nameParts[1];
-
-        boolean isEdit =
-                !txtCustomerId.getText()
-                        .trim()
-                        .isEmpty();
-
-        try {
-
-            if (isEdit) {
-
-                int id =
-                        Integer.parseInt(
-                                txtCustomerId.getText()
-                                        .trim()
-                        );
-
-                String dateRegistered =
-                        txtDateRegistered.getText()
-                                .trim();
-
-                if (dateRegistered.isEmpty()
-                        || dateRegistered.equalsIgnoreCase(
-                                "Not available")) {
-
-                    dateRegistered =
-                            LocalDate.now().toString();
-                }
-
-                Customer customer =
-                        new Customer(
-                                id,
-                                lastName,
-                                firstName,
-                                contact,
-                                address,
-                                null,
-                                dateRegistered
-                        );
-
-                CustomerDAO.updateCustomer(
-                        customer
-                );
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Customer updated successfully.",
-                        "Success",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
-
-            } else {
-
-                String today =
-                        LocalDate.now().toString();
-
-                Customer customer =
-                        new Customer(
-                                0,
-                                lastName,
-                                firstName,
-                                contact,
-                                address,
-                                "N/A",
-                                today
-                        );
-
-                CustomerDAO.addCustomer(
-                        customer
-                );
-
-                JOptionPane.showMessageDialog(
-                        this,
-                        "Customer added successfully.",
-                        "Success",
-                        JOptionPane.INFORMATION_MESSAGE
-                );
-            }
-
-            clearForm();
-            loadCustomers();
-
-        } catch (Exception e) {
-
-            e.printStackTrace();
-
-            showError(
-                    "Unable to save customer.\n"
-                            + e.getMessage()
-            );
-        }
-    }
-
-    private void deleteCustomer() {
-
-        int selectedRow =
-                customerTable.getSelectedRow();
-
-        if (selectedRow == -1) {
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Please select a customer to delete.",
-                    "No Customer Selected",
-                    JOptionPane.WARNING_MESSAGE
-            );
-
-            return;
-        }
-
-        Object idValue =
-                customerModel.getValueAt(
-                        selectedRow,
-                        0
-                );
-
-        if (!(idValue instanceof Integer)) {
-            return;
-        }
-
-        int confirm =
-                JOptionPane.showConfirmDialog(
-                        this,
-                        "Are you sure you want to delete this customer?",
-                        "Confirm Delete",
-                        JOptionPane.YES_NO_OPTION,
-                        JOptionPane.WARNING_MESSAGE
-                );
-
-        if (confirm != JOptionPane.YES_OPTION) {
-            return;
-        }
-
-        try {
-
-            CustomerDAO.deleteCustomer(
-                    (Integer) idValue
-            );
-
-            JOptionPane.showMessageDialog(
-                    this,
-                    "Customer deleted successfully.",
-                    "Success",
-                    JOptionPane.INFORMATION_MESSAGE
-            );
-
-            clearForm();
-            loadCustomers();
-
-        } catch (Exception e) {
-
-            showError(
-                    "Unable to delete customer.\n"
-                            + e.getMessage()
-            );
-        }
-    }
-
-    private void loadSelectedCustomer() {
-
-        int row =
-                customerTable.getSelectedRow();
-
-        if (row == -1
-                || displayedCustomers == null) {
-            return;
-        }
-
-        Object idValue =
-                customerModel.getValueAt(
-                        row,
-                        0
-                );
-
-        if (!(idValue instanceof Integer)) {
-            return;
-        }
-
-        int id =
-                (Integer) idValue;
-
-        Customer match = null;
-
-        for (Customer c : displayedCustomers) {
-
-            if (c.getId() == id) {
-                match = c;
-                break;
-            }
-        }
-
-        if (match == null) {
-            return;
-        }
-
-        txtCustomerId.setText(
+        String discountType =
                 String.valueOf(
-                        match.getId()
-                )
-        );
+                        cmbDiscountType.getSelectedItem()
+                );
 
-        txtFullName.setText(
-                match.getName()
-        );
+        String discountText =
+                txtDiscountPercent.getText().trim();
 
-        txtContactNumber.setText(
-                match.getContact()
-        );
+        if ("PWD".equals(discountType) &&
+                txtPwdId.getText().trim().isEmpty()) {
 
-        txtAddress.setText(
-                match.getAddress() == null
-                        ? ""
-                        : match.getAddress()
-        );
+            showMessage(
+                    "Discount Details",
+                    "PWD Discount",
+                    "Please enter the PWD ID Number."
+            );
 
-        txtDateRegistered.setText(
-                match.getDateRegistered() == null
-                        || match.getDateRegistered().isEmpty()
-                        ? "Not available"
-                        : match.getDateRegistered()
-        );
-
-        btnSave.setText(
-                "Update Customer"
-        );
-
-        clearAllFieldErrors();
-    }
-
-    private void clearForm() {
-
-        txtCustomerId.setText("");
-        txtFullName.setText("");
-        txtContactNumber.setText("");
-        txtAddress.setText("");
-        txtDateRegistered.setText("");
-
-        btnSave.setText(
-                "Save Customer"
-        );
-
-        clearAllFieldErrors();
-
-        customerTable.clearSelection();
-    }
-
-    private void clearAllFieldErrors() {
-
-        clearFieldError(
-                txtFullName,
-                lblFullNameError
-        );
-
-        clearFieldError(
-                txtContactNumber,
-                lblContactError
-        );
-
-        clearFieldError(
-                txtAddress,
-                lblAddressError
-        );
-    }
-
-    private String formatLastPurchase(
-            String date) {
-
-        if (date == null
-                || date.trim().isEmpty()
-                || date.equalsIgnoreCase("N/A")) {
-
-            return "No purchase yet";
+            valid = false;
         }
 
-        return date;
+        if ("Senior Citizen".equals(discountType) &&
+                txtSeniorCitizenId.getText().trim().isEmpty()) {
+
+            showMessage(
+                    "Discount Details",
+                    "Senior Citizen Discount",
+                    "Please enter the Senior Citizen ID."
+            );
+
+            valid = false;
+        }
+
+        try {
+
+            double discount =
+                    discountText.isEmpty()
+                            ? 0
+                            : Double.parseDouble(
+                                    discountText
+                            );
+
+            if (discount < 0 ||
+                    discount > 100) {
+
+                showMessage(
+                        "Discount Details",
+                        "Invalid Discount",
+                        "Discount must be between 0 and 100."
+                );
+
+                valid = false;
+            }
+
+        } catch (NumberFormatException e) {
+
+            showMessage(
+                    "Discount Details",
+                    "Invalid Discount",
+                    "Please enter a valid discount percentage."
+            );
+
+            valid = false;
+        }
+
+        return valid;
     }
 
     private void setFieldError(
@@ -1557,6 +1761,363 @@ public class CustomerPanel extends JPanel {
         errorLabel.setText(" ");
     }
 
+    private void clearAllFieldErrors() {
+
+        clearFieldError(
+                txtFirstName,
+                lblFirstNameError
+        );
+
+        clearFieldError(
+                txtLastName,
+                lblLastNameError
+        );
+
+        clearFieldError(
+                txtContactNumber,
+                lblContactError
+        );
+
+        clearFieldError(
+                txtAddress,
+                lblAddressError
+        );
+    }
+
+    // =====================================================================
+    // SAVE / DELETE / LOAD / CLEAR
+    // =====================================================================
+
+    private void saveCustomer() {
+
+        if (!validateForm()) {
+            return;
+        }
+
+        String firstName =
+                txtFirstName.getText().trim();
+
+        String lastName =
+                txtLastName.getText().trim();
+
+        String contact =
+                txtContactNumber.getText().trim();
+
+        String address =
+                txtAddress.getText().trim();
+
+        String pwdId =
+                txtPwdId.getText().trim();
+
+        String seniorCitizenId =
+                txtSeniorCitizenId.getText().trim();
+
+        String discountType =
+                String.valueOf(
+                        cmbDiscountType.getSelectedItem()
+                );
+
+        double discountPercent =
+                Double.parseDouble(
+                        txtDiscountPercent
+                                .getText()
+                                .trim()
+                                .isEmpty()
+                                ? "0"
+                                : txtDiscountPercent
+                                        .getText()
+                                        .trim()
+                );
+
+        boolean isEdit =
+                !txtCustomerId
+                        .getText()
+                        .trim()
+                        .isEmpty();
+
+        try {
+
+            if (isEdit) {
+
+                int id =
+                        Integer.parseInt(
+                                txtCustomerId
+                                        .getText()
+                                        .trim()
+                        );
+
+                String dateRegistered =
+                        txtDateRegistered
+                                .getText()
+                                .trim();
+
+                if (dateRegistered.isEmpty() ||
+                        dateRegistered.equalsIgnoreCase(
+                                "Not available")) {
+
+                    dateRegistered =
+                            LocalDate.now().toString();
+                }
+
+                Customer customer =
+                        new Customer(
+                                id,
+                                lastName,
+                                firstName,
+                                contact,
+                                address,
+                                null,
+                                dateRegistered,
+                                pwdId,
+                                seniorCitizenId,
+                                discountType,
+                                discountPercent
+                        );
+
+                CustomerDAO.updateCustomer(customer);
+
+                showSuccess(
+                        "Customer updated successfully."
+                );
+
+            } else {
+
+                String today =
+                        LocalDate.now().toString();
+
+                Customer customer =
+                        new Customer(
+                                0,
+                                lastName,
+                                firstName,
+                                contact,
+                                address,
+                                "N/A",
+                                today,
+                                pwdId,
+                                seniorCitizenId,
+                                discountType,
+                                discountPercent
+                        );
+
+                CustomerDAO.addCustomer(customer);
+
+                showSuccess(
+                        "Customer added successfully."
+                );
+            }
+
+            clearForm();
+            loadCustomers();
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            showError(
+                    "Unable to save customer.\n"
+                            + e.getMessage()
+            );
+        }
+    }
+
+    private void deleteCustomer() {
+
+        int selectedRow =
+                customerTable.getSelectedRow();
+
+        if (selectedRow == -1) {
+
+            showMessage(
+                    "No Customer Selected",
+                    "Customer Management",
+                    "Please select a customer to delete."
+            );
+
+            return;
+        }
+
+        Object idValue =
+                customerModel.getValueAt(
+                        selectedRow,
+                        0
+                );
+
+        if (!(idValue instanceof Integer)) {
+            return;
+        }
+
+        boolean confirmed =
+                showConfirm(
+                        "Confirm Delete",
+                        "Delete Customer",
+                        "Are you sure you want to delete this customer?",
+                        "Delete"
+                );
+
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+
+            CustomerDAO.deleteCustomer(
+                    (Integer) idValue
+            );
+
+            showSuccess(
+                    "Customer deleted successfully."
+            );
+
+            clearForm();
+            loadCustomers();
+
+        } catch (Exception e) {
+
+            showError(
+                    "Unable to delete customer.\n"
+                            + e.getMessage()
+            );
+        }
+    }
+
+    private void loadSelectedCustomer() {
+
+        int row =
+                customerTable.getSelectedRow();
+
+        if (row == -1 ||
+                displayedCustomers == null) {
+
+            return;
+        }
+
+        Object idValue =
+                customerModel.getValueAt(
+                        row,
+                        0
+                );
+
+        if (!(idValue instanceof Integer)) {
+            return;
+        }
+
+        int id = (Integer) idValue;
+
+        Customer match = null;
+
+        for (Customer c : displayedCustomers) {
+
+            if (c.getId() == id) {
+                match = c;
+                break;
+            }
+        }
+
+        if (match == null) {
+            return;
+        }
+
+        txtCustomerId.setText(
+                String.valueOf(match.getId())
+        );
+
+        txtFirstName.setText(
+                match.getFirstName() == null
+                        ? ""
+                        : match.getFirstName()
+        );
+
+        txtLastName.setText(
+                match.getLastName() == null
+                        ? ""
+                        : match.getLastName()
+        );
+
+        txtContactNumber.setText(
+                match.getContact()
+        );
+
+        txtAddress.setText(
+                match.getAddress() == null
+                        ? ""
+                        : match.getAddress()
+        );
+
+        txtPwdId.setText(
+                match.getPwdId() == null
+                        ? ""
+                        : match.getPwdId()
+        );
+
+        txtSeniorCitizenId.setText(
+                match.getSeniorCitizenId() == null
+                        ? ""
+                        : match.getSeniorCitizenId()
+        );
+
+        cmbDiscountType.setSelectedItem(
+                match.getDiscountType() == null ||
+                        match.getDiscountType()
+                                .trim()
+                                .isEmpty()
+                        ? "No Discount"
+                        : match.getDiscountType()
+        );
+
+        txtDiscountPercent.setText(
+                String.valueOf(
+                        match.getDiscountPercent()
+                )
+        );
+
+        String registered =
+                match.getDateRegistered();
+
+        txtDateRegistered.setText(
+                registered == null ||
+                        registered.isEmpty()
+                        ? "Not available"
+                        : registered
+        );
+
+        btnSave.setText(
+                "Update Customer"
+        );
+
+        clearAllFieldErrors();
+    }
+
+    private void clearForm() {
+
+        txtCustomerId.setText("");
+        txtFirstName.setText("");
+        txtLastName.setText("");
+        txtContactNumber.setText("");
+        txtAddress.setText("");
+        txtPwdId.setText("");
+        txtSeniorCitizenId.setText("");
+
+        cmbDiscountType.setSelectedItem(
+                "No Discount"
+        );
+
+        txtDiscountPercent.setText("0");
+        txtDateRegistered.setText("");
+
+        btnSave.setText(
+                "Save Customer"
+        );
+
+        clearAllFieldErrors();
+
+        customerTable.clearSelection();
+    }
+
+    // =====================================================================
+    // STYLING HELPERS
+    // =====================================================================
+
     private JTextField createStyledTextField() {
 
         JTextField tf =
@@ -1591,6 +2152,44 @@ public class CustomerPanel extends JPanel {
         return tf;
     }
 
+    private JButton createStyledButton(
+            String text,
+            Color bgCol) {
+
+        JButton btn =
+                new JButton(text);
+
+        btn.setFont(
+                new Font(
+                        "Segoe UI",
+                        Font.BOLD,
+                        12
+                )
+        );
+
+        btn.setBackground(bgCol);
+        btn.setForeground(Color.WHITE);
+
+        btn.setFocusPainted(false);
+
+        btn.setBorder(
+                BorderFactory.createEmptyBorder(
+                        8,
+                        14,
+                        8,
+                        14
+                )
+        );
+
+        btn.setCursor(
+                new Cursor(
+                        Cursor.HAND_CURSOR
+                )
+        );
+
+        return btn;
+    }
+
     private void styleComboBox(
             JComboBox<String> combo) {
 
@@ -1611,14 +2210,8 @@ public class CustomerPanel extends JPanel {
                 )
         );
 
-        combo.setBackground(
-                Color.WHITE
-        );
-
-        combo.setForeground(
-                textColor
-        );
-
+        combo.setBackground(Color.WHITE);
+        combo.setForeground(textColor);
         combo.setFocusable(false);
 
         combo.setPreferredSize(
@@ -1637,8 +2230,7 @@ public class CustomerPanel extends JPanel {
                 new BasicComboBoxUI() {
 
                     @Override
-                    protected JButton
-                    createArrowButton() {
+                    protected JButton createArrowButton() {
 
                         JButton b =
                                 new JButton() {
@@ -1648,14 +2240,11 @@ public class CustomerPanel extends JPanel {
                                             Graphics g) {
 
                                         Graphics2D g2 =
-                                                (Graphics2D)
-                                                        g.create();
+                                                (Graphics2D) g.create();
 
                                         g2.setRenderingHint(
-                                                RenderingHints
-                                                        .KEY_ANTIALIASING,
-                                                RenderingHints
-                                                        .VALUE_ANTIALIAS_ON
+                                                RenderingHints.KEY_ANTIALIASING,
+                                                RenderingHints.VALUE_ANTIALIAS_ON
                                         );
 
                                         g2.setColor(
@@ -1681,13 +2270,10 @@ public class CustomerPanel extends JPanel {
                                         );
 
                                         int cx =
-                                                getWidth()
-                                                        / 2
-                                                        + 1;
+                                                getWidth() / 2 + 1;
 
                                         int cy =
-                                                getHeight()
-                                                        / 2;
+                                                getHeight() / 2;
 
                                         g2.setColor(
                                                 textColor
@@ -1712,10 +2298,7 @@ public class CustomerPanel extends JPanel {
                                 };
 
                         b.setPreferredSize(
-                                new Dimension(
-                                        26,
-                                        0
-                                )
+                                new Dimension(26, 0)
                         );
 
                         b.setBorder(
@@ -1729,24 +2312,21 @@ public class CustomerPanel extends JPanel {
                     }
 
                     @Override
-                    protected ComboPopup
-                    createPopup() {
+                    protected ComboPopup createPopup() {
 
                         return new BasicComboPopup(
                                 comboBox
                         ) {
 
                             @Override
-                            protected void
-                            configurePopup() {
+                            protected void configurePopup() {
 
                                 super.configurePopup();
 
                                 setBorder(
-                                        BorderFactory
-                                                .createLineBorder(
-                                                        COLOR_BORDER
-                                                )
+                                        BorderFactory.createLineBorder(
+                                                COLOR_BORDER
+                                        )
                                 );
                             }
                         };
@@ -1767,15 +2347,14 @@ public class CustomerPanel extends JPanel {
                             boolean cellHasFocus) {
 
                         JLabel lbl =
-                                (JLabel)
-                                        super
-                                                .getListCellRendererComponent(
-                                                        list,
-                                                        value,
-                                                        index,
-                                                        isSelected,
-                                                        cellHasFocus
-                                                );
+                                (JLabel) super
+                                        .getListCellRendererComponent(
+                                                list,
+                                                value,
+                                                index,
+                                                isSelected,
+                                                cellHasFocus
+                                        );
 
                         lbl.setFont(
                                 new Font(
@@ -1798,13 +2377,12 @@ public class CustomerPanel extends JPanel {
                             );
 
                             lbl.setBorder(
-                                    BorderFactory
-                                            .createEmptyBorder(
-                                                    0,
-                                                    6,
-                                                    0,
-                                                    6
-                                            )
+                                    BorderFactory.createEmptyBorder(
+                                            0,
+                                            6,
+                                            0,
+                                            6
+                                    )
                             );
 
                         } else {
@@ -1816,27 +2394,27 @@ public class CustomerPanel extends JPanel {
                             );
 
                             lbl.setBorder(
-                                    BorderFactory
-                                            .createCompoundBorder(
-                                                    index > 0
-                                                            ? BorderFactory
-                                                                    .createMatteBorder(
-                                                                            1,
-                                                                            0,
-                                                                            0,
-                                                                            0,
-                                                                            lineColor
-                                                                    )
-                                                            : BorderFactory
-                                                                    .createEmptyBorder(),
-                                                    BorderFactory
-                                                            .createEmptyBorder(
+                                    BorderFactory.createCompoundBorder(
+                                            index > 0
+                                                    ? BorderFactory
+                                                            .createMatteBorder(
+                                                                    1,
                                                                     0,
-                                                                    6,
                                                                     0,
-                                                                    6
+                                                                    0,
+                                                                    lineColor
                                                             )
-                                            )
+                                                    : BorderFactory
+                                                            .createEmptyBorder(),
+
+                                            BorderFactory
+                                                    .createEmptyBorder(
+                                                            0,
+                                                            6,
+                                                            0,
+                                                            6
+                                                    )
+                                    )
                             );
 
                             lbl.setPreferredSize(
@@ -1851,60 +2429,6 @@ public class CustomerPanel extends JPanel {
                         return lbl;
                     }
                 }
-        );
-    }
-
-    private JButton createStyledButton(
-            String text,
-            Color bgCol) {
-
-        JButton btn =
-                new JButton(text);
-
-        btn.setFont(
-                new Font(
-                        "Segoe UI",
-                        Font.BOLD,
-                        12
-                )
-        );
-
-        btn.setBackground(
-                bgCol
-        );
-
-        btn.setForeground(
-                Color.WHITE
-        );
-
-        btn.setFocusPainted(false);
-
-        btn.setBorder(
-                BorderFactory.createEmptyBorder(
-                        8,
-                        14,
-                        8,
-                        14
-                )
-        );
-
-        btn.setCursor(
-                new Cursor(
-                        Cursor.HAND_CURSOR
-                )
-        );
-
-        return btn;
-    }
-
-    private void showError(
-            String message) {
-
-        JOptionPane.showMessageDialog(
-                this,
-                message,
-                "Error",
-                JOptionPane.ERROR_MESSAGE
         );
     }
 }

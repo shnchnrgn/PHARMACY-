@@ -39,7 +39,11 @@ public class Database {
                 "contact TEXT, " +
                 "last_purchase_date TEXT, " +
                 "address TEXT, " +
-                "date_registered TEXT" +
+                "date_registered TEXT, " +
+                "pwd_id TEXT, " +
+                "senior_citizen_id TEXT, " +
+                "discount_type TEXT DEFAULT 'No Discount', " +
+                "discount_percent REAL DEFAULT 0" +
                 ");";
 
         String purchaseHistorySql =
@@ -102,6 +106,10 @@ public class Database {
         addColumnIfMissing("customers", "first_name", "TEXT");
         addColumnIfMissing("customers", "address", "TEXT");
         addColumnIfMissing("customers", "date_registered", "TEXT");
+        addColumnIfMissing("customers", "pwd_id", "TEXT");
+        addColumnIfMissing("customers", "senior_citizen_id", "TEXT");
+        addColumnIfMissing("customers", "discount_type", "TEXT DEFAULT 'No Discount'");
+        addColumnIfMissing("customers", "discount_percent", "REAL DEFAULT 0");
 
         migrateCustomerNames();
 
@@ -142,55 +150,29 @@ public class Database {
                     oldName != null &&
                     !oldName.trim().isEmpty()) {
 
-                    String[] parts =
-                            oldName.trim().split("\\s+", 2);
-
+                    String[] parts = oldName.trim().split("\\s+", 2);
                     String migratedFirstName = parts[0];
+                    String migratedLastName = parts.length > 1 ? parts[1] : "";
 
-                    String migratedLastName =
-                            parts.length > 1
-                                    ? parts[1]
-                                    : "";
-
-                    migrations.add(
-                            new CustomerNameMigration(
-                                    rs.getInt("id"),
-                                    migratedFirstName,
-                                    migratedLastName
-                            )
-                    );
+                    migrations.add(new CustomerNameMigration(
+                            rs.getInt("id"),
+                            migratedFirstName,
+                            migratedLastName));
                 }
             }
 
-            try (java.sql.PreparedStatement pstmt =
-                         conn.prepareStatement(updateSql)) {
-
+            try (java.sql.PreparedStatement pstmt = conn.prepareStatement(updateSql)) {
                 for (CustomerNameMigration migration : migrations) {
-
-                    pstmt.setString(
-                            1,
-                            migration.firstName
-                    );
-
-                    pstmt.setString(
-                            2,
-                            migration.lastName
-                    );
-
-                    pstmt.setInt(
-                            3,
-                            migration.id
-                    );
-
+                    pstmt.setString(1, migration.firstName);
+                    pstmt.setString(2, migration.lastName);
+                    pstmt.setInt(3, migration.id);
                     pstmt.executeUpdate();
                 }
             }
 
         } catch (SQLException e) {
             System.out.println(
-                    "Customer name migration note: " +
-                    e.getMessage()
-            );
+                    "Customer name migration note: " + e.getMessage());
         }
     }
 
@@ -200,12 +182,8 @@ public class Database {
             String type) {
 
         String sql =
-                "ALTER TABLE " +
-                table +
-                " ADD COLUMN " +
-                column +
-                " " +
-                type;
+                "ALTER TABLE " + table +
+                " ADD COLUMN " + column + " " + type;
 
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {
@@ -213,33 +191,21 @@ public class Database {
             stmt.execute(sql);
 
         } catch (SQLException e) {
-
             if (e.getMessage() == null ||
-                !e.getMessage()
-                        .toLowerCase()
-                        .contains("duplicate")) {
+                !e.getMessage().toLowerCase().contains("duplicate")) {
 
                 System.out.println(
-                        "Migration note (" +
-                        column +
-                        "): " +
-                        e.getMessage()
-                );
+                        "Migration note (" + column + "): " + e.getMessage());
             }
         }
     }
 
     private static class CustomerNameMigration {
-
         int id;
         String firstName;
         String lastName;
 
-        CustomerNameMigration(
-                int id,
-                String firstName,
-                String lastName) {
-
+        CustomerNameMigration(int id, String firstName, String lastName) {
             this.id = id;
             this.firstName = firstName;
             this.lastName = lastName;

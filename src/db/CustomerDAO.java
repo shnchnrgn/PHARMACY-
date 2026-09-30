@@ -13,17 +13,28 @@ public class CustomerDAO {
 
         String sql =
                 "INSERT INTO customers " +
-                "(name, contact, address, last_purchase_date, date_registered) " +
-                "VALUES (?, ?, ?, ?, ?)";
+                "(name, last_name, first_name, contact, address, last_purchase_date, " +
+                "date_registered, pwd_id, senior_citizen_id, discount_type, discount_percent) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = Database.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
+            if (conn == null) {
+                throw new SQLException("Unable to connect to database.");
+            }
+
             pstmt.setString(1, customer.getName());
-            pstmt.setString(2, customer.getContact());
-            pstmt.setString(3, customer.getAddress());
-            pstmt.setString(4, customer.getLastPurchaseDate());
-            pstmt.setString(5, customer.getDateRegistered());
+            pstmt.setString(2, customer.getLastName());
+            pstmt.setString(3, customer.getFirstName());
+            pstmt.setString(4, customer.getContact());
+            pstmt.setString(5, customer.getAddress());
+            pstmt.setString(6, customer.getLastPurchaseDate());
+            pstmt.setString(7, customer.getDateRegistered());
+            pstmt.setString(8, customer.getPwdId());
+            pstmt.setString(9, customer.getSeniorCitizenId());
+            pstmt.setString(10, customer.getDiscountType());
+            pstmt.setDouble(11, customer.getDiscountPercent());
 
             pstmt.executeUpdate();
 
@@ -36,29 +47,32 @@ public class CustomerDAO {
 
         String sql =
                 "INSERT INTO customers " +
-                "(name, contact, address, last_purchase_date, date_registered) " +
-                "VALUES (?, ?, ?, ?, ?)";
+                "(name, last_name, first_name, contact, address, last_purchase_date, " +
+                "date_registered, pwd_id, senior_citizen_id, discount_type, discount_percent) " +
+                "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
         try (Connection conn = Database.getConnection();
-             PreparedStatement pstmt =
-                     conn.prepareStatement(
-                             sql,
-                             Statement.RETURN_GENERATED_KEYS)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
 
             if (conn == null) {
                 throw new SQLException("Unable to connect to database.");
             }
 
             pstmt.setString(1, customer.getName());
-            pstmt.setString(2, customer.getContact());
-            pstmt.setString(3, customer.getAddress());
-            pstmt.setString(4, customer.getLastPurchaseDate());
-            pstmt.setString(5, customer.getDateRegistered());
+            pstmt.setString(2, customer.getLastName());
+            pstmt.setString(3, customer.getFirstName());
+            pstmt.setString(4, customer.getContact());
+            pstmt.setString(5, customer.getAddress());
+            pstmt.setString(6, customer.getLastPurchaseDate());
+            pstmt.setString(7, customer.getDateRegistered());
+            pstmt.setString(8, customer.getPwdId());
+            pstmt.setString(9, customer.getSeniorCitizenId());
+            pstmt.setString(10, customer.getDiscountType());
+            pstmt.setDouble(11, customer.getDiscountPercent());
 
             pstmt.executeUpdate();
 
             try (ResultSet rs = pstmt.getGeneratedKeys()) {
-
                 if (rs.next()) {
                     return rs.getInt(1);
                 }
@@ -126,18 +140,33 @@ public class CustomerDAO {
         String sql =
                 "UPDATE customers SET " +
                 "name = ?, " +
+                "last_name = ?, " +
+                "first_name = ?, " +
                 "contact = ?, " +
-                "address = ? " +
+                "address = ?, " +
+                "pwd_id = ?, " +
+                "senior_citizen_id = ?, " +
+                "discount_type = ?, " +
+                "discount_percent = ? " +
                 "WHERE id = ?";
 
         try (Connection conn = Database.getConnection();
-             PreparedStatement pstmt =
-                     conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            if (conn == null) {
+                throw new SQLException("Unable to connect to database.");
+            }
 
             pstmt.setString(1, customer.getName());
-            pstmt.setString(2, customer.getContact());
-            pstmt.setString(3, customer.getAddress());
-            pstmt.setInt(4, customer.getId());
+            pstmt.setString(2, customer.getLastName());
+            pstmt.setString(3, customer.getFirstName());
+            pstmt.setString(4, customer.getContact());
+            pstmt.setString(5, customer.getAddress());
+            pstmt.setString(6, customer.getPwdId());
+            pstmt.setString(7, customer.getSeniorCitizenId());
+            pstmt.setString(8, customer.getDiscountType());
+            pstmt.setDouble(9, customer.getDiscountPercent());
+            pstmt.setInt(10, customer.getId());
 
             pstmt.executeUpdate();
 
@@ -192,7 +221,11 @@ public class CustomerDAO {
         String sql =
                 "SELECT * FROM customers " +
                 "WHERE LOWER(name) LIKE LOWER(?) " +
+                "OR LOWER(first_name) LIKE LOWER(?) " +
+                "OR LOWER(last_name) LIKE LOWER(?) " +
                 "OR LOWER(contact) LIKE LOWER(?) " +
+                "OR LOWER(pwd_id) LIKE LOWER(?) " +
+                "OR LOWER(senior_citizen_id) LIKE LOWER(?) " +
                 "ORDER BY id DESC";
 
         try (Connection conn = Database.getConnection();
@@ -202,8 +235,9 @@ public class CustomerDAO {
             String searchPattern =
                     "%" + (keyword == null ? "" : keyword.trim()) + "%";
 
-            pstmt.setString(1, searchPattern);
-            pstmt.setString(2, searchPattern);
+            for (int i = 1; i <= 6; i++) {
+                pstmt.setString(i, searchPattern);
+            }
 
             try (ResultSet rs = pstmt.executeQuery()) {
 
@@ -335,16 +369,15 @@ public class CustomerDAO {
         String sql =
                 "SELECT id FROM customers " +
                 "WHERE LOWER(TRIM(name)) = LOWER(TRIM(?)) " +
+                "OR LOWER(TRIM(first_name || ' ' || last_name)) = LOWER(TRIM(?)) " +
                 "LIMIT 1";
 
         try (Connection conn = Database.getConnection();
              PreparedStatement pstmt =
                      conn.prepareStatement(sql)) {
 
-            pstmt.setString(
-                    1,
-                    fullName.trim()
-            );
+            pstmt.setString(1, fullName.trim());
+            pstmt.setString(2, fullName.trim());
 
             try (ResultSet rs = pstmt.executeQuery()) {
 
@@ -363,18 +396,22 @@ public class CustomerDAO {
     public static String getCustomerNameById(int customerId) {
 
         String sql =
-                "SELECT name FROM customers WHERE id = ?";
+                "SELECT first_name, last_name, name FROM customers WHERE id = ?";
 
         try (Connection conn = Database.getConnection();
-             PreparedStatement pstmt =
-                     conn.prepareStatement(sql)) {
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
             pstmt.setInt(1, customerId);
 
             try (ResultSet rs = pstmt.executeQuery()) {
-
                 if (rs.next()) {
-                    return rs.getString("name");
+                    String first = safeGetString(rs, "first_name");
+                    String last = safeGetString(rs, "last_name");
+                    String fullName = (first + " " + last).trim();
+                    if (!fullName.isEmpty()) {
+                        return fullName;
+                    }
+                    return safeGetString(rs, "name");
                 }
             }
 
@@ -440,38 +477,34 @@ public class CustomerDAO {
 
         Customer customer = new Customer();
 
-        customer.setId(
-                rs.getInt("id")
-        );
+        customer.setId(rs.getInt("id"));
 
-        customer.setName(
-                safeGetString(rs, "name")
-        );
+        String firstName = safeGetString(rs, "first_name");
+        String lastName = safeGetString(rs, "last_name");
 
-        customer.setContact(
-                safeGetString(rs, "contact")
-        );
+        // Old records may only have the original name field.
+        if (firstName.isEmpty() && lastName.isEmpty()) {
+            customer.setName(safeGetString(rs, "name"));
+        } else {
+            customer.setFirstName(firstName);
+            customer.setLastName(lastName);
+        }
 
-        customer.setLastPurchaseDate(
-                safeGetString(
-                        rs,
-                        "last_purchase_date"
-                )
-        );
+        customer.setContact(safeGetString(rs, "contact"));
+        customer.setLastPurchaseDate(safeGetString(rs, "last_purchase_date"));
+        customer.setAddress(safeGetString(rs, "address"));
+        customer.setDateRegistered(safeGetString(rs, "date_registered"));
+        customer.setPwdId(safeGetString(rs, "pwd_id"));
+        customer.setSeniorCitizenId(safeGetString(rs, "senior_citizen_id"));
 
-        customer.setAddress(
-                safeGetString(
-                        rs,
-                        "address"
-                )
-        );
+        String discountType = safeGetString(rs, "discount_type");
+        customer.setDiscountType(discountType.isEmpty() ? "No Discount" : discountType);
 
-        customer.setDateRegistered(
-                safeGetString(
-                        rs,
-                        "date_registered"
-                )
-        );
+        try {
+            customer.setDiscountPercent(rs.getDouble("discount_percent"));
+        } catch (SQLException e) {
+            customer.setDiscountPercent(0);
+        }
 
         return customer;
     }
