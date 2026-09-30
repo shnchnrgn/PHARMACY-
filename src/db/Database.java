@@ -2,6 +2,7 @@ package db;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
@@ -32,9 +33,13 @@ public class Database {
         String customersSql =
                 "CREATE TABLE IF NOT EXISTS customers (" +
                 "id INTEGER PRIMARY KEY AUTOINCREMENT, " +
-                "name TEXT NOT NULL, " +
+                "name TEXT, " +
+                "last_name TEXT, " +
+                "first_name TEXT, " +
                 "contact TEXT, " +
-                "last_purchase_date TEXT" +
+                "last_purchase_date TEXT, " +
+                "address TEXT, " +
+                "date_registered TEXT" +
                 ");";
 
         String purchaseHistorySql =
@@ -93,8 +98,12 @@ public class Database {
             e.printStackTrace();
         }
 
+        addColumnIfMissing("customers", "last_name", "TEXT");
+        addColumnIfMissing("customers", "first_name", "TEXT");
         addColumnIfMissing("customers", "address", "TEXT");
         addColumnIfMissing("customers", "date_registered", "TEXT");
+
+        migrateCustomerNames();
 
         addColumnIfMissing("medicines", "expirydate", "TEXT");
         addColumnIfMissing("medicines", "category", "TEXT");
@@ -102,6 +111,84 @@ public class Database {
         addColumnIfMissing("medicines", "sell_price", "REAL");
         addColumnIfMissing("medicines", "company_name", "TEXT");
         addColumnIfMissing("medicines", "medicine_category", "TEXT");
+    }
+
+    private static void migrateCustomerNames() {
+
+        String checkSql =
+                "SELECT name, first_name, last_name " +
+                "FROM customers";
+
+        String updateSql =
+                "UPDATE customers " +
+                "SET first_name = ?, last_name = ? " +
+                "WHERE id = ?";
+
+        try (Connection conn = getConnection();
+             Statement stmt = conn.createStatement();
+             ResultSet rs = stmt.executeQuery(checkSql)) {
+
+            java.util.List<CustomerNameMigration> migrations =
+                    new java.util.ArrayList<>();
+
+            while (rs.next()) {
+
+                String oldName = rs.getString("name");
+                String firstName = rs.getString("first_name");
+                String lastName = rs.getString("last_name");
+
+                if ((firstName == null || firstName.trim().isEmpty()) &&
+                    (lastName == null || lastName.trim().isEmpty()) &&
+                    oldName != null &&
+                    !oldName.trim().isEmpty()) {
+
+                    String[] parts =
+                            oldName.trim().split("\\s+", 2);
+
+                    String migratedFirstName = parts[0];
+                    String migratedLastName =
+                            parts.length > 1 ? parts[1] : "";
+
+                    migrations.add(
+                            new CustomerNameMigration(
+                                    rs.getInt("rowid"),
+                                    migratedFirstName,
+                                    migratedLastName
+                            )
+                    );
+                }
+            }
+
+            try (java.sql.PreparedStatement pstmt =
+                         conn.prepareStatement(updateSql)) {
+
+                for (CustomerNameMigration migration : migrations) {
+
+                    pstmt.setString(
+                            1,
+                            migration.firstName
+                    );
+
+                    pstmt.setString(
+                            2,
+                            migration.lastName
+                    );
+
+                    pstmt.setInt(
+                            3,
+                            migration.id
+                    );
+
+                    pstmt.executeUpdate();
+                }
+            }
+
+        } catch (SQLException e) {
+            System.out.println(
+                    "Customer name migration note: " +
+                    e.getMessage()
+            );
+        }
     }
 
     private static void addColumnIfMissing(
@@ -136,6 +223,23 @@ public class Database {
                         e.getMessage()
                 );
             }
+        }
+    }
+
+    private static class CustomerNameMigration {
+
+        int id;
+        String firstName;
+        String lastName;
+
+        CustomerNameMigration(
+                int id,
+                String firstName,
+                String lastName) {
+
+            this.id = id;
+            this.firstName = firstName;
+            this.lastName = lastName;
         }
     }
 }

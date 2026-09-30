@@ -37,13 +37,33 @@ public class POSFrame extends JPanel {
         JLabel lblTitle = new JLabel("Point of Sales (POS)");
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
         lblTitle.setForeground(new Color(60, 65, 70));
+
         add(lblTitle, BorderLayout.NORTH);
 
         JPanel contentPanel = new JPanel(new GridLayout(1, 2, 15, 0));
         contentPanel.setOpaque(false);
         contentPanel.setBorder(new EmptyBorder(15, 0, 0, 0));
 
-        // ================= LEFT PANEL =================
+        JPanel leftPanel = buildMedicinePanel();
+        JPanel rightPanel = buildCartPanel();
+
+        contentPanel.add(leftPanel);
+        contentPanel.add(rightPanel);
+
+        add(contentPanel, BorderLayout.CENTER);
+
+        loadMedicinesToPOS("");
+
+        addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentShown(java.awt.event.ComponentEvent e) {
+                loadMedicinesToPOS(searchField.getText().trim());
+            }
+        });
+    }
+
+    private JPanel buildMedicinePanel() {
+
         JPanel leftPanel = new JPanel(new BorderLayout());
         leftPanel.setBackground(Color.WHITE);
         leftPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -55,7 +75,7 @@ public class POSFrame extends JPanel {
         searchPanel.setOpaque(false);
         searchPanel.setBorder(new EmptyBorder(0, 0, 12, 0));
 
-        JLabel lblSearch = new JLabel("Search Medicine: ");
+        JLabel lblSearch = new JLabel("Search Medicine:");
         lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblSearch.setForeground(new Color(70, 75, 80));
 
@@ -66,13 +86,11 @@ public class POSFrame extends JPanel {
                 BorderFactory.createEmptyBorder(6, 8, 6, 8)
         ));
 
-        JButton btnSearch = new JButton("Search");
-        btnSearch.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnSearch.setBackground(new Color(240, 242, 245));
-        btnSearch.setForeground(new Color(70, 75, 80));
-        btnSearch.setFocusPainted(false);
-        btnSearch.setBorder(BorderFactory.createLineBorder(new Color(190, 195, 200)));
-        btnSearch.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        JButton btnSearch = createButton(
+                "Search",
+                new Color(51, 122, 183),
+                Color.WHITE
+        );
 
         searchPanel.add(lblSearch, BorderLayout.WEST);
         searchPanel.add(searchField, BorderLayout.CENTER);
@@ -80,7 +98,13 @@ public class POSFrame extends JPanel {
 
         leftPanel.add(searchPanel, BorderLayout.NORTH);
 
-        String[] medColumns = {"Medicine Name", "Category", "Price", "Stock", "ID"};
+        String[] medColumns = {
+                "Medicine Name",
+                "Category",
+                "Price",
+                "Stock",
+                "ID"
+        };
 
         medicineModel = new DefaultTableModel(medColumns, 0) {
             @Override
@@ -95,9 +119,16 @@ public class POSFrame extends JPanel {
         medicineTable.setShowHorizontalLines(true);
         medicineTable.setGridColor(new Color(235, 238, 242));
         medicineTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        medicineTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-        medicineTable.getTableHeader().setBackground(new Color(248, 249, 250));
-        medicineTable.getTableHeader().setForeground(new Color(80, 85, 90));
+        medicineTable.getTableHeader().setFont(
+                new Font("Segoe UI", Font.BOLD, 12)
+        );
+        medicineTable.getTableHeader().setBackground(
+                new Color(248, 249, 250)
+        );
+        medicineTable.getTableHeader().setForeground(
+                new Color(80, 85, 90)
+        );
+        medicineTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         medicineTable.getColumnModel().getColumn(4).setMinWidth(0);
         medicineTable.getColumnModel().getColumn(4).setMaxWidth(0);
@@ -105,17 +136,21 @@ public class POSFrame extends JPanel {
 
         JScrollPane medScroll = new JScrollPane(medicineTable);
         medScroll.getViewport().setBackground(Color.WHITE);
-        medScroll.setBorder(BorderFactory.createLineBorder(new Color(220, 224, 230)));
+        medScroll.setBorder(
+                BorderFactory.createLineBorder(new Color(220, 224, 230))
+        );
 
         leftPanel.add(medScroll, BorderLayout.CENTER);
 
-        JButton btnAddToCart = new JButton("Add to Cart");
-        btnAddToCart.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnAddToCart.setBackground(new Color(51, 122, 183));
-        btnAddToCart.setForeground(Color.WHITE);
-        btnAddToCart.setFocusPainted(false);
-        btnAddToCart.setBorder(new EmptyBorder(10, 0, 10, 0));
-        btnAddToCart.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        JButton btnAddToCart = createButton(
+                "Add to Cart",
+                new Color(51, 122, 183),
+                Color.WHITE
+        );
+
+        btnAddToCart.setBorder(
+                new EmptyBorder(10, 0, 10, 0)
+        );
 
         JPanel btnAddWrapper = new JPanel(new BorderLayout());
         btnAddWrapper.setOpaque(false);
@@ -124,7 +159,32 @@ public class POSFrame extends JPanel {
 
         leftPanel.add(btnAddWrapper, BorderLayout.SOUTH);
 
-        // ================= RIGHT PANEL =================
+        btnSearch.addActionListener(e ->
+                loadMedicinesToPOS(searchField.getText().trim())
+        );
+
+        searchField.addActionListener(e ->
+                loadMedicinesToPOS(searchField.getText().trim())
+        );
+
+        medicineTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e)) {
+                    addSelectedMedicineToCart();
+                }
+            }
+        });
+
+        btnAddToCart.addActionListener(e ->
+                addSelectedMedicineToCart()
+        );
+
+        return leftPanel;
+    }
+
+    private JPanel buildCartPanel() {
+
         JPanel rightPanel = new JPanel(new BorderLayout());
         rightPanel.setBackground(Color.WHITE);
         rightPanel.setBorder(BorderFactory.createCompoundBorder(
@@ -139,9 +199,18 @@ public class POSFrame extends JPanel {
 
         rightPanel.add(lblCartTitle, BorderLayout.NORTH);
 
-        String[] cartColumns = {"Item Name", "Price", "Qty", "Total", "Medicine ID"};
+        String[] cartColumns = {
+                "Item Name",
+                "Price",
+                "Qty",
+                "Total",
+                "Medicine ID"
+        };
 
-        cartModel = new DefaultTableModel(new Object[][]{}, cartColumns) {
+        cartModel = new DefaultTableModel(
+                new Object[][]{},
+                cartColumns
+        ) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
@@ -154,9 +223,16 @@ public class POSFrame extends JPanel {
         cartTable.setShowHorizontalLines(true);
         cartTable.setGridColor(new Color(235, 238, 242));
         cartTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        cartTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-        cartTable.getTableHeader().setBackground(new Color(248, 249, 250));
-        cartTable.getTableHeader().setForeground(new Color(80, 85, 90));
+        cartTable.getTableHeader().setFont(
+                new Font("Segoe UI", Font.BOLD, 12)
+        );
+        cartTable.getTableHeader().setBackground(
+                new Color(248, 249, 250)
+        );
+        cartTable.getTableHeader().setForeground(
+                new Color(80, 85, 90)
+        );
+        cartTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         cartTable.getColumnModel().getColumn(4).setMinWidth(0);
         cartTable.getColumnModel().getColumn(4).setMaxWidth(0);
@@ -164,7 +240,9 @@ public class POSFrame extends JPanel {
 
         JScrollPane cartScroll = new JScrollPane(cartTable);
         cartScroll.getViewport().setBackground(Color.WHITE);
-        cartScroll.setBorder(BorderFactory.createLineBorder(new Color(220, 224, 230)));
+        cartScroll.setBorder(
+                BorderFactory.createLineBorder(new Color(220, 224, 230))
+        );
 
         rightPanel.add(cartScroll, BorderLayout.CENTER);
 
@@ -172,7 +250,57 @@ public class POSFrame extends JPanel {
         bottomCartPanel.setOpaque(false);
         bottomCartPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
 
-        // ---- PWD row + summary ----
+        JPanel summaryWrap = buildSummaryPanel();
+
+        bottomCartPanel.add(summaryWrap, BorderLayout.NORTH);
+
+        JPanel actionButtons = new JPanel(new GridLayout(1, 2, 10, 0));
+        actionButtons.setOpaque(false);
+
+        JButton btnRemove = createButton(
+                "Remove Item",
+                new Color(220, 53, 69),
+                Color.WHITE
+        );
+
+        JButton btnCheckout = createButton(
+                "Checkout",
+                new Color(40, 167, 69),
+                Color.WHITE
+        );
+
+        btnRemove.setBorder(new EmptyBorder(10, 0, 10, 0));
+        btnCheckout.setBorder(new EmptyBorder(10, 0, 10, 0));
+
+        actionButtons.add(btnRemove);
+        actionButtons.add(btnCheckout);
+
+        bottomCartPanel.add(actionButtons, BorderLayout.SOUTH);
+
+        rightPanel.add(bottomCartPanel, BorderLayout.SOUTH);
+
+        btnRemove.addActionListener(e ->
+                removeSelectedCartItem()
+        );
+
+        btnCheckout.addActionListener(e ->
+                processCheckout()
+        );
+
+        cartTable.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseClicked(java.awt.event.MouseEvent e) {
+                if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e)) {
+                    removeSelectedCartItem();
+                }
+            }
+        });
+
+        return rightPanel;
+    }
+
+    private JPanel buildSummaryPanel() {
+
         final Color textColor = new Color(51, 51, 51);
         final Color lineColor = new Color(220, 220, 220);
 
@@ -185,7 +313,10 @@ public class POSFrame extends JPanel {
         chkPwd.setSelectedIcon(new FlatCheckIcon(true));
         chkPwd.setIconTextGap(8);
         chkPwd.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        chkPwd.addActionListener(e -> updateSubtotal());
+
+        chkPwd.addActionListener(e ->
+                updateSubtotal()
+        );
 
         JLabel lblPwdNote = new JLabel("20% discount");
         lblPwdNote.setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -194,145 +325,185 @@ public class POSFrame extends JPanel {
         JPanel pwdRow = new JPanel(new BorderLayout(10, 0));
         pwdRow.setBackground(new Color(248, 249, 250));
         pwdRow.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(200, 205, 210)),
+                BorderFactory.createLineBorder(
+                        new Color(200, 205, 210)
+                ),
                 new EmptyBorder(7, 10, 7, 10)
         ));
+
         pwdRow.add(chkPwd, BorderLayout.WEST);
         pwdRow.add(lblPwdNote, BorderLayout.EAST);
 
-        lblSubtotalVal = createSummaryValue("₱ 0.00", textColor);
-        lblDiscountVal = createSummaryValue("- ₱ 0.00", textColor);
-        lblTotalVal = createSummaryValue("₱ 0.00", textColor);
-        lblTotalVal.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        lblSubtotalVal = createSummaryValue(
+                "₱ 0.00",
+                textColor
+        );
 
-        JPanel summaryPanel = new JPanel(new GridLayout(0, 2, 5, 6));
+        lblDiscountVal = createSummaryValue(
+                "- ₱ 0.00",
+                textColor
+        );
+
+        lblTotalVal = createSummaryValue(
+                "₱ 0.00",
+                textColor
+        );
+
+        lblTotalVal.setFont(
+                new Font("Segoe UI", Font.BOLD, 16)
+        );
+
+        JPanel summaryPanel = new JPanel(
+                new GridLayout(0, 2, 5, 6)
+        );
         summaryPanel.setOpaque(false);
+
         summaryPanel.add(createSummaryLabel("Subtotal:"));
         summaryPanel.add(lblSubtotalVal);
-        summaryPanel.add(createSummaryLabel("PWD Discount (20%):"));
+
+        summaryPanel.add(createSummaryLabel(
+                "PWD Discount (20%):"
+        ));
         summaryPanel.add(lblDiscountVal);
 
         JLabel lblTotalText = createSummaryLabel("TOTAL:");
-        lblTotalText.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        lblTotalText.setFont(
+                new Font("Segoe UI", Font.BOLD, 15)
+        );
         lblTotalText.setForeground(textColor);
 
         JPanel totalRow = new JPanel(new BorderLayout());
         totalRow.setOpaque(false);
         totalRow.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 0, 0, lineColor),
+                BorderFactory.createMatteBorder(
+                        1, 0, 0, 0, lineColor
+                ),
                 new EmptyBorder(8, 0, 0, 0)
         ));
+
         totalRow.add(lblTotalText, BorderLayout.WEST);
         totalRow.add(lblTotalVal, BorderLayout.EAST);
 
-        JPanel summaryBox = new JPanel(new BorderLayout(0, 8));
+        JPanel summaryBox = new JPanel(
+                new BorderLayout(0, 8)
+        );
         summaryBox.setOpaque(false);
-        summaryBox.setBorder(new EmptyBorder(10, 0, 10, 0));
-        summaryBox.add(summaryPanel, BorderLayout.CENTER);
-        summaryBox.add(totalRow, BorderLayout.SOUTH);
+        summaryBox.setBorder(
+                new EmptyBorder(10, 0, 10, 0)
+        );
 
-        JPanel summaryWrap = new JPanel(new BorderLayout());
+        summaryBox.add(
+                summaryPanel,
+                BorderLayout.CENTER
+        );
+
+        summaryBox.add(
+                totalRow,
+                BorderLayout.SOUTH
+        );
+
+        JPanel summaryWrap = new JPanel(
+                new BorderLayout()
+        );
         summaryWrap.setOpaque(false);
-        summaryWrap.add(pwdRow, BorderLayout.NORTH);
-        summaryWrap.add(summaryBox, BorderLayout.CENTER);
 
-        bottomCartPanel.add(summaryWrap, BorderLayout.NORTH);
+        summaryWrap.add(
+                pwdRow,
+                BorderLayout.NORTH
+        );
 
-        // ---- Action buttons ----
-        JPanel actionButtons = new JPanel(new GridLayout(1, 2, 10, 0));
-        actionButtons.setOpaque(false);
+        summaryWrap.add(
+                summaryBox,
+                BorderLayout.CENTER
+        );
 
-        JButton btnRemove = new JButton("Remove Item");
-        btnRemove.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnRemove.setBackground(new Color(220, 53, 69));
-        btnRemove.setForeground(Color.WHITE);
-        btnRemove.setFocusPainted(false);
-        btnRemove.setBorder(new EmptyBorder(10, 0, 10, 0));
-        btnRemove.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        return summaryWrap;
+    }
 
-        JButton btnCheckout = new JButton("Checkout");
-        btnCheckout.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnCheckout.setBackground(new Color(40, 167, 69));
-        btnCheckout.setForeground(Color.WHITE);
-        btnCheckout.setFocusPainted(false);
-        btnCheckout.setBorder(new EmptyBorder(10, 0, 10, 0));
-        btnCheckout.setCursor(new Cursor(Cursor.HAND_CURSOR));
+    private void addSelectedMedicineToCart() {
 
-        actionButtons.add(btnRemove);
-        actionButtons.add(btnCheckout);
+        int selectedRow = medicineTable.getSelectedRow();
 
-        bottomCartPanel.add(actionButtons, BorderLayout.SOUTH);
+        if (selectedRow == -1) {
+            CustomDialog.showMessage(
+                    this,
+                    "Please select a medicine from the list first.",
+                    "Selection Error",
+                    true
+            );
+            return;
+        }
 
-        rightPanel.add(bottomCartPanel, BorderLayout.SOUTH);
+        try {
 
-        contentPanel.add(leftPanel);
-        contentPanel.add(rightPanel);
+            String name = medicineModel
+                    .getValueAt(selectedRow, 0)
+                    .toString();
 
-        add(contentPanel, BorderLayout.CENTER);
+            String priceText = medicineModel
+                    .getValueAt(selectedRow, 2)
+                    .toString();
 
-        loadMedicinesToPOS("");
-
-        addComponentListener(new java.awt.event.ComponentAdapter() {
-            @Override
-            public void componentShown(java.awt.event.ComponentEvent e) {
-                loadMedicinesToPOS("");
-            }
-        });
-
-        btnSearch.addActionListener(e -> {
-            String keyword = searchField.getText().trim();
-            loadMedicinesToPOS(keyword);
-        });
-
-        btnAddToCart.addActionListener(e -> {
-
-            int selectedRow = medicineTable.getSelectedRow();
-
-            if (selectedRow == -1) {
-                CustomDialog.showMessage(this,
-                        "Please select a medicine from the list first.",
-                        "Selection Error", true);
-                return;
-            }
-
-            String name = (String) medicineModel.getValueAt(selectedRow, 0);
-            String priceStr = (String) medicineModel.getValueAt(selectedRow, 2);
             int availableStock = Integer.parseInt(
-                    medicineModel.getValueAt(selectedRow, 3).toString());
+                    medicineModel
+                            .getValueAt(selectedRow, 3)
+                            .toString()
+            );
+
             int medicineId = Integer.parseInt(
-                    medicineModel.getValueAt(selectedRow, 4).toString());
-            double price = Double.parseDouble(priceStr.replace("₱", "").trim());
+                    medicineModel
+                            .getValueAt(selectedRow, 4)
+                            .toString()
+            );
 
-            int currentQtyInCart = 0;
+            double price = parseMoney(priceText);
 
-            for (int i = 0; i < cartModel.getRowCount(); i++) {
-                if (cartModel.getValueAt(i, 0).equals(name)) {
-                    currentQtyInCart = Integer.parseInt(
-                            cartModel.getValueAt(i, 2).toString());
-                    break;
-                }
-            }
-
-            if (availableStock <= 0 || currentQtyInCart + 1 > availableStock) {
-                CustomDialog.showMessage(this,
-                        "Insufficient stock available for this medicine!",
-                        "Stock Error", true);
+            if (availableStock <= 0) {
+                CustomDialog.showMessage(
+                        this,
+                        "This medicine is out of stock.",
+                        "Stock Error",
+                        true
+                );
                 return;
             }
 
-            boolean found = false;
+            int existingRow = findCartMedicineRow(medicineId);
 
-            for (int i = 0; i < cartModel.getRowCount(); i++) {
-                if (cartModel.getValueAt(i, 0).equals(name)) {
-                    int qty = currentQtyInCart + 1;
-                    cartModel.setValueAt(String.valueOf(qty), i, 2);
-                    cartModel.setValueAt(String.format("₱%.2f", price * qty), i, 3);
-                    found = true;
-                    break;
+            if (existingRow != -1) {
+
+                int currentQty = Integer.parseInt(
+                        cartModel
+                                .getValueAt(existingRow, 2)
+                                .toString()
+                );
+
+                if (currentQty + 1 > availableStock) {
+                    CustomDialog.showMessage(
+                            this,
+                            "Insufficient stock available for this medicine.",
+                            "Stock Error",
+                            true
+                    );
+                    return;
                 }
-            }
 
-            if (!found) {
+                int newQty = currentQty + 1;
+
+                cartModel.setValueAt(
+                        String.valueOf(newQty),
+                        existingRow,
+                        2
+                );
+
+                cartModel.setValueAt(
+                        String.format("₱%.2f", price * newQty),
+                        existingRow,
+                        3
+                );
+
+            } else {
+
                 cartModel.addRow(new Object[]{
                         name,
                         String.format("₱%.2f", price),
@@ -343,70 +514,112 @@ public class POSFrame extends JPanel {
             }
 
             updateSubtotal();
-        });
 
-        btnRemove.addActionListener(e -> {
+        } catch (Exception e) {
 
-            int selectedCartRow = cartTable.getSelectedRow();
+            e.printStackTrace();
 
-            if (selectedCartRow != -1) {
-                cartModel.removeRow(selectedCartRow);
-                updateSubtotal();
-            } else {
-                CustomDialog.showMessage(this,
-                        "Please select an item from the cart to remove.",
-                        "Selection Error", true);
+            CustomDialog.showMessage(
+                    this,
+                    "Unable to add medicine to cart.\n" + e.getMessage(),
+                    "Error",
+                    true
+            );
+        }
+    }
+
+    private int findCartMedicineRow(int medicineId) {
+
+        for (int i = 0; i < cartModel.getRowCount(); i++) {
+
+            int existingId = Integer.parseInt(
+                    cartModel.getValueAt(i, 4).toString()
+            );
+
+            if (existingId == medicineId) {
+                return i;
             }
-        });
+        }
 
-        btnCheckout.addActionListener(e -> processCheckout());
+        return -1;
+    }
+
+    private void removeSelectedCartItem() {
+
+        int selectedRow = cartTable.getSelectedRow();
+
+        if (selectedRow == -1) {
+            CustomDialog.showMessage(
+                    this,
+                    "Please select an item from the cart to remove.",
+                    "Selection Error",
+                    true
+            );
+            return;
+        }
+
+        cartModel.removeRow(selectedRow);
+        updateSubtotal();
     }
 
     private void processCheckout() {
 
+        if (cartModel.getRowCount() == 0) {
+            CustomDialog.showMessage(
+                    this,
+                    "The cart is empty.",
+                    "Cart Error",
+                    true
+            );
+            return;
+        }
+
         try {
 
-            if (cartModel.getRowCount() == 0) {
-                CustomDialog.showMessage(this, "The cart is empty.", "Cart Error", true);
+            String customerName = CustomDialog.showInput(
+                    this,
+                    "Enter Customer Full Name:",
+                    "Customer Details"
+            );
+
+            if (customerName == null) {
                 return;
             }
 
-            String customerLastName = CustomDialog.showInput(this,
-                    "Enter Your Last Name:", "Customer Details");
+            customerName = customerName.trim();
 
-            if (customerLastName == null) {
+            if (customerName.isEmpty()) {
+                CustomDialog.showMessage(
+                        this,
+                        "Customer name is required.",
+                        "Validation Error",
+                        true
+                );
                 return;
             }
 
-            customerLastName = customerLastName.trim();
+            String[] nameParts = splitCustomerName(customerName);
 
-            if (customerLastName.isEmpty()) {
-                CustomDialog.showMessage(this, "Last name is required.",
-                        "Validation Error", true);
-                return;
-            }
+            String firstName = nameParts[0];
+            String lastName = nameParts[1];
 
-            String customerFirstName = CustomDialog.showInput(this,
-                "Enter First Name:", "Customer Details");
-
-            if (customerFirstName == null) {
-                return;
-            }
-
-            customerFirstName = customerFirstName.trim();
-
-            if (customerFirstName.isEmpty()) {
-                CustomDialog.showMessage(this, "First name is required.",
-                        "Validation Error", true);
-                return;
-            }
-
-            int customerId = CustomerDAO.getCustomerIdByNameIgnoreCase(customerFirstName, customerLastName);
+            int customerId =
+                    CustomerDAO.getCustomerIdByNameIgnoreCase(
+                            firstName,
+                            lastName
+                    );
 
             if (customerId == -1) {
-                CustomDialog.showMessage(this,
-                        "Customer not found in the Customer database. Please register the customer first.",
-                        "Customer Not Found", true);
+
+                CustomDialog.showMessage(
+                        this,
+                        "Customer not found.\n\n" +
+                                "Please register the customer first " +
+                                "in Customer Management.",
+                        "Customer Not Found",
+                        true
+                );
+
                 return;
             }
 
@@ -416,102 +629,225 @@ public class POSFrame extends JPanel {
 
             if (isPwd) {
 
-                String input = CustomDialog.showInput(this,
-                        "Enter PWD ID Number:", "PWD Verification");
+                String input = CustomDialog.showInput(
+                        this,
+                        "Enter PWD ID Number:",
+                        "PWD Verification"
+                );
 
                 if (input == null) {
                     return;
                 }
 
-                if (input.trim().isEmpty()) {
-                    CustomDialog.showMessage(this,
+                pwdId = input.trim();
+
+                if (pwdId.isEmpty()) {
+
+                    CustomDialog.showMessage(
+                            this,
                             "PWD ID number is required for PWD discount.",
-                            "Validation Error", true);
+                            "Validation Error",
+                            true
+                    );
+
                     return;
                 }
-
-                pwdId = input.trim();
             }
 
             double totalAmount = calculateTotal();
 
-            String orderNo = "ORD-" + System.currentTimeMillis();
+            String orderNo =
+                    "ORD-" + System.currentTimeMillis();
 
-            String currentDate = LocalDate.now().toString();
+            String currentDate =
+                    LocalDate.now().toString();
 
-            List<SalesDAO.SaleItemData> items = new ArrayList<>();
+            List<SalesDAO.SaleItemData> items =
+                    new ArrayList<>();
 
-            for (int i = 0; i < cartModel.getRowCount(); i++) {
+            for (int i = 0;
+                 i < cartModel.getRowCount();
+                 i++) {
 
                 int medicineId = Integer.parseInt(
-                        cartModel.getValueAt(i, 4).toString());
+                        cartModel
+                                .getValueAt(i, 4)
+                                .toString()
+                );
 
                 int qtySold = Integer.parseInt(
-                        cartModel.getValueAt(i, 2).toString());
+                        cartModel
+                                .getValueAt(i, 2)
+                                .toString()
+                );
 
-                double unitPrice = Double.parseDouble(
-                        cartModel.getValueAt(i, 1).toString()
-                                .replace("₱", "").trim());
+                double unitPrice = parseMoney(
+                        cartModel
+                                .getValueAt(i, 1)
+                                .toString()
+                );
 
-                items.add(new SalesDAO.SaleItemData(medicineId, qtySold, unitPrice));
+                items.add(
+                        new SalesDAO.SaleItemData(
+                                medicineId,
+                                qtySold,
+                                unitPrice
+                        )
+                );
             }
 
-            SalesDAO.completeSale(customerId, orderNo, currentDate,
-                    totalAmount, isPwd, pwdId, items);
+            SalesDAO.completeSale(
+                    customerId,
+                    orderNo,
+                    currentDate,
+                    totalAmount,
+                    isPwd,
+                    pwdId,
+                    items
+            );
 
-            SharedData.totalSalesToday = SalesDAO.getTodaySalesTotal();
+            SharedData.totalSalesToday =
+                    SalesDAO.getTodaySalesTotal();
 
-            SharedData.addSale(orderNo, currentDate,
+            SharedData.addSale(
+                    orderNo,
+                    currentDate,
                     String.format("%.2f", totalAmount),
-                    customerLastName, isPwd, pwdId);
+                    customerName,
+                    isPwd,
+                    pwdId
+            );
 
             DashboardPanel.refreshDashboardData();
 
-            CustomDialog.showMessage(this,
-                    "Checkout successful! Sale saved, customer history updated, and inventory stock deducted.",
-                    "Success", false);
+            CustomDialog.showMessage(
+                    this,
+                    "Checkout successful!\n\n" +
+                            "Order No.: " + orderNo + "\n" +
+                            "Customer: " + customerName + "\n" +
+                            "Total: ₱" +
+                            String.format("%.2f", totalAmount) +
+                            "\n\n" +
+                            "Sale saved successfully.",
+                    "Checkout Successful",
+                    false
+            );
 
-            cartModel.setRowCount(0);
-            chkPwd.setSelected(false);
+            clearCartAfterCheckout();
 
-            updateSubtotal();
-            loadMedicinesToPOS("");
+        } catch (Exception e) {
 
-        } catch (Exception ex) {
+            e.printStackTrace();
 
-            ex.printStackTrace();
-
-            CustomDialog.showMessage(this,
-                    "Checkout Error: " + ex.getMessage(),
-                    "Error", true);
+            CustomDialog.showMessage(
+                    this,
+                    "Checkout Error:\n" + e.getMessage(),
+                    "Error",
+                    true
+            );
         }
+    }
+
+    private String[] splitCustomerName(String fullName) {
+
+        String cleaned = fullName.trim();
+
+        String firstName;
+        String lastName;
+
+        int firstSpace = cleaned.indexOf(' ');
+
+        if (firstSpace == -1) {
+            firstName = cleaned;
+            lastName = "";
+        } else {
+            firstName = cleaned.substring(
+                    0,
+                    firstSpace
+            ).trim();
+
+            lastName = cleaned.substring(
+                    firstSpace + 1
+            ).trim();
+        }
+
+        return new String[]{
+                firstName,
+                lastName
+        };
+    }
+
+    private void clearCartAfterCheckout() {
+
+        cartModel.setRowCount(0);
+        chkPwd.setSelected(false);
+
+        updateSubtotal();
+
+        loadMedicinesToPOS(
+                searchField.getText().trim()
+        );
     }
 
     private void loadMedicinesToPOS(String filterKeyword) {
 
         medicineModel.setRowCount(0);
 
-        List<Medicine> medicines = MedicineDAO.getAllMedicines();
+        try {
 
-        for (Medicine med : medicines) {
+            List<Medicine> medicines =
+                    MedicineDAO.getAllMedicines();
 
-            String name = med.getName() == null ? "" : med.getName();
+            String keyword =
+                    filterKeyword == null
+                            ? ""
+                            : filterKeyword.trim()
+                                    .toLowerCase();
 
-            String category = med.getMedicineCategory() == null
-                    ? "" : med.getMedicineCategory();
+            for (Medicine med : medicines) {
 
-            if (filterKeyword.isEmpty()
-                    || name.toLowerCase().contains(filterKeyword.toLowerCase())
-                    || category.toLowerCase().contains(filterKeyword.toLowerCase())) {
+                String name =
+                        med.getName() == null
+                                ? ""
+                                : med.getName();
 
-                medicineModel.addRow(new Object[]{
-                        name,
-                        category,
-                        String.format("₱%.2f", med.getSellPrice()),
-                        med.getStock(),
-                        med.getId()
-                });
+                String category =
+                        med.getMedicineCategory() == null
+                                ? ""
+                                : med.getMedicineCategory();
+
+                if (keyword.isEmpty()
+                        || name.toLowerCase()
+                                .contains(keyword)
+                        || category.toLowerCase()
+                                .contains(keyword)) {
+
+                    medicineModel.addRow(
+                            new Object[]{
+                                    name,
+                                    category,
+                                    String.format(
+                                            "₱%.2f",
+                                            med.getSellPrice()
+                                    ),
+                                    med.getStock(),
+                                    med.getId()
+                            }
+                    );
+                }
             }
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+
+            CustomDialog.showMessage(
+                    this,
+                    "Unable to load medicines.\n" +
+                            e.getMessage(),
+                    "Database Error",
+                    true
+            );
         }
     }
 
@@ -519,17 +855,22 @@ public class POSFrame extends JPanel {
 
         double total = 0;
 
-        for (int i = 0; i < cartModel.getRowCount(); i++) {
+        for (int i = 0;
+             i < cartModel.getRowCount();
+             i++) {
 
-            String totalStr = cartModel.getValueAt(i, 3).toString();
-
-            total += Double.parseDouble(totalStr.replace("₱", "").trim());
+            total += parseMoney(
+                    cartModel
+                            .getValueAt(i, 3)
+                            .toString()
+            );
         }
 
         return total;
     }
 
-    private double calculatePwdDiscount(double subtotal) {
+    private double calculatePwdDiscount(
+            double subtotal) {
 
         if (!chkPwd.isSelected()) {
             return 0;
@@ -540,39 +881,147 @@ public class POSFrame extends JPanel {
 
     private double calculateTotal() {
 
-        double subtotal = calculateSubtotal();
+        double subtotal =
+                calculateSubtotal();
 
-        return subtotal - calculatePwdDiscount(subtotal);
+        double discount =
+                calculatePwdDiscount(subtotal);
+
+        return Math.max(
+                0,
+                subtotal - discount
+        );
     }
 
     private void updateSubtotal() {
 
-        double subtotal = calculateSubtotal();
+        double subtotal =
+                calculateSubtotal();
 
-        lblSubtotalVal.setText(String.format("₱ %.2f", subtotal));
+        double discount =
+                calculatePwdDiscount(subtotal);
 
-        lblDiscountVal.setText(String.format("- ₱ %.2f",
-                calculatePwdDiscount(subtotal)));
+        double total =
+                Math.max(
+                        0,
+                        subtotal - discount
+                );
 
-        lblTotalVal.setText(String.format("₱ %.2f", calculateTotal()));
+        lblSubtotalVal.setText(
+                String.format(
+                        "₱ %.2f",
+                        subtotal
+                )
+        );
+
+        lblDiscountVal.setText(
+                String.format(
+                        "- ₱ %.2f",
+                        discount
+                )
+        );
+
+        lblTotalVal.setText(
+                String.format(
+                        "₱ %.2f",
+                        total
+                )
+        );
     }
 
-    private JLabel createSummaryLabel(String text) {
-        JLabel lbl = new JLabel(text);
-        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lbl.setForeground(new Color(90, 95, 100));
-        return lbl;
+    private double parseMoney(String value) {
+
+        if (value == null || value.trim().isEmpty()) {
+            return 0;
+        }
+
+        return Double.parseDouble(
+                value
+                        .replace("₱", "")
+                        .replace(",", "")
+                        .trim()
+        );
     }
 
-    private JLabel createSummaryValue(String text, Color color) {
-        JLabel lbl = new JLabel(text, SwingConstants.RIGHT);
-        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lbl.setForeground(color);
-        return lbl;
+    private JButton createButton(
+            String text,
+            Color background,
+            Color foreground) {
+
+        JButton button = new JButton(text);
+
+        button.setFont(
+                new Font(
+                        "Segoe UI",
+                        Font.BOLD,
+                        12
+                )
+        );
+
+        button.setBackground(background);
+        button.setForeground(foreground);
+        button.setFocusPainted(false);
+        button.setCursor(
+                new Cursor(Cursor.HAND_CURSOR)
+        );
+
+        button.setBorder(
+                new EmptyBorder(
+                        8,
+                        14,
+                        8,
+                        14
+                )
+        );
+
+        return button;
     }
 
-    // ================= FLAT CHECKBOX ICON =================
-    private static class FlatCheckIcon implements Icon {
+    private JLabel createSummaryLabel(
+            String text) {
+
+        JLabel label = new JLabel(text);
+
+        label.setFont(
+                new Font(
+                        "Segoe UI",
+                        Font.PLAIN,
+                        13
+                )
+        );
+
+        label.setForeground(
+                new Color(90, 95, 100)
+        );
+
+        return label;
+    }
+
+    private JLabel createSummaryValue(
+            String text,
+            Color color) {
+
+        JLabel label =
+                new JLabel(
+                        text,
+                        SwingConstants.RIGHT
+                );
+
+        label.setFont(
+                new Font(
+                        "Segoe UI",
+                        Font.PLAIN,
+                        13
+                )
+        );
+
+        label.setForeground(color);
+
+        return label;
+    }
+
+    private static class FlatCheckIcon
+            implements Icon {
 
         private final boolean checked;
 
@@ -580,161 +1029,602 @@ public class POSFrame extends JPanel {
             this.checked = checked;
         }
 
-        @Override public int getIconWidth()  { return 16; }
-        @Override public int getIconHeight() { return 16; }
+        @Override
+        public int getIconWidth() {
+            return 16;
+        }
 
         @Override
-        public void paintIcon(Component c, Graphics g, int x, int y) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
-                    RenderingHints.VALUE_ANTIALIAS_ON);
+        public int getIconHeight() {
+            return 16;
+        }
 
-            Color blue = new Color(51, 122, 183);
-            g2.setColor(checked ? blue : Color.WHITE);
-            g2.fillRect(x, y, 15, 15);
-            g2.setColor(checked ? blue : new Color(160, 165, 170));
-            g2.drawRect(x, y, 15, 15);
+        @Override
+        public void paintIcon(
+                Component c,
+                Graphics g,
+                int x,
+                int y) {
+
+            Graphics2D g2 =
+                    (Graphics2D) g.create();
+
+            g2.setRenderingHint(
+                    RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON
+            );
+
+            Color blue =
+                    new Color(51, 122, 183);
+
+            g2.setColor(
+                    checked
+                            ? blue
+                            : Color.WHITE
+            );
+
+            g2.fillRect(
+                    x,
+                    y,
+                    15,
+                    15
+            );
+
+            g2.setColor(
+                    checked
+                            ? blue
+                            : new Color(
+                                    160,
+                                    165,
+                                    170
+                            )
+            );
+
+            g2.drawRect(
+                    x,
+                    y,
+                    15,
+                    15
+            );
 
             if (checked) {
+
                 g2.setColor(Color.WHITE);
-                g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
-                g2.drawLine(x + 4, y + 8, x + 7, y + 11);
-                g2.drawLine(x + 7, y + 11, x + 12, y + 4);
+
+                g2.setStroke(
+                        new BasicStroke(
+                                2f,
+                                BasicStroke.CAP_ROUND,
+                                BasicStroke.JOIN_ROUND
+                        )
+                );
+
+                g2.drawLine(
+                        x + 4,
+                        y + 8,
+                        x + 7,
+                        y + 11
+                );
+
+                g2.drawLine(
+                        x + 7,
+                        y + 11,
+                        x + 12,
+                        y + 4
+                );
             }
+
             g2.dispose();
         }
     }
 
-    // ================= CUSTOM DIALOG =================
     private static class CustomDialog {
 
-        private static String inputResult = null;
+        private static String inputResult;
 
-        public static void showMessage(Component parent, String message,
-                                       String title, boolean isWarning) {
+        public static void showMessage(
+                Component parent,
+                String message,
+                String title,
+                boolean isWarning) {
 
-            JDialog dialog = new JDialog(
-                    (Frame) SwingUtilities.getWindowAncestor(parent), title, true);
+            Window owner =
+                    SwingUtilities.getWindowAncestor(
+                            parent
+                    );
 
-            dialog.setSize(450, 180);
+            JDialog dialog =
+                    new JDialog(
+                            owner,
+                            title,
+                            Dialog.ModalityType.APPLICATION_MODAL
+                    );
+
+            dialog.setSize(450, 190);
             dialog.setLocationRelativeTo(parent);
-            dialog.setLayout(new BorderLayout());
+            dialog.setLayout(
+                    new BorderLayout()
+            );
 
-            JPanel topHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
-            topHeader.setBackground(new Color(248, 249, 250));
-            topHeader.setBorder(BorderFactory.createMatteBorder(
-                    0, 0, 1, 0, new Color(220, 225, 230)));
+            JPanel topHeader =
+                    new JPanel(
+                            new FlowLayout(
+                                    FlowLayout.LEFT,
+                                    15,
+                                    10
+                            )
+                    );
 
-            JLabel lblTitle = new JLabel(title);
-            lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
-            lblTitle.setForeground(isWarning
-                    ? new Color(217, 119, 6)
-                    : new Color(50, 60, 70));
+            topHeader.setBackground(
+                    new Color(248, 249, 250)
+            );
+
+            topHeader.setBorder(
+                    BorderFactory.createMatteBorder(
+                            0,
+                            0,
+                            1,
+                            0,
+                            new Color(
+                                    220,
+                                    225,
+                                    230
+                            )
+                    )
+            );
+
+            JLabel lblTitle =
+                    new JLabel(title);
+
+            lblTitle.setFont(
+                    new Font(
+                            "Segoe UI",
+                            Font.BOLD,
+                            13
+                    )
+            );
+
+            lblTitle.setForeground(
+                    isWarning
+                            ? new Color(
+                                    217,
+                                    119,
+                                    6
+                            )
+                            : new Color(
+                                    50,
+                                    60,
+                                    70
+                            )
+            );
 
             topHeader.add(lblTitle);
-            dialog.add(topHeader, BorderLayout.NORTH);
 
-            JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 20));
-            centerPanel.setBackground(Color.WHITE);
+            dialog.add(
+                    topHeader,
+                    BorderLayout.NORTH
+            );
 
-            JLabel lblMsg = new JLabel(
-                    "<html>" + message.replace("\n", "<br>") + "</html>");
-            lblMsg.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-            lblMsg.setForeground(new Color(70, 75, 80));
+            JPanel centerPanel =
+                    new JPanel(
+                            new FlowLayout(
+                                    FlowLayout.LEFT,
+                                    20,
+                                    20
+                            )
+                    );
+
+            centerPanel.setBackground(
+                    Color.WHITE
+            );
+
+            JLabel lblMsg =
+                    new JLabel(
+                            "<html>" +
+                                    message.replace(
+                                            "\n",
+                                            "<br>"
+                                    ) +
+                                    "</html>"
+                    );
+
+            lblMsg.setFont(
+                    new Font(
+                            "Segoe UI",
+                            Font.PLAIN,
+                            13
+                    )
+            );
+
+            lblMsg.setForeground(
+                    new Color(
+                            70,
+                            75,
+                            80
+                    )
+            );
 
             centerPanel.add(lblMsg);
-            dialog.add(centerPanel, BorderLayout.CENTER);
 
-            JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
-            bottomPanel.setBackground(new Color(248, 249, 250));
-            bottomPanel.setBorder(BorderFactory.createMatteBorder(
-                    1, 0, 0, 0, new Color(220, 225, 230)));
+            dialog.add(
+                    centerPanel,
+                    BorderLayout.CENTER
+            );
 
-            JButton btnOk = new JButton("OK");
-            btnOk.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            btnOk.setBackground(new Color(13, 148, 136));
+            JPanel bottomPanel =
+                    new JPanel(
+                            new FlowLayout(
+                                    FlowLayout.RIGHT,
+                                    15,
+                                    10
+                            )
+                    );
+
+            bottomPanel.setBackground(
+                    new Color(
+                            248,
+                            249,
+                            250
+                    )
+            );
+
+            bottomPanel.setBorder(
+                    BorderFactory.createMatteBorder(
+                            1,
+                            0,
+                            0,
+                            0,
+                            new Color(
+                                    220,
+                                    225,
+                                    230
+                            )
+                    )
+            );
+
+            JButton btnOk =
+                    new JButton("OK");
+
+            btnOk.setFont(
+                    new Font(
+                            "Segoe UI",
+                            Font.BOLD,
+                            12
+                    )
+            );
+
+            btnOk.setBackground(
+                    new Color(
+                            13,
+                            148,
+                            136
+                    )
+            );
+
             btnOk.setForeground(Color.WHITE);
             btnOk.setFocusPainted(false);
-            btnOk.setBorder(BorderFactory.createEmptyBorder(6, 18, 6, 18));
-            btnOk.setCursor(new Cursor(Cursor.HAND_CURSOR));
-            btnOk.addActionListener(e -> dialog.dispose());
+            btnOk.setBorder(
+                    BorderFactory.createEmptyBorder(
+                            6,
+                            18,
+                            6,
+                            18
+                    )
+            );
+
+            btnOk.setCursor(
+                    new Cursor(
+                            Cursor.HAND_CURSOR
+                    )
+            );
+
+            btnOk.addActionListener(
+                    e -> dialog.dispose()
+            );
 
             bottomPanel.add(btnOk);
-            dialog.add(bottomPanel, BorderLayout.SOUTH);
+
+            dialog.add(
+                    bottomPanel,
+                    BorderLayout.SOUTH
+            );
+
+            dialog.getRootPane()
+                    .setDefaultButton(btnOk);
 
             dialog.setVisible(true);
         }
 
-        public static String showInput(Component parent, String message, String title) {
+        public static String showInput(
+                Component parent,
+                String message,
+                String title) {
 
             inputResult = null;
 
-            JDialog dialog = new JDialog(
-                    (Frame) SwingUtilities.getWindowAncestor(parent), title, true);
+            Window owner =
+                    SwingUtilities.getWindowAncestor(
+                            parent
+                    );
 
-            dialog.setSize(450, 200);
+            JDialog dialog =
+                    new JDialog(
+                            owner,
+                            title,
+                            Dialog.ModalityType.APPLICATION_MODAL
+                    );
+
+            dialog.setSize(450, 220);
             dialog.setLocationRelativeTo(parent);
-            dialog.setLayout(new BorderLayout());
+            dialog.setLayout(
+                    new BorderLayout()
+            );
 
-            JPanel topHeader = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 10));
-            topHeader.setBackground(new Color(248, 249, 250));
-            topHeader.setBorder(BorderFactory.createMatteBorder(
-                    0, 0, 1, 0, new Color(220, 225, 230)));
+            JPanel topHeader =
+                    new JPanel(
+                            new FlowLayout(
+                                    FlowLayout.LEFT,
+                                    15,
+                                    10
+                            )
+                    );
 
-            JLabel lblTitle = new JLabel(title);
-            lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
-            lblTitle.setForeground(new Color(50, 60, 70));
+            topHeader.setBackground(
+                    new Color(
+                            248,
+                            249,
+                            250
+                    )
+            );
+
+            topHeader.setBorder(
+                    BorderFactory.createMatteBorder(
+                            0,
+                            0,
+                            1,
+                            0,
+                            new Color(
+                                    220,
+                                    225,
+                                    230
+                            )
+                    )
+            );
+
+            JLabel lblTitle =
+                    new JLabel(title);
+
+            lblTitle.setFont(
+                    new Font(
+                            "Segoe UI",
+                            Font.BOLD,
+                            13
+                    )
+            );
+
+            lblTitle.setForeground(
+                    new Color(
+                            50,
+                            60,
+                            70
+                    )
+            );
 
             topHeader.add(lblTitle);
-            dialog.add(topHeader, BorderLayout.NORTH);
 
-            JPanel centerPanel = new JPanel();
-            centerPanel.setLayout(new BoxLayout(centerPanel, BoxLayout.Y_AXIS));
-            centerPanel.setBackground(Color.WHITE);
-            centerPanel.setBorder(new EmptyBorder(15, 20, 15, 20));
+            dialog.add(
+                    topHeader,
+                    BorderLayout.NORTH
+            );
 
-            JLabel lblMsg = new JLabel(message);
-            lblMsg.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-            lblMsg.setForeground(new Color(70, 75, 80));
-            lblMsg.setAlignmentX(Component.LEFT_ALIGNMENT);
+            JPanel centerPanel =
+                    new JPanel();
+
+            centerPanel.setLayout(
+                    new BoxLayout(
+                            centerPanel,
+                            BoxLayout.Y_AXIS
+                    )
+            );
+
+            centerPanel.setBackground(
+                    Color.WHITE
+            );
+
+            centerPanel.setBorder(
+                    new EmptyBorder(
+                            15,
+                            20,
+                            15,
+                            20
+                    )
+            );
+
+            JLabel lblMsg =
+                    new JLabel(message);
+
+            lblMsg.setFont(
+                    new Font(
+                            "Segoe UI",
+                            Font.PLAIN,
+                            13
+                    )
+            );
+
+            lblMsg.setForeground(
+                    new Color(
+                            70,
+                            75,
+                            80
+                    )
+            );
+
+            lblMsg.setAlignmentX(
+                    Component.LEFT_ALIGNMENT
+            );
 
             centerPanel.add(lblMsg);
-            centerPanel.add(Box.createVerticalStrut(10));
 
-            JTextField textField = new JTextField();
-            textField.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-            textField.setMaximumSize(new Dimension(Integer.MAX_VALUE, 32));
-            textField.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(new Color(200, 205, 210)),
-                    BorderFactory.createEmptyBorder(4, 6, 4, 6)));
-            textField.setAlignmentX(Component.LEFT_ALIGNMENT);
+            centerPanel.add(
+                    Box.createVerticalStrut(10)
+            );
+
+            JTextField textField =
+                    new JTextField();
+
+            textField.setFont(
+                    new Font(
+                            "Segoe UI",
+                            Font.PLAIN,
+                            13
+                    )
+            );
+
+            textField.setMaximumSize(
+                    new Dimension(
+                            Integer.MAX_VALUE,
+                            32
+                    )
+            );
+
+            textField.setBorder(
+                    BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(
+                                    new Color(
+                                            200,
+                                            205,
+                                            210
+                                    )
+                            ),
+                            BorderFactory.createEmptyBorder(
+                                    4,
+                                    6,
+                                    4,
+                                    6
+                            )
+                    )
+            );
+
+            textField.setAlignmentX(
+                    Component.LEFT_ALIGNMENT
+            );
 
             centerPanel.add(textField);
-            dialog.add(centerPanel, BorderLayout.CENTER);
 
-            JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
-            bottomPanel.setBackground(new Color(248, 249, 250));
-            bottomPanel.setBorder(BorderFactory.createMatteBorder(
-                    1, 0, 0, 0, new Color(220, 225, 230)));
+            dialog.add(
+                    centerPanel,
+                    BorderLayout.CENTER
+            );
 
-            JButton btnOk = new JButton("OK");
-            btnOk.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            btnOk.setBackground(new Color(13, 148, 136));
+            JPanel bottomPanel =
+                    new JPanel(
+                            new FlowLayout(
+                                    FlowLayout.RIGHT,
+                                    10,
+                                    10
+                            )
+                    );
+
+            bottomPanel.setBackground(
+                    new Color(
+                            248,
+                            249,
+                            250
+                    )
+            );
+
+            bottomPanel.setBorder(
+                    BorderFactory.createMatteBorder(
+                            1,
+                            0,
+                            0,
+                            0,
+                            new Color(
+                                    220,
+                                    225,
+                                    230
+                            )
+                    )
+            );
+
+            JButton btnOk =
+                    new JButton("OK");
+
+            btnOk.setFont(
+                    new Font(
+                            "Segoe UI",
+                            Font.BOLD,
+                            12
+                    )
+            );
+
+            btnOk.setBackground(
+                    new Color(
+                            13,
+                            148,
+                            136
+                    )
+            );
+
             btnOk.setForeground(Color.WHITE);
             btnOk.setFocusPainted(false);
-            btnOk.setBorder(BorderFactory.createEmptyBorder(6, 18, 6, 18));
-            btnOk.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            btnOk.setBorder(
+                    BorderFactory.createEmptyBorder(
+                            6,
+                            18,
+                            6,
+                            18
+                    )
+            );
 
-            JButton btnCancel = new JButton("Cancel");
-            btnCancel.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            btnCancel.setBackground(new Color(220, 53, 69));
+            btnOk.setCursor(
+                    new Cursor(
+                            Cursor.HAND_CURSOR
+                    )
+            );
+
+            JButton btnCancel =
+                    new JButton("Cancel");
+
+            btnCancel.setFont(
+                    new Font(
+                            "Segoe UI",
+                            Font.BOLD,
+                            12
+                    )
+            );
+
+            btnCancel.setBackground(
+                    new Color(
+                            220,
+                            53,
+                            69
+                    )
+            );
+
             btnCancel.setForeground(Color.WHITE);
             btnCancel.setFocusPainted(false);
-            btnCancel.setBorder(BorderFactory.createEmptyBorder(6, 18, 6, 18));
-            btnCancel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            btnCancel.setBorder(
+                    BorderFactory.createEmptyBorder(
+                            6,
+                            18,
+                            6,
+                            18
+                    )
+            );
+
+            btnCancel.setCursor(
+                    new Cursor(
+                            Cursor.HAND_CURSOR
+                    )
+            );
 
             btnOk.addActionListener(e -> {
-                inputResult = textField.getText().trim();
+                inputResult =
+                        textField
+                                .getText()
+                                .trim();
+
                 dialog.dispose();
             });
 
@@ -743,10 +1633,25 @@ public class POSFrame extends JPanel {
                 dialog.dispose();
             });
 
+            textField.addActionListener(e -> {
+                inputResult =
+                        textField
+                                .getText()
+                                .trim();
+
+                dialog.dispose();
+            });
+
             bottomPanel.add(btnOk);
             bottomPanel.add(btnCancel);
 
-            dialog.add(bottomPanel, BorderLayout.SOUTH);
+            dialog.add(
+                    bottomPanel,
+                    BorderLayout.SOUTH
+            );
+
+            dialog.getRootPane()
+                    .setDefaultButton(btnOk);
 
             dialog.setVisible(true);
 

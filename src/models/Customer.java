@@ -1,6 +1,7 @@
 package models;
 
 public class Customer {
+
     private int id;
     private String lastname;
     private String firstname;
@@ -12,8 +13,8 @@ public class Customer {
     public Customer() {
     }
 
-    public Customer(int id, String lastname, String firstname, String contact, String address,
-                     String lastPurchaseDate, String dateRegistered) {
+    public Customer(int id, String lastname, String firstname, String contact,
+                    String address, String lastPurchaseDate, String dateRegistered) {
         this.id = id;
         this.lastname = lastname;
         this.firstname = firstname;
@@ -23,8 +24,8 @@ public class Customer {
         this.dateRegistered = dateRegistered;
     }
 
-    /** Convenience constructor kept for backward compatibility (no address/dateRegistered). */
-    public Customer(int id, String name, String firstname, String contact, String lastPurchaseDate) {
+    public Customer(int id, String lastname, String firstname, String contact,
+                    String lastPurchaseDate) {
         this(id, lastname, firstname, contact, "", lastPurchaseDate, "");
     }
 
@@ -36,20 +37,42 @@ public class Customer {
         this.id = id;
     }
 
-    public String getLastName(){
+    public String getLastName() {
         return lastname;
-    }
-
-    public String getFirstName() {
-        return firstname;
     }
 
     public void setLastName(String lastname) {
         this.lastname = lastname;
     }
 
-    public void setFirstName(String firstname){
+    public String getFirstName() {
+        return firstname;
+    }
+
+    public void setFirstName(String firstname) {
         this.firstname = firstname;
+    }
+
+    public String getName() {
+        return (firstname + " " + lastname).trim();
+    }
+
+    public void setName(String name) {
+        if (name == null || name.trim().isEmpty()) {
+            this.firstname = "";
+            this.lastname = "";
+            return;
+        }
+
+        String[] parts = name.trim().split("\\s+", 2);
+
+        if (parts.length == 1) {
+            this.firstname = parts[0];
+            this.lastname = "";
+        } else {
+            this.firstname = parts[0];
+            this.lastname = parts[1];
+        }
     }
 
     public String getContact() {
