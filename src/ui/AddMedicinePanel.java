@@ -1014,4 +1014,5 @@ public class AddMedicinePanel extends JPanel {
             return userConfirmed;
         }
     }
+    
 }

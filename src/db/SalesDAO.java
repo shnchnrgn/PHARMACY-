@@ -247,6 +247,89 @@ public class SalesDAO {
         }
     }
 
+    public static void addSale(
+            String description,
+            double amount,
+            String purchaseDate) throws SQLException {
+
+        String orderNo = "ORD-" + System.currentTimeMillis();
+
+        String sql =
+                "INSERT INTO sales " +
+                "(order_no, purchase_date, amount) " +
+                "VALUES (?, ?, ?)";
+
+        try (Connection conn =
+                     Database.getConnection();
+             PreparedStatement pstmt =
+                     conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, orderNo + " (" + description + ")");
+            pstmt.setString(2, purchaseDate);
+            pstmt.setDouble(3, amount);
+
+            pstmt.executeUpdate();
+        }
+    }
+
+    public static void deleteSale(
+            int id) throws SQLException {
+
+        String sql =
+                "DELETE FROM sales " +
+                "WHERE id = ?";
+
+        try (Connection conn =
+                     Database.getConnection();
+             PreparedStatement pstmt =
+                     conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, id);
+
+            pstmt.executeUpdate();
+        }
+    }
+
+    public static List<String[]> getAllSales() {
+
+        List<String[]> sales =
+                new ArrayList<>();
+
+        String sql =
+                "SELECT " +
+                "id, " +
+                "purchase_date, " +
+                "COALESCE(order_no, 'Direct Sale') AS description, " +
+                "amount " +
+                "FROM sales " +
+                "ORDER BY id DESC";
+
+        try (Connection conn =
+                     Database.getConnection();
+             PreparedStatement pstmt =
+                     conn.prepareStatement(sql);
+             ResultSet rs =
+                     pstmt.executeQuery()) {
+
+            while (rs.next()) {
+
+                sales.add(
+                        new String[]{
+                                String.valueOf(rs.getInt("id")),
+                                rs.getString("purchase_date"),
+                                rs.getString("description"),
+                                String.format("%.2f", rs.getDouble("amount"))
+                        }
+                );
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return sales;
+    }
+
     public static int getTodaySalesCount() {
 
         String today =
@@ -331,6 +414,32 @@ public class SalesDAO {
         );
     }
 
+    public static double getThisYearSalesTotal() {
+
+        String yearStart =
+                LocalDate.now()
+                        .withDayOfYear(1)
+                        .toString();
+
+        String nextYearStart =
+                LocalDate.now()
+                        .withDayOfYear(1)
+                        .plusYears(1)
+                        .toString();
+
+        String sql =
+                "SELECT COALESCE(SUM(amount),0) " +
+                "FROM sales " +
+                "WHERE substr(purchase_date,1,10) >= ? " +
+                "AND substr(purchase_date,1,10) < ?";
+
+        return getDouble(
+                sql,
+                yearStart,
+                nextYearStart
+        );
+    }
+
     public static double getThisMonthSalesProfit() {
 
         String month =
@@ -361,6 +470,39 @@ public class SalesDAO {
                 sql,
                 month,
                 nextMonth
+        );
+    }
+
+    public static double getThisYearSalesProfit() {
+
+        String yearStart =
+                LocalDate.now()
+                        .withDayOfYear(1)
+                        .toString();
+
+        String nextYearStart =
+                LocalDate.now()
+                        .withDayOfYear(1)
+                        .plusYears(1)
+                        .toString();
+
+        String sql =
+                "SELECT COALESCE(" +
+                "SUM((" +
+                "si.unit_price - COALESCE(m.buy_price,0)" +
+                ") * si.quantity),0) " +
+                "FROM sale_items si " +
+                "INNER JOIN sales s " +
+                "ON s.id = si.sale_id " +
+                "INNER JOIN medicines m " +
+                "ON m.id = si.medicine_id " +
+                "WHERE substr(s.purchase_date,1,10) >= ? " +
+                "AND substr(s.purchase_date,1,10) < ?";
+
+        return getDouble(
+                sql,
+                yearStart,
+                nextYearStart
         );
     }
 
@@ -447,6 +589,32 @@ public class SalesDAO {
                 sql,
                 month,
                 nextMonth
+        );
+    }
+
+    public static double getThisYearExpenseTotal() {
+
+        String yearStart =
+                LocalDate.now()
+                        .withDayOfYear(1)
+                        .toString();
+
+        String nextYearStart =
+                LocalDate.now()
+                        .withDayOfYear(1)
+                        .plusYears(1)
+                        .toString();
+
+        String sql =
+                "SELECT COALESCE(SUM(amount),0) " +
+                "FROM expenses " +
+                "WHERE substr(expense_date,1,10) >= ? " +
+                "AND substr(expense_date,1,10) < ?";
+
+        return getDouble(
+                sql,
+                yearStart,
+                nextYearStart
         );
     }
 

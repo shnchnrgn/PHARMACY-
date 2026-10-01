@@ -68,6 +68,11 @@ public class App extends JFrame {
         );
 
         mainContentPanel.add(
+                new SalesPanel(),
+                "SALES"
+        );
+
+        mainContentPanel.add(
                 new MedicinePanel(),
                 "MEDICINE_LIST"
         );
@@ -292,6 +297,31 @@ public class App extends JFrame {
         );
 
         sb.add(posButton);
+
+        JButton salesButton =
+                createStyledNavButton(
+                        "Sales",
+                        "/ui/pos.png"
+                );
+
+        salesButton.addActionListener(
+                e -> {
+
+                    selectButton(
+                            (JButton) e.getSource()
+                    );
+
+                    cardLayout.show(
+                            mainContentPanel,
+                            "SALES"
+                    );
+
+                    mainContentPanel.revalidate();
+                    mainContentPanel.repaint();
+                }
+        );
+
+        sb.add(salesButton);
 
         JButton medicineButton =
                 createMedicineDropdownButton();
@@ -1168,25 +1198,25 @@ public class App extends JFrame {
         return button;
     }
 
-    public static void main(
-            String[] args
-    ) {
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                UIManager.setLookAndFeel(
+                        UIManager.getCrossPlatformLookAndFeelClassName()
+                );
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
 
-        SwingUtilities.invokeLater(
-                () -> {
+            LoginDialog loginDialog = new LoginDialog(null);
+            loginDialog.setVisible(true);
 
-                    try {
-
-                        UIManager.setLookAndFeel(
-                                UIManager
-                                        .getCrossPlatformLookAndFeelClassName()
-                        );
-
-                    } catch (Exception e) {
-                    }
-
-                    new App().setVisible(true);
-                }
-        );
+            if (loginDialog.isLoggedIn()) {
+                App app = new App();
+                app.setVisible(true);
+            } else {
+                System.exit(0);
+            }
+        });
     }
 }
