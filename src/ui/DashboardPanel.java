@@ -2,14 +2,14 @@ package ui;
 
 import db.MedicineDAO;
 import db.SalesDAO;
-
+import java.awt.*;
+import java.util.List;
 import javax.swing.*;
 import javax.swing.border.Border;
+import javax.swing.border.EmptyBorder;
 import javax.swing.plaf.basic.BasicScrollBarUI;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-import java.awt.*;
-import java.util.List;
 
 public class DashboardPanel extends JPanel {
 
@@ -30,13 +30,10 @@ public class DashboardPanel extends JPanel {
     private static JLabel lblTotalExpensesAmount;
 
     public DashboardPanel() {
-<<<<<<< HEAD
         setLayout(new BorderLayout(0, 15));
         setBackground(new Color (255,255,255));
         setOpaque(true);
         setBorder(new EmptyBorder(20, 20, 20, 20));
-=======
->>>>>>> a070550ecfc4e6291a77b96803a225041000df43
 
         setLayout(new BorderLayout());
         setBackground(new Color(240, 242, 245));

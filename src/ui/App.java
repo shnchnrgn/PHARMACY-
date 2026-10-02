@@ -1,10 +1,7 @@
 package ui;
 
 import db.Database;
-<<<<<<< HEAD
-=======
 
->>>>>>> a070550ecfc4e6291a77b96803a225041000df43
 import javax.swing.*;
 import java.awt.*;
 import java.util.ArrayList;
@@ -20,10 +17,6 @@ public class App extends JFrame {
     private boolean isMedicineMenuOpen = true;
     private JLabel lblArrow;
 
-<<<<<<< HEAD
-    public App() { 
-        Database.createTables();
-=======
     private JButton selectedButton;
     private final List<JButton> navigationButtons = new ArrayList<>();
 
@@ -52,7 +45,6 @@ public class App extends JFrame {
 
         Database.createTables();
 
->>>>>>> a070550ecfc4e6291a77b96803a225041000df43
         setTitle("Pharmacy Management System");
         setSize(1250, 720);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -127,11 +119,6 @@ public class App extends JFrame {
     private JPanel createSidebar() {
 
         JPanel sb = new JPanel();
-<<<<<<< HEAD
-        sb.setPreferredSize(new Dimension(240, getHeight()));
-        sb.setBackground(new Color(29, 45, 80));
-        sb.setLayout(new BoxLayout(sb, BoxLayout.Y_AXIS));
-=======
 
         sb.setPreferredSize(
                 new Dimension(
@@ -150,7 +137,6 @@ public class App extends JFrame {
                         BoxLayout.Y_AXIS
                 )
         );
->>>>>>> a070550ecfc4e6291a77b96803a225041000df43
 
         JLabel lblLogo;
 
@@ -216,14 +202,6 @@ public class App extends JFrame {
             );
 
         } catch (Exception e) {
-<<<<<<< HEAD
-            lblLogo = new JLabel("Vanguard MS");
-            lblLogo.setForeground(Color.WHITE);
-            lblLogo.setFont(new Font("Segoe UI", Font.BOLD, 16));
-            lblLogo.setMaximumSize(new Dimension(240, 40));
-            lblLogo.setBorder(BorderFactory.createEmptyBorder(5, 10, 2, 10));
-            lblLogo.setBackground(new Color(142,197,255));
-=======
 
             lblLogo =
                     new JLabel(
@@ -261,7 +239,6 @@ public class App extends JFrame {
                             12
                     )
             );
->>>>>>> a070550ecfc4e6291a77b96803a225041000df43
         }
 
         sb.add(lblLogo);
@@ -813,16 +790,9 @@ public class App extends JFrame {
                 )
         );
 
-<<<<<<< HEAD
-        lblArrow = new JLabel("^");
-        lblArrow.setForeground(Color.WHITE);
-        lblArrow.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lblArrow.setBackground(new Color(240, 242, 245));
-=======
         button.setAlignmentX(
                 Component.LEFT_ALIGNMENT
         );
->>>>>>> a070550ecfc4e6291a77b96803a225041000df43
 
         button.setBorder(
                 BorderFactory.createEmptyBorder(
@@ -1161,7 +1131,7 @@ public class App extends JFrame {
         );
 
         button.setHorizontalAlignment(
-                SwingConstants.LEFT
+                        SwingConstants.LEFT
         );
 
         button.setFont(

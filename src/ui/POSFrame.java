@@ -1,14 +1,13 @@
 package ui;
 
 import db.CustomerDAO;
-<<<<<<< HEAD
-=======
 import db.MedicineDAO;
 import db.SalesDAO;
-import models.Customer;
-import models.Medicine;
-
->>>>>>> a070550ecfc4e6291a77b96803a225041000df43
+import java.awt.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
@@ -16,11 +15,8 @@ import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableRowSorter;
-import java.awt.*;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.List;
+import models.Customer;
+import models.Medicine;
 
 public class POSFrame extends JPanel {
 
@@ -85,11 +81,7 @@ public class POSFrame extends JPanel {
         searchPanel.setOpaque(false);
         searchPanel.setBorder(new EmptyBorder(0, 0, 12, 0));
 
-<<<<<<< HEAD
-        JLabel lblSearch = new JLabel("Search Medicine: ");
-=======
         JLabel lblSearch = new JLabel("Search Medicine:");
->>>>>>> a070550ecfc4e6291a77b96803a225041000df43
         lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 12));
         lblSearch.setForeground(new Color(70, 75, 80));
 
@@ -100,15 +92,6 @@ public class POSFrame extends JPanel {
                 new EmptyBorder(6, 8, 6, 8)
         ));
 
-<<<<<<< HEAD
-        JButton btnSearch = new JButton("Search");
-        btnSearch.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnSearch.setBackground(new Color(240, 242, 245));
-        btnSearch.setForeground(new Color(70, 75, 80));
-        btnSearch.setFocusPainted(false);
-        btnSearch.setBorder(BorderFactory.createLineBorder(new Color(190, 195, 200)));
-        btnSearch.setCursor(new Cursor(Cursor.HAND_CURSOR));
-=======
         searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             @Override
             public void insertUpdate(javax.swing.event.DocumentEvent e) { filterTable(); }
@@ -126,17 +109,12 @@ public class POSFrame extends JPanel {
                 }
             }
         });
->>>>>>> a070550ecfc4e6291a77b96803a225041000df43
 
         searchPanel.add(lblSearch, BorderLayout.WEST);
         searchPanel.add(searchField, BorderLayout.CENTER);
 
         leftPanel.add(searchPanel, BorderLayout.NORTH);
 
-<<<<<<< HEAD
-        String[] medColumns = {"Medicine Name", "Category", "Price", "Stock"};
-=======
-        // Idinagdag ang Status column para makita kung Active, Out of Stock, o Expired
         String[] medColumns = {
                 "Medicine Name",
                 "Category",
@@ -145,7 +123,6 @@ public class POSFrame extends JPanel {
                 "Status",
                 "ID"
         };
->>>>>>> a070550ecfc4e6291a77b96803a225041000df43
 
         medicineModel = new DefaultTableModel(medColumns, 0) {
             @Override
@@ -153,11 +130,6 @@ public class POSFrame extends JPanel {
                 return false;
             }
         };
-<<<<<<< HEAD
-
-        loadMedicinesToPOS();
-=======
->>>>>>> a070550ecfc4e6291a77b96803a225041000df43
 
         medicineTable = new JTable(medicineModel);
         
@@ -183,7 +155,6 @@ public class POSFrame extends JPanel {
         );
         medicineTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-        // Custom Renderer para sa pag-highlight ng Out of Stock o Expired (Red Bold)
         DefaultTableCellRenderer statusRenderer = new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
@@ -195,8 +166,8 @@ public class POSFrame extends JPanel {
                     String status = table.getModel().getValueAt(modelRow, 4).toString();
                     
                     if ("Out of Stock".equalsIgnoreCase(status) || "Expired".equalsIgnoreCase(status)) {
-                        c.setForeground(new Color(192, 57, 43)); // Red color
-                        setFont(new Font("Segoe UI", Font.BOLD, 12)); // Bold font
+                        c.setForeground(new Color(192, 57, 43));
+                        setFont(new Font("Segoe UI", Font.BOLD, 12));
                     } else {
                         c.setForeground(new Color(70, 75, 80));
                         setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -217,7 +188,6 @@ public class POSFrame extends JPanel {
             medicineTable.getColumnModel().getColumn(i).setCellRenderer(statusRenderer);
         }
 
-        // Itago ang ID column
         medicineTable.getColumnModel().getColumn(5).setMinWidth(0);
         medicineTable.getColumnModel().getColumn(5).setMaxWidth(0);
         medicineTable.getColumnModel().getColumn(5).setPreferredWidth(0);
@@ -230,15 +200,6 @@ public class POSFrame extends JPanel {
 
         leftPanel.add(medScroll, BorderLayout.CENTER);
 
-<<<<<<< HEAD
-        JButton btnAddToCart = new JButton("Add to Cart");
-        btnAddToCart.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnAddToCart.setBackground(new Color(51, 122, 183));
-        btnAddToCart.setForeground(Color.WHITE);
-        btnAddToCart.setFocusPainted(false);
-        btnAddToCart.setBorder(new EmptyBorder(10, 0, 10, 0));
-        btnAddToCart.setCursor(new Cursor(Cursor.HAND_CURSOR));
-=======
         JButton btnAddToCart = createButton(
                 "Add to Cart",
                 new Color(41, 128, 185),
@@ -248,7 +209,6 @@ public class POSFrame extends JPanel {
         btnAddToCart.setBorder(
                 new EmptyBorder(10, 0, 10, 0)
         );
->>>>>>> a070550ecfc4e6291a77b96803a225041000df43
 
         JPanel btnAddWrapper = new JPanel(new BorderLayout());
         btnAddWrapper.setOpaque(false);
@@ -289,10 +249,6 @@ public class POSFrame extends JPanel {
 
         rightPanel.add(lblCartTitle, BorderLayout.NORTH);
 
-<<<<<<< HEAD
-        String[] cartColumns = {"Item Name", "Price", "Qty", "Total"};
-        cartModel = new DefaultTableModel(new Object[][]{}, cartColumns);
-=======
         String[] cartColumns = {
                 "Item Name",
                 "Price",
@@ -310,7 +266,6 @@ public class POSFrame extends JPanel {
                 return false;
             }
         };
->>>>>>> a070550ecfc4e6291a77b96803a225041000df43
 
         cartTable = new JTable(cartModel);
         
@@ -349,40 +304,12 @@ public class POSFrame extends JPanel {
         bottomCartPanel.setOpaque(false);
         bottomCartPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
 
-<<<<<<< HEAD
-        JPanel subtotalPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-        subtotalPanel.setOpaque(false);
-
-        JLabel lblSubtotalText = new JLabel("Subtotal: ");
-        lblSubtotalText.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        lblSubtotalText.setForeground(new Color(90, 95, 100));
-
-        lblSubtotalVal = new JLabel("₱ 0.00");
-        lblSubtotalVal.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        lblSubtotalVal.setForeground(new Color(40, 167, 69));
-
-        subtotalPanel.add(lblSubtotalText);
-        subtotalPanel.add(lblSubtotalVal);
-        bottomCartPanel.add(subtotalPanel, BorderLayout.NORTH);
-
-        JPanel actionButtons = new JPanel(new GridLayout(1, 2, 10, 0));
-        actionButtons.setOpaque(false);
-
-        JButton btnRemove = new JButton("Remove Item");
-        btnRemove.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnRemove.setBackground(new Color(220, 53, 69));
-        btnRemove.setForeground(Color.WHITE);
-        btnRemove.setFocusPainted(false);
-        btnRemove.setBorder(new EmptyBorder(10, 0, 10, 0));
-        btnRemove.setCursor(new Cursor(Cursor.HAND_CURSOR));
-=======
         JPanel summaryWrap = buildSummaryPanel();
 
         bottomCartPanel.add(summaryWrap, BorderLayout.NORTH);
 
         JPanel actionButtons = new JPanel(new GridLayout(1, 2, 10, 0));
         actionButtons.setOpaque(false);
->>>>>>> a070550ecfc4e6291a77b96803a225041000df43
 
         JButton btnRemove = createButton(
                 "Remove Item",
@@ -423,38 +350,6 @@ public class POSFrame extends JPanel {
             }
         });
 
-<<<<<<< HEAD
-        btnAddToCart.addActionListener(e -> {
-            int selectedRow = medicineTable.getSelectedRow();
-
-            if (selectedRow != -1) {
-                String name = (String) medicineModel.getValueAt(selectedRow, 0);
-                String priceStr = (String) medicineModel.getValueAt(selectedRow, 2);
-
-                double price = Double.parseDouble(
-                    priceStr.replace("₱", "").trim()
-                );
-
-                boolean found = false;
-
-                for (int i = 0; i < cartModel.getRowCount(); i++) {
-                    if (cartModel.getValueAt(i, 0).equals(name)) {
-
-                        int qty = Integer.parseInt(
-                            (String) cartModel.getValueAt(i, 2)
-                        ) + 1;
-
-                        cartModel.setValueAt(
-                            String.valueOf(qty), i, 2
-                        );
-
-                        cartModel.setValueAt(
-                            String.format("₱%.2f", price * qty),
-                            i, 3
-                        );
-
-                        found = true;
-=======
         return rightPanel;
     }
 
@@ -585,7 +480,6 @@ public class POSFrame extends JPanel {
                             .toString()
             );
 
-            // Bawal i-add sa cart kung Out of Stock o Expired
             if ("Out of Stock".equalsIgnoreCase(status)) {
                 CustomDialog.showMessage(
                         this,
@@ -826,29 +720,10 @@ public class POSFrame extends JPanel {
                 for (int m = 0; m < medicineModel.getRowCount(); m++) {
                     if (medicineModel.getValueAt(m, 0).toString().equals(itemName)) {
                         itemCategory = medicineModel.getValueAt(m, 1).toString();
->>>>>>> a070550ecfc4e6291a77b96803a225041000df43
                         break;
                     }
                 }
 
-<<<<<<< HEAD
-                if (!found) {
-                    cartModel.addRow(new Object[]{
-                        name,
-                        String.format("₱%.2f", price),
-                        "1",
-                        String.format("₱%.2f", price)
-                    });
-                }
-
-                updateSubtotal();
-
-            } else {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Please select a medicine from the list first."
-                );
-=======
                 items.add(
                         new SalesDAO.SaleItemData(
                                 medicineId,
@@ -860,289 +735,8 @@ public class POSFrame extends JPanel {
                 itemsDetails.append("- ").append(itemName)
                             .append(" (Category: ").append(itemCategory)
                             .append(", Qty: ").append(qtySold).append(")<br>");
->>>>>>> a070550ecfc4e6291a77b96803a225041000df43
             }
 
-<<<<<<< HEAD
-        btnRemove.addActionListener(e -> {
-            int selectedCartRow = cartTable.getSelectedRow();
-
-            if (selectedCartRow != -1) {
-
-                String priceStr = (String) cartModel.getValueAt(
-                    selectedCartRow, 1
-                );
-
-                int currentQty = Integer.parseInt(
-                    (String) cartModel.getValueAt(selectedCartRow, 2)
-                );
-
-                if (currentQty > 1) {
-
-                    double unitPrice = Double.parseDouble(
-                        priceStr.replace("₱", "").trim()
-                    );
-
-                    int newQty = currentQty - 1;
-
-                    cartModel.setValueAt(
-                        String.valueOf(newQty),
-                        selectedCartRow,
-                        2
-                    );
-
-                    cartModel.setValueAt(
-                        String.format("₱%.2f", unitPrice * newQty),
-                        selectedCartRow,
-                        3
-                    );
-
-                } else {
-                    cartModel.removeRow(selectedCartRow);
-                }
-
-                updateSubtotal();
-
-            } else {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Please select an item from the cart to remove."
-                );
-            }
-        });
-
-        btnCheckout.addActionListener(e -> {
-            try {
-
-                if (cartModel.getRowCount() > 0) {
-
-                    String customerName = JOptionPane.showInputDialog(
-                        this,
-                        "Enter Customer Name:",
-                        "Customer Details",
-                        JOptionPane.QUESTION_MESSAGE
-                    );
-
-                    if (customerName != null &&
-                        !customerName.trim().isEmpty()) {
-
-                        double totalAmount = calculateTotal();
-
-                        String orderNo =
-                            "ORD-" + (System.currentTimeMillis() % 10000);
-
-                        String currentDate =
-                            LocalDate.now().toString();
-
-                        int customerId = CustomerDAO.getCustomerIdByName(customerName.trim());
-
-                        if (customerId == -1) {
-    JOptionPane.showMessageDialog(
-        this,
-        "Customer not found.\nPlease make sure the customer is already registered.",
-        "Customer Not Found",
-        JOptionPane.WARNING_MESSAGE
-    );
-    return;
-}
-
-                         CustomerDAO.recordPurchase(
-                         customerId,
-                         orderNo,
-                         currentDate,
-                         totalAmount
-                       );
-
-                         CustomerDAO.updateLastPurchaseDate(
-                         customerId,
-                         currentDate
-                      );
-
-                        SharedData.totalSalesToday += totalAmount;
-
-                        SharedData.addSale(
-                        orderNo,
-                        currentDate,
-                        String.format("%.2f", totalAmount),
-                        customerName.trim()
-                        );
-
-                        DashboardPanel.refreshDashboardData();
-
-                        JOptionPane.showMessageDialog(
-                            this,
-                            "Checkout successful! Transferred to Dashboard."
-                        );
-
-                        cartModel.setRowCount(0);
-                        updateSubtotal();
-
-                    } else {
-
-                        JOptionPane.showMessageDialog(
-                            this,
-                            "Checkout cancelled. Customer name is required."
-                        );
-                    }
-
-                } else {
-
-                    JOptionPane.showMessageDialog(
-                        this,
-                        "The cart is empty."
-                    );
-                }
-
-            } catch (Exception ex) {
-
-                ex.printStackTrace();
-
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Checkout Error: " + ex.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE
-                );
-            }
-        });
-
-        btnSearch.addActionListener(e -> {
-
-            String searchInput = searchField.getText().trim();
-
-            if (searchInput.isEmpty()) {
-
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Please enter a medicine name to search.",
-                    "Incorrect Input",
-                    JOptionPane.WARNING_MESSAGE
-                );
-
-                return;
-            }
-
-            if (searchInput.matches("\\d+")) {
-
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Incorrect Input (Please search using Name)",
-                    "Incorrect Input",
-                    JOptionPane.WARNING_MESSAGE
-                );
-
-                return;
-            }
-
-            boolean itemFound = false;
-
-            for (int i = 0; i < medicineModel.getRowCount(); i++) {
-
-                String name =
-                    (String) medicineModel.getValueAt(i, 0);
-
-                if (name.equalsIgnoreCase(searchInput) ||
-                    name.toLowerCase().equalsIgnoreCase(
-                        searchInput.toLowerCase()
-                    )) {
-
-                    itemFound = true;
-
-                    medicineTable.setRowSelectionInterval(i, i);
-
-                    medicineTable.scrollRectToVisible(
-                        medicineTable.getCellRect(i, 0, true)
-                    );
-
-                    Object stockObj =
-                        medicineModel.getValueAt(i, 3);
-
-                    int stock =
-                        Integer.parseInt(stockObj.toString().trim());
-
-                    if (stock <= 0) {
-
-                        JOptionPane.showMessageDialog(
-                            this,
-                            "Medicine '" + name + "' is Out of Stock!",
-                            "Out of Stock",
-                            JOptionPane.ERROR_MESSAGE
-                        );
-
-                    } else {
-
-                        JOptionPane.showMessageDialog(
-                            this,
-                            "Found: " + name +
-                            "\nPrice: " + medicineModel.getValueAt(i, 2) +
-                            "\nStock: " + stock,
-                            "Item Found",
-                            JOptionPane.INFORMATION_MESSAGE
-                        );
-                    }
-
-                    break;
-                }
-            }
-
-            if (!itemFound) {
-
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Medicine '" + searchInput + "' Not Found.",
-                    "Not Found",
-                    JOptionPane.ERROR_MESSAGE
-                );
-            }
-        });
-    }
-
-    private void loadMedicinesToPOS() {
-
-        medicineModel.setRowCount(0);
-
-        if (!SharedData.medicineList.isEmpty()) {
-
-            for (String[] med : SharedData.medicineList) {
-
-                medicineModel.addRow(new Object[]{
-                    med[0],
-                    med[1],
-                    med[3],
-                    med[4]
-                });
-            }
-
-        } else {
-
-            medicineModel.addRow(new Object[]{
-                "Biogesic 500mg",
-                "Tablet",
-                "₱6.00",
-                "150"
-            });
-
-            medicineModel.addRow(new Object[]{
-                "Neozep Forte",
-                "Tablet",
-                "₱7.75",
-                "120"
-            });
-        }
-    }
-
-    private double calculateTotal() {
-
-        double total = 0;
-
-        for (int i = 0; i < cartModel.getRowCount(); i++) {
-
-            String totalStr =
-                (String) cartModel.getValueAt(i, 3);
-
-            total += Double.parseDouble(
-                totalStr.replace("₱", "").trim()
-=======
             SalesDAO.completeSale(
                     customerId,
                     orderNo,
@@ -1280,7 +874,6 @@ public class POSFrame extends JPanel {
                     cartModel
                             .getValueAt(i, 3)
                             .toString()
->>>>>>> a070550ecfc4e6291a77b96803a225041000df43
             );
         }
 
@@ -1315,11 +908,6 @@ public class POSFrame extends JPanel {
 
     private void updateSubtotal() {
 
-<<<<<<< HEAD
-        lblSubtotalVal.setText(
-            String.format("₱ %.2f", calculateTotal())
-        );
-=======
         double subtotal = calculateSubtotal();
         double discount = calculateDiscountAmount(subtotal);
         double total = Math.max(0, subtotal - discount);
@@ -1750,6 +1338,5 @@ public class POSFrame extends JPanel {
 
             return customerResult;
         }
->>>>>>> a070550ecfc4e6291a77b96803a225041000df43
     }
 }
