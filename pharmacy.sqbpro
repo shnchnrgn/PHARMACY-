@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?><sqlb_project><db path="pharmacy.db" readonly="0" foreign_keys="1" case_sensitive_like="0" temp_store="0" wal_autocheckpoint="1000" synchronous="2"/><attached/><window><main_tabs open="structure browser pragmas query" current="0"/></window><tab_structure><column_width id="0" width="300"/><column_width id="1" width="0"/><column_width id="2" width="100"/><column_width id="3" width="2123"/><column_width id="4" width="0"/><expanded_item id="0" parent="1"/><expanded_item id="1" parent="1"/><expanded_item id="2" parent="1"/><expanded_item id="3" parent="1"/></tab_structure><tab_browse><table title="customers" custom_title="0" dock_id="1" table="4,9:maincustomers"/><dock_state state="000000ff00000000fd00000001000000020000000000000000fc0100000001fb000000160064006f0063006b00420072006f00770073006500310100000000ffffffff0000011e00ffffff000000000000000000000004000000040000000800000008fc00000000"/><default_encoding codec=""/><browse_table_settings/></tab_browse><tab_sql><sql name="SQL 1*">-- 1. Medicines Table (Stores item info &amp; buy prices for profit calculation)
+CREATE TABLE IF NOT EXISTS medicines (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(255) NOT NULL,
+    stock INTEGER NOT NULL DEFAULT 0,
+    buy_price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    unit_price DECIMAL(10, 2) NOT NULL DEFAULT 0.00
+);
+
+-- 2. Customers Table (Tracks customer last purchase dates)
+CREATE TABLE IF NOT EXISTS customers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name VARCHAR(255) NOT NULL,
+    last_purchase_date VARCHAR(20)
+);
+
+-- 3. Sales Table (Tracks primary sale records and gross totals)
+CREATE TABLE IF NOT EXISTS sales (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_id INTEGER NULL,
+    order_no VARCHAR(255) NOT NULL,
+    purchase_date VARCHAR(20) NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    is_pwd INTEGER DEFAULT 0,
+    pwd_id VARCHAR(100) NULL,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE SET NULL
+);
+
+-- 4. Sale Items Table (Tracks individual item breakdown per sale for net profit)
+CREATE TABLE IF NOT EXISTS sale_items (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    sale_id INTEGER NOT NULL,
+    medicine_id INTEGER NOT NULL,
+    quantity INTEGER NOT NULL DEFAULT 1,
+    unit_price DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    subtotal DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    FOREIGN KEY (sale_id) REFERENCES sales(id) ON DELETE CASCADE,
+    FOREIGN KEY (medicine_id) REFERENCES medicines(id)
+);
+
+-- 5. Expenses Table (Tracks business operational expenses)
+CREATE TABLE IF NOT EXISTS expenses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    description VARCHAR(255) NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    expense_date VARCHAR(20) NOT NULL
+);
+
+-- 6. Purchase History Table (Optional secondary log for customer purchases)
+CREATE TABLE IF NOT EXISTS purchase_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    customer_id INTEGER NOT NULL,
+    order_no VARCHAR(255) NOT NULL,
+    purchase_date VARCHAR(20) NOT NULL,
+    amount DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE
+);</sql><current_tab id="0"/></tab_sql></sqlb_project>

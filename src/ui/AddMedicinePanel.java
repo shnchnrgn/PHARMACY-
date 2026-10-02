@@ -1,143 +1,1018 @@
 package ui;
 
+import db.MedicineDAO;
+import db.SalesDAO;
+import models.Medicine;
+
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
+import javax.swing.border.Border;
 import java.awt.*;
+import java.time.LocalDate;
 
 public class AddMedicinePanel extends JPanel {
 
-    private JTextField txtName, txtBuyPrice, txtSellPrice, txtQuantity, txtCompany, txtExpire;
+    private static final Border grayBorder =
+            BorderFactory.createLineBorder(new Color(200, 205, 210), 1);
+
+    private JTextField txtName;
     private JComboBox<String> cmbCategory;
+    private JTextField txtBuyPrice;
+    private JTextField txtSellPrice;
+    private JTextField txtQuantity;
+    private JTextField txtCompany;
+    
+    private JTextField txtExpireDate;
 
     public AddMedicinePanel() {
-        setLayout(new BorderLayout(0, 15));
-        setBackground(new Color(245, 247, 250));
-        setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        JLabel lblTitle = new JLabel("Add New Medicine");
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        lblTitle.setForeground(new Color(60, 65, 70));
-        add(lblTitle, BorderLayout.NORTH);
+        setLayout(new BorderLayout());
+        setBackground(new Color(240, 242, 245));
 
-        JPanel formPanel = new JPanel(new GridLayout(7, 2, 12, 15));
-        formPanel.setBackground(Color.WHITE);
-        formPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(210, 215, 220)),
-            new EmptyBorder(20, 20, 20, 20)
-        ));
+        JPanel container = new JPanel();
+        container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
+        container.setBorder(
+                BorderFactory.createEmptyBorder(30, 40, 30, 40)
+        );
+        container.setOpaque(false);
 
-        txtName = createStyledTextField();
+        JPanel formCard = new JPanel(new BorderLayout());
+        formCard.setBackground(Color.WHITE);
+        formCard.setBorder(
+                BorderFactory.createLineBorder(
+                        new Color(220, 225, 230)
+                )
+        );
+        formCard.setMaximumSize(new Dimension(850, 680));
+
+        JPanel headerPanel =
+                new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 12));
+
+        headerPanel.setBackground(new Color(248, 249, 250));
+        headerPanel.setBorder(
+                BorderFactory.createMatteBorder(
+                        0, 0, 1, 0,
+                        new Color(220, 225, 230)
+                )
+        );
+
+        JLabel lblHeader =
+                new JLabel("Add New Medicine");
+
+        lblHeader.setFont(
+                new Font("Segoe UI", Font.BOLD, 14)
+        );
+
+        lblHeader.setForeground(
+                new Color(80, 90, 100)
+        );
+
+        headerPanel.add(lblHeader);
+        formCard.add(headerPanel, BorderLayout.NORTH);
+
+        JPanel fieldsPanel =
+                new JPanel(new GridBagLayout());
+
+        fieldsPanel.setBackground(Color.WHITE);
+        fieldsPanel.setBorder(
+                BorderFactory.createEmptyBorder(
+                        20, 25, 20, 25
+                )
+        );
+
+        GridBagConstraints gbc =
+                new GridBagConstraints();
+
+        gbc.insets =
+                new Insets(8, 10, 8, 10);
+
+        gbc.fill =
+                GridBagConstraints.HORIZONTAL;
+
+        gbc.gridy = 0;
+
+        txtName = createStyledTextField("");
+        addFieldRow(
+                fieldsPanel,
+                gbc,
+                "Medicine Name",
+                true,
+                txtName
+        );
+
+        String[] categories = {
+                "-- Select Category --",
+                "Tablet",
+                "Capsule",
+                "Syrup",
+                "Injection",
+                "Ointment",
+                "Drops",
+                "Supplements / Vitamins"
+        };
+
+        cmbCategory =
+                createStyledDropdown(categories, 350);
+
+        addDropdownRow(
+                fieldsPanel,
+                gbc,
+                "Medicine Category",
+                true,
+                cmbCategory
+        );
+
+        txtBuyPrice = createStyledTextField("");
+
+        addFieldRow(
+                fieldsPanel,
+                gbc,
+                "Buy Price",
+                true,
+                txtBuyPrice
+        );
+
+        txtSellPrice = createStyledTextField("");
+
+        addFieldRow(
+                fieldsPanel,
+                gbc,
+                "Sell Price",
+                true,
+                txtSellPrice
+        );
+
+        txtQuantity = createStyledTextField("");
+
+        addFieldRow(
+                fieldsPanel,
+                gbc,
+                "Quantity",
+                true,
+                txtQuantity
+        );
+
+        txtCompany = createStyledTextField("");
+
+        addFieldRow(
+                fieldsPanel,
+                gbc,
+                "Company Name",
+                true,
+                txtCompany
+        );
         
-        cmbCategory = new JComboBox<>(new String[]{"-- Select Category --", "Tablet", "Syrup", "Capsule", "Drop", "Inhaler"});
-        cmbCategory.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        cmbCategory.setBackground(Color.WHITE);
-        cmbCategory.setForeground(new Color(70, 75, 80));
-        cmbCategory.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 205, 210)),
-            BorderFactory.createEmptyBorder(2, 4, 2, 4)
-        ));
+        // --- EXPIRATION DATE SELECTOR (THEME-MATCHED) ---
+        JPanel datePanel = new JPanel(new BorderLayout(5, 0));
+        datePanel.setOpaque(false);
+        datePanel.setPreferredSize(new Dimension(350, 30));
+        datePanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
 
-        txtBuyPrice = createStyledTextField();
-        txtSellPrice = createStyledTextField();
-        txtQuantity = createStyledTextField();
-        txtCompany = createStyledTextField();
-        txtExpire = createStyledTextField();
+        txtExpireDate = createStyledTextField("");
+        txtExpireDate.setEditable(false);
+        txtExpireDate.setBackground(Color.WHITE);
 
-        addFormRow(formPanel, "Medicine Name", txtName);
-        addFormRow(formPanel, "Medicine Category", cmbCategory);
-        addFormRow(formPanel, "Buy Price", txtBuyPrice);
-        addFormRow(formPanel, "Sell Price", txtSellPrice);
-        addFormRow(formPanel, "Quantity", txtQuantity);
-        addFormRow(formPanel, "Company Name", txtCompany);
-        addFormRow(formPanel, "Expire Date (YYYY-MM-DD)", txtExpire);
+        JButton btnCalendar = new JButton("...");
+        btnCalendar.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnCalendar.setBackground(new Color(240, 242, 245));
+        btnCalendar.setForeground(new Color(70, 75, 80));
+        btnCalendar.setFocusPainted(false);
+        btnCalendar.setBorder(grayBorder);
+        btnCalendar.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnCalendar.setPreferredSize(new Dimension(40, 30));
 
-        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        bottomPanel.setOpaque(false);
-        
-        JButton btnSave = new JButton("Save Medicine");
-        btnSave.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnSave.setBackground(new Color(40, 167, 69));
-        btnSave.setForeground(Color.WHITE);
-        btnSave.setFocusPainted(false);
-        btnSave.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
-        btnSave.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        
-        JButton btnClear = new JButton("Clear Form");
-        btnClear.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnClear.setBackground(new Color(220, 53, 69));
-        btnClear.setForeground(Color.WHITE);
-        btnClear.setFocusPainted(false);
-        btnClear.setBorder(BorderFactory.createEmptyBorder(8, 16, 8, 16));
-        btnClear.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
-        bottomPanel.add(btnSave);
-        bottomPanel.add(btnClear);
-
-        JPanel wrapper = new JPanel(new BorderLayout());
-        wrapper.setOpaque(false);
-        wrapper.add(formPanel, BorderLayout.CENTER);
-        
-        JPanel bottomWrapper = new JPanel(new BorderLayout());
-        bottomWrapper.setOpaque(false);
-        bottomWrapper.setBorder(new EmptyBorder(12, 0, 0, 0));
-        bottomWrapper.add(bottomPanel, BorderLayout.WEST);
-        
-        wrapper.add(bottomWrapper, BorderLayout.SOUTH);
-
-        add(wrapper, BorderLayout.CENTER);
-
-        btnClear.addActionListener(e -> clearForm());
-
-        btnSave.addActionListener(e -> {
-            String name = txtName.getText().trim();
-            String category = (String) cmbCategory.getSelectedItem();
-            if (category == null || category.equals("-- Select Category --")) {
-                category = "";
-            }
-            String buyPrice = "₱" + txtBuyPrice.getText().trim();
-            String sellPrice = "₱" + txtSellPrice.getText().trim();
-            String qty = txtQuantity.getText().trim();
-            String company = txtCompany.getText().trim();
-            String expire = txtExpire.getText().trim();
-
-            if (!name.isEmpty() && !qty.isEmpty() && !category.isEmpty()) {
-                String[] newMed = {name, category, buyPrice, sellPrice, qty, company, expire, ""};
-                
-                SharedData.addMedicine(newMed);
-                JOptionPane.showMessageDialog(this, "Medicine successfully added!");
-                clearForm();
-            } else {
-                JOptionPane.showMessageDialog(this, "Please fill in Medicine Name, Category, and Quantity.");
+        btnCalendar.addActionListener(e -> {
+            CustomDropdownDateDialog dateDialog = new CustomDropdownDateDialog(SwingUtilities.getWindowAncestor(this));
+            dateDialog.setVisible(true);
+            if (dateDialog.getSelectedDate() != null) {
+                txtExpireDate.setText(dateDialog.getSelectedDate().toString());
             }
         });
-    }
 
-    private JTextField createStyledTextField() {
-        JTextField tf = new JTextField();
-        tf.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        tf.setForeground(new Color(70, 75, 80));
-        tf.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 205, 210)),
-            BorderFactory.createEmptyBorder(6, 8, 6, 8)
-        ));
-        return tf;
-    }
+        datePanel.add(txtExpireDate, BorderLayout.CENTER);
+        datePanel.add(btnCalendar, BorderLayout.EAST);
 
-    private void addFormRow(JPanel panel, String labelText, JComponent field) {
-        JLabel lbl = new JLabel("<html><b>" + labelText + ":</b> <font color='red'>*</font></html>");
-        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lbl.setForeground(new Color(70, 75, 80));
-        panel.add(lbl);
-        panel.add(field);
+        addFieldRow(
+                fieldsPanel,
+                gbc,
+                "Expire Date",
+                true,
+                datePanel
+        );
+
+        gbc.gridx = 1;
+        gbc.gridy++;
+        gbc.weightx = 1.0;
+        gbc.anchor = GridBagConstraints.WEST;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.insets =
+                new Insets(15, 10, 10, 10);
+
+        JPanel btnPanel =
+                new JPanel(
+                        new FlowLayout(
+                                FlowLayout.LEFT,
+                                10,
+                                0
+                        )
+                );
+
+        btnPanel.setOpaque(false);
+
+        JButton btnSave =
+                new JButton("Save Medicine");
+
+        btnSave.setBackground(
+                new Color(26, 143, 136)
+        );
+
+        btnSave.setForeground(Color.WHITE);
+
+        btnSave.setFont(
+                new Font(
+                        "Segoe UI",
+                        Font.BOLD,
+                        12
+                )
+        );
+
+        btnSave.setFocusPainted(false);
+
+        btnSave.setBorder(
+                BorderFactory.createEmptyBorder(
+                        8, 18, 8, 18
+                )
+        );
+
+        btnSave.setCursor(
+                new Cursor(Cursor.HAND_CURSOR)
+        );
+
+        btnPanel.add(btnSave);
+
+        JButton btnClear =
+                new JButton("Clear Form");
+
+        btnClear.setBackground(
+                new Color(192, 57, 43)
+        );
+
+        btnClear.setForeground(Color.WHITE);
+
+        btnClear.setFont(
+                new Font(
+                        "Segoe UI",
+                        Font.BOLD,
+                        12
+                )
+        );
+
+        btnClear.setFocusPainted(false);
+
+        btnClear.setBorder(
+                BorderFactory.createEmptyBorder(
+                        8, 18, 8, 18
+                )
+        );
+
+        btnClear.setCursor(
+                new Cursor(Cursor.HAND_CURSOR)
+        );
+
+        btnPanel.add(btnClear);
+
+        fieldsPanel.add(btnPanel, gbc);
+
+        formCard.add(
+                fieldsPanel,
+                BorderLayout.CENTER
+        );
+
+        container.add(formCard);
+
+        JScrollPane mainScroll =
+                new JScrollPane(container);
+
+        mainScroll.setBorder(null);
+
+        mainScroll.setBackground(
+                new Color(240, 242, 245)
+        );
+
+        add(
+                mainScroll,
+                BorderLayout.CENTER
+        );
+
+        btnSave.addActionListener(e -> {
+
+            try {
+
+                String name =
+                        txtName.getText().trim();
+
+                String category =
+                        cmbCategory.getSelectedItem() != null
+                                ? cmbCategory
+                                        .getSelectedItem()
+                                        .toString()
+                                        .trim()
+                                : "";
+
+                String buyPriceStr =
+                        txtBuyPrice.getText().trim();
+
+                String sellPriceStr =
+                        txtSellPrice.getText().trim();
+
+                String quantityStr =
+                        txtQuantity.getText().trim();
+
+                String company =
+                        txtCompany.getText().trim();
+
+                String expireDateStr = txtExpireDate.getText().trim();
+
+                if (
+                        name.isEmpty()
+                                || category.equals(
+                                        "-- Select Category --"
+                                )
+                                || buyPriceStr.isEmpty()
+                                || sellPriceStr.isEmpty()
+                                || quantityStr.isEmpty()
+                                || company.isEmpty()
+                                || expireDateStr.isEmpty()
+                ) {
+
+                    CustomDialog.showCustomMessage(
+                            this,
+                            "Please fill up all the required fields.",
+                            "Warning",
+                            true
+                    );
+
+                    return;
+                }
+
+                double buyPrice =
+                        Double.parseDouble(
+                                buyPriceStr
+                        );
+
+                double sellPrice =
+                        Double.parseDouble(
+                                sellPriceStr
+                        );
+
+                int stock =
+                        Integer.parseInt(
+                                quantityStr
+                        );
+
+                if (buyPrice <= 0) {
+
+                    CustomDialog.showCustomMessage(
+                            this,
+                            "Buy Price must be greater than 0.",
+                            "Invalid Buy Price",
+                            true
+                    );
+
+                    return;
+                }
+
+                if (sellPrice <= 0) {
+
+                    CustomDialog.showCustomMessage(
+                            this,
+                            "Sell Price must be greater than 0.",
+                            "Invalid Sell Price",
+                            true
+                    );
+
+                    return;
+                }
+
+                if (stock <= 0) {
+
+                    CustomDialog.showCustomMessage(
+                            this,
+                            "Quantity must be greater than 0.",
+                            "Invalid Quantity",
+                            true
+                    );
+
+                    return;
+                }
+
+                double totalPurchaseCost =
+                        buyPrice * stock;
+
+                boolean confirmed = CustomDialog.showCustomMessage(
+                        this,
+                        "<b>Please review the medicine details:</b><br><br>"
+                                + "<b>Medicine Name:</b> " + name + "<br>"
+                                + "<b>Category:</b> " + category + "<br>"
+                                + "<b>Buy Price:</b> ₱" + String.format("%.2f", buyPrice) + "<br>"
+                                + "<b>Sell Price:</b> ₱" + String.format("%.2f", sellPrice) + "<br>"
+                                + "<b>Quantity:</b> " + stock + "<br>"
+                                + "<b>Company Name:</b> " + company + "<br>"
+                                + "<b>Expire Date:</b> " + expireDateStr + "<br>"
+                                + "<b>Total Purchase Cost:</b> ₱" + String.format("%.2f", totalPurchaseCost) + "<br><br>"
+                                + "Do you want to save this medicine?",
+                        "Confirm Save",
+                        false
+                );
+
+                if (confirmed) {
+                    Medicine newMed =
+                            new Medicine();
+
+                    newMed.setName(name);
+                    newMed.setMedicineCategory(category);
+                    newMed.setBuyPrice(buyPrice);
+                    newMed.setSellPrice(sellPrice);
+                    newMed.setStock(stock);
+                    newMed.setCompanyName(company);
+                    newMed.setExpiryDate(expireDateStr);
+
+                    MedicineDAO.addMedicine(newMed);
+
+                    SalesDAO.addExpense(
+                            "Purchase of "
+                                    + stock
+                                    + "x "
+                                    + name,
+                            totalPurchaseCost,
+                            java.time.LocalDate
+                                    .now()
+                                    .toString()
+                    );
+
+                    CustomDialog.showCustomMessage(
+                            this,
+                            "Successfully added new medicine!<br><br>The purchase has been recorded in Expenses.",
+                            "Success",
+                            false
+                    );
+
+                    clearForm();
+                }
+
+            } catch (NumberFormatException ex) {
+
+                CustomDialog.showCustomMessage(
+                        this,
+                        "Please enter valid numbers for Buy Price, Sell Price, and Quantity.",
+                        "Invalid Input",
+                        true
+                );
+
+            } catch (Exception ex) {
+
+                ex.printStackTrace();
+
+                CustomDialog.showCustomMessage(
+                        this,
+                        "Error in saving.<br><br>" + ex.getMessage(),
+                        "Database Error",
+                        true
+                );
+            }
+        });
+
+        btnClear.addActionListener(
+                e -> clearForm()
+        );
     }
 
     private void clearForm() {
+
         txtName.setText("");
-        if (cmbCategory.getItemCount() > 0) cmbCategory.setSelectedIndex(0);
+
+        if (cmbCategory.getItemCount() > 0) {
+            cmbCategory.setSelectedIndex(0);
+        }
+
         txtBuyPrice.setText("");
         txtSellPrice.setText("");
         txtQuantity.setText("");
         txtCompany.setText("");
-        txtExpire.setText("");
+        txtExpireDate.setText("");
     }
+
+    private void addFieldRow(
+            JPanel panel,
+            GridBagConstraints gbc,
+            String labelText,
+            boolean isRequired,
+            JComponent field) {
+
+        gbc.gridx = 0;
+        gbc.weightx = 0.0;
+
+        JPanel lblPanel =
+                new JPanel(
+                        new FlowLayout(
+                                FlowLayout.LEFT,
+                                0,
+                                0
+                        )
+                );
+
+        lblPanel.setOpaque(false);
+
+        JLabel label =
+                new JLabel(labelText + " ");
+
+        label.setFont(
+                new Font(
+                        "Segoe UI",
+                        Font.PLAIN,
+                        13
+                )
+        );
+
+        label.setForeground(
+                new Color(70, 80, 90)
+        );
+
+        lblPanel.add(label);
+
+        if (isRequired) {
+
+            JLabel lblStar =
+                    new JLabel("*");
+
+            lblStar.setFont(
+                    new Font(
+                            "Segoe UI",
+                            Font.BOLD,
+                            13
+                    )
+            );
+
+            lblStar.setForeground(Color.RED);
+
+            lblPanel.add(lblStar);
+        }
+
+        panel.add(lblPanel, gbc);
+
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+
+        panel.add(field, gbc);
+
+        gbc.gridy++;
+    }
+
+    private void addDropdownRow(
+            JPanel panel,
+            GridBagConstraints gbc,
+            String labelText,
+            boolean isRequired,
+            JComboBox<?> comboBox) {
+
+        addFieldRow(
+                panel,
+                gbc,
+                labelText,
+                isRequired,
+                comboBox
+        );
+    }
+
+    private JTextField createStyledTextField(
+            String defaultValue) {
+
+        JTextField textField =
+                new JTextField(defaultValue);
+
+        textField.setFont(
+                new Font(
+                        "Segoe UI",
+                        Font.PLAIN,
+                        13
+                )
+        );
+
+        textField.setPreferredSize(
+                new Dimension(350, 30)
+        );
+
+        textField.setMaximumSize(
+                new Dimension(
+                        Integer.MAX_VALUE,
+                        30
+                )
+        );
+
+        textField.setBorder(
+                BorderFactory.createCompoundBorder(
+                        grayBorder,
+                        BorderFactory.createEmptyBorder(
+                                0, 5, 0, 5
+                        )
+                )
+        );
+
+        textField.setSelectionColor(
+                new Color(220, 225, 230)
+        );
+
+        textField.setSelectedTextColor(
+                Color.BLACK
+        );
+
+        return textField;
+    }
+
+    private <T> JComboBox<T> createStyledDropdown(
+            T[] items, int width) {
+
+        JComboBox<T> comboBox =
+                new JComboBox<>(items);
+
+        comboBox.setFont(
+                new Font(
+                        "Segoe UI",
+                        Font.PLAIN,
+                        12
+                )
+        );
+
+        comboBox.setPreferredSize(
+                new Dimension(width, 30)
+        );
+
+        comboBox.setMaximumSize(
+                new Dimension(
+                        Integer.MAX_VALUE,
+                        30
+                )
+        );
+
+        comboBox.setBackground(Color.WHITE);
+        comboBox.setForeground(new Color(70, 75, 80));
+        comboBox.setBorder(grayBorder);
+
+        comboBox.setUI(
+                new javax.swing.plaf.basic.BasicComboBoxUI() {
+
+                    @Override
+                    protected javax.swing.plaf.basic.BasicComboPopup createPopup() {
+
+                        javax.swing.plaf.basic.BasicComboPopup popup =
+                                new javax.swing.plaf.basic.BasicComboPopup(
+                                        comboBox
+                                );
+
+                        popup.setBorder(grayBorder);
+                        popup.setBackground(Color.WHITE);
+
+                        for (Component c : popup.getComponents()) {
+                            if (c instanceof JScrollPane) {
+                                JScrollPane scrollPane = (JScrollPane) c;
+                                scrollPane.setBackground(Color.WHITE);
+                                scrollPane.getViewport().setBackground(Color.WHITE);
+                                scrollPane.setBorder(null);
+
+                                JScrollBar verticalBar = scrollPane.getVerticalScrollBar();
+                                verticalBar.setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
+                                    @Override
+                                    protected void configureScrollBarColors() {
+                                        this.thumbColor = new Color(200, 205, 210);
+                                        this.trackColor = Color.WHITE;
+                                    }
+
+                                    @Override
+                                    protected JButton createDecreaseButton(int orientation) {
+                                        return createZeroButton();
+                                    }
+
+                                    @Override
+                                    protected JButton createIncreaseButton(int orientation) {
+                                        return createZeroButton();
+                                    }
+
+                                    private JButton createZeroButton() {
+                                        JButton btn = new JButton();
+                                        btn.setPreferredSize(new Dimension(0, 0));
+                                        btn.setMinimumSize(new Dimension(0, 0));
+                                        btn.setMaximumSize(new Dimension(0, 0));
+                                        return btn;
+                                    }
+                                });
+                            }
+                        }
+
+                        return popup;
+                    }
+
+                    @Override
+                    protected JButton createArrowButton() {
+
+                        JButton btn =
+                                new JButton() {
+
+                                    @Override
+                                    protected void paintComponent(
+                                            Graphics g) {
+
+                                        Graphics2D g2d =
+                                                (Graphics2D) g.create();
+
+                                        g2d.setRenderingHint(
+                                                RenderingHints.KEY_ANTIALIASING,
+                                                RenderingHints.VALUE_ANTIALIAS_ON
+                                        );
+
+                                        g2d.setColor(Color.WHITE);
+
+                                        g2d.fillRect(
+                                                0,
+                                                0,
+                                                getWidth(),
+                                                getHeight()
+                                        );
+
+                                        g2d.setColor(
+                                                new Color(
+                                                        200,
+                                                        205,
+                                                        210
+                                                )
+                                        );
+
+                                        g2d.drawLine(
+                                                0,
+                                                0,
+                                                0,
+                                                getHeight()
+                                        );
+
+                                        g2d.setColor(
+                                                new Color(
+                                                        80,
+                                                        80,
+                                                        80
+                                                )
+                                        );
+
+                                        int[] xPoints = {
+                                                getWidth() / 2 - 4,
+                                                getWidth() / 2 + 4,
+                                                getWidth() / 2
+                                        };
+
+                                        int[] yPoints = {
+                                                getHeight() / 2 - 2,
+                                                getHeight() / 2 - 2,
+                                                getHeight() / 2 + 3
+                                        };
+
+                                        g2d.fillPolygon(
+                                                xPoints,
+                                                yPoints,
+                                                3
+                                        );
+
+                                        g2d.dispose();
+                                    }
+                                };
+
+                        btn.setBorder(
+                                BorderFactory.createEmptyBorder()
+                        );
+
+                        btn.setCursor(
+                                new Cursor(
+                                        Cursor.HAND_CURSOR
+                                )
+                        );
+
+                        btn.setFocusable(false);
+
+                        return btn;
+                    }
+                }
+        );
+
+        comboBox.setRenderer(
+                new DefaultListCellRenderer() {
+
+                    @Override
+                    public Component getListCellRendererComponent(
+                            JList<?> list,
+                            Object value,
+                            int index,
+                            boolean isSelected,
+                            boolean cellHasFocus) {
+
+                        JLabel renderer =
+                                (JLabel) super
+                                        .getListCellRendererComponent(
+                                                list,
+                                                value,
+                                                index,
+                                                isSelected,
+                                                cellHasFocus
+                                        );
+
+                        if (isSelected) {
+                            renderer.setBackground(new Color(210, 215, 220));
+                            renderer.setForeground(Color.BLACK);
+                        } else {
+                            renderer.setBackground(Color.WHITE);
+                            renderer.setForeground(Color.BLACK);
+                        }
+
+                        renderer.setBorder(
+                                BorderFactory.createEmptyBorder(
+                                        6,
+                                        10,
+                                        6,
+                                        10
+                                )
+                        );
+
+                        return renderer;
+                    }
+                }
+        );
+
+        return comboBox;
+    }
+
+    // =====================================================================
+    // CUSTOM DROPDOWN DATE DIALOG (THEME-MATCHED)
+    // =====================================================================
+    private static class CustomDropdownDateDialog extends JDialog {
+        private LocalDate selectedDate = null;
+        private JComboBox<String> cmbMonth;
+        private JComboBox<Integer> cmbDay;
+        private JComboBox<Integer> cmbYear;
+
+        public CustomDropdownDateDialog(Window owner) {
+            super(owner, "Select Expiry Date", Dialog.ModalityType.APPLICATION_MODAL);
+            setLayout(new BorderLayout());
+            setSize(390, 190);
+            setResizable(false);
+            setLocationRelativeTo(owner);
+            getContentPane().setBackground(Color.WHITE);
+
+            // Header Title
+            JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 15, 12));
+            headerPanel.setBackground(new Color(248, 249, 250));
+            headerPanel.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(220, 225, 230)));
+            JLabel lblTitle = new JLabel("Select Expiry Date");
+            lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 13));
+            lblTitle.setForeground(new Color(70, 75, 80));
+            headerPanel.add(lblTitle);
+            add(headerPanel, BorderLayout.NORTH);
+
+            // Center Dropdowns Panel
+            JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 8, 20));
+            centerPanel.setBackground(Color.WHITE);
+
+            String[] months = {
+                "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"
+            };
+            
+            AddMedicinePanel dummyPanel = new AddMedicinePanel();
+            cmbMonth = dummyPanel.createStyledDropdown(months, 110);
+            
+            Integer[] days = new Integer[31];
+            for (int i = 1; i <= 31; i++) days[i - 1] = i;
+            cmbDay = dummyPanel.createStyledDropdown(days, 70);
+
+            int currentYear = LocalDate.now().getYear();
+            Integer[] years = new Integer[20];
+            for (int i = 0; i < 20; i++) years[i] = currentYear + i;
+            cmbYear = dummyPanel.createStyledDropdown(years, 90);
+
+            // Set default to today
+            LocalDate now = LocalDate.now();
+            cmbMonth.setSelectedIndex(now.getMonthValue() - 1);
+            cmbDay.setSelectedItem(now.getDayOfMonth());
+            cmbYear.setSelectedItem(now.getYear());
+
+            centerPanel.add(cmbMonth);
+            centerPanel.add(cmbDay);
+            centerPanel.add(cmbYear);
+            add(centerPanel, BorderLayout.CENTER);
+
+            // Footer Buttons
+            JPanel footerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
+            footerPanel.setBackground(new Color(248, 249, 250));
+            footerPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(220, 225, 230)));
+
+            JButton btnSelect = new JButton("Select");
+            btnSelect.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            btnSelect.setBackground(new Color(26, 143, 136));
+            btnSelect.setForeground(Color.WHITE);
+            btnSelect.setFocusPainted(false);
+            btnSelect.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
+            btnSelect.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+            btnSelect.addActionListener(e -> {
+                int month = cmbMonth.getSelectedIndex() + 1;
+                int day = (Integer) cmbDay.getSelectedItem();
+                int year = (Integer) cmbYear.getSelectedItem();
+                try {
+                    selectedDate = LocalDate.of(year, month, day);
+                    dispose();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Invalid date combination (e.g. Feb 30). Please check.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+            });
+
+            JButton btnCancel = new JButton("Cancel");
+            btnCancel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            btnCancel.setBackground(new Color(192, 57, 43));
+            btnCancel.setForeground(Color.WHITE);
+            btnCancel.setFocusPainted(false);
+            btnCancel.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
+            btnCancel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            btnCancel.addActionListener(e -> dispose());
+
+            footerPanel.add(btnSelect);
+            footerPanel.add(btnCancel);
+            add(footerPanel, BorderLayout.SOUTH);
+        }
+
+        public LocalDate getSelectedDate() {
+            return selectedDate;
+        }
+    }
+
+    private static class CustomDialog {
+        private static boolean userConfirmed = false;
+
+        public static boolean showCustomMessage(Component parent, String message, String title, boolean isWarning) {
+            userConfirmed = false;
+            Window owner = SwingUtilities.getWindowAncestor(parent);
+            JDialog dialog = new JDialog(owner, title, Dialog.ModalityType.APPLICATION_MODAL);
+            dialog.setLayout(new BorderLayout());
+            dialog.setResizable(false);
+
+            JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 20));
+            centerPanel.setBackground(Color.WHITE);
+
+            String colorHex = isWarning ? "#C0392B" : "#261436";
+            JLabel lblMsg = new JLabel("<html><font color='" + colorHex + "'><b>" + title + ":</b></font><br><br>" + message + "</html>");
+            lblMsg.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            lblMsg.setForeground(new Color(70, 75, 80));
+            centerPanel.add(lblMsg);
+
+            JScrollPane scrollPane = new JScrollPane(centerPanel);
+            scrollPane.setBorder(null);
+            scrollPane.getViewport().setBackground(Color.WHITE);
+
+            dialog.add(scrollPane, BorderLayout.CENTER);
+
+            JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
+            bottomPanel.setBackground(new Color(248, 249, 250));
+            bottomPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(220, 225, 230)));
+
+            JButton btnOk = new JButton("OK");
+            btnOk.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            btnOk.setBackground(new Color(26, 143, 136));
+            btnOk.setForeground(Color.WHITE);
+            btnOk.setFocusPainted(false);
+            btnOk.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
+            btnOk.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            btnOk.addActionListener(e -> {
+                userConfirmed = true;
+                dialog.dispose();
+            });
+
+            JButton btnCancel = new JButton("Cancel");
+            btnCancel.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            btnCancel.setBackground(new Color(192, 57, 43));
+            btnCancel.setForeground(Color.WHITE);
+            btnCancel.setFocusPainted(false);
+            btnCancel.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
+            btnCancel.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            btnCancel.addActionListener(e -> {
+                userConfirmed = false;
+                dialog.dispose();
+            });
+
+            bottomPanel.add(btnOk);
+            bottomPanel.add(btnCancel);
+
+            dialog.add(bottomPanel, BorderLayout.SOUTH);
+
+            dialog.pack();
+            dialog.setSize(Math.max(dialog.getWidth() + 100, 520), Math.min(Math.max(dialog.getHeight() + 60, 220), 450));
+            dialog.setLocationRelativeTo(parent);
+            dialog.setVisible(true);
+
+            return userConfirmed;
+        }
+    }
+    
 }

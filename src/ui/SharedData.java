@@ -1,49 +1,46 @@
 package ui;
 
-import javax.swing.table.DefaultTableModel;
 import java.util.ArrayList;
 import java.util.List;
 
 public class SharedData {
     public static double totalSalesToday = 0.0;
-    public static List<String[]> latestSalesList = new ArrayList<>();
-    public static DefaultTableModel dashboardSalesModel;
 
-    public static List<String[]> medicineList = new ArrayList<>();
-    public static DefaultTableModel medicineTableModel;
+    public static class SaleItem {
+        public String orderNo;
+        public String date;
+        public String amount;
+        public String customerName;
+        public boolean isPwd;
+        public String pwdId;
 
-    public static void addMedicine(String[] newMed) {
-        medicineList.add(newMed);
-
-        if (medicineTableModel != null) {
-            medicineTableModel.addRow(newMed);
+        public SaleItem(String orderNo, String date, String amount, String customerName,
+                        boolean isPwd, String pwdId) {
+            this.orderNo = orderNo;
+            this.date = date;
+            this.amount = amount;
+            this.customerName = customerName;
+            this.isPwd = isPwd;
+            this.pwdId = pwdId;
         }
+
+        public SaleItem(String orderNo, String date, String amount, String customerName) {
+            this(orderNo, date, amount, customerName, false, "");
+        }
+    }
+
+    private static List<SaleItem> salesList = new ArrayList<>();
+
+    public static void addSale(String orderNo, String date, String amount, String customerName,
+                               boolean isPwd, String pwdId) {
+        salesList.add(new SaleItem(orderNo, date, amount, customerName, isPwd, pwdId));
     }
 
     public static void addSale(String orderNo, String date, String amount, String customerName) {
-        String[] saleEntry = {orderNo, date, "₱ " + amount, customerName};
-        latestSalesList.add(0, saleEntry);
-
-        if (dashboardSalesModel != null) {
-            dashboardSalesModel.setRowCount(0);
-            for (String[] sale : latestSalesList) {
-                dashboardSalesModel.addRow(sale);
-            }
-        }
-        
-        recomputeTotalSales();
+        addSale(orderNo, date, amount, customerName, false, "");
     }
 
-    public static void recomputeTotalSales() {
-        double total = 0.0;
-        for (String[] sale : latestSalesList) {
-            try {
-                String cleanAmount = sale[2].replace("₱", "").replace(",", "").trim();
-                total += Double.parseDouble(cleanAmount);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
-        totalSalesToday = total;
+    public static List<SaleItem> getSalesList() {
+        return salesList;
     }
 }
