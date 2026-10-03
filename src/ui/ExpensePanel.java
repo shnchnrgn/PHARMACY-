@@ -60,8 +60,10 @@ public class ExpensePanel extends JPanel {
 
         summaryPanel.setOpaque(false);
 
+        String sym = SharedData.currencySymbol + " ";
+
         lblTotal =
-                new JLabel("₱ 0.00");
+                new JLabel(sym + "0.00");
 
         lblCount =
                 new JLabel("0");
@@ -199,7 +201,6 @@ public class ExpensePanel extends JPanel {
                 new Color(235, 238, 242)
         );
 
-        // --- CUSTOM GRAY SELECTION BACKGROUND PARA SA TABLE ---
         expenseTable.setSelectionBackground(new Color(210, 215, 220));
         expenseTable.setSelectionForeground(Color.BLACK);
 
@@ -616,8 +617,7 @@ public class ExpensePanel extends JPanel {
                 amountField
                         .getText()
                         .trim()
-                        .replace("₱", "")
-                        .replace(",", "");
+                        .replaceAll("[^0-9.]", "");
 
         if (description.isEmpty()) {
 
@@ -762,6 +762,8 @@ public class ExpensePanel extends JPanel {
         List<String[]> expenses =
                 SalesDAO.getAllExpenses();
 
+        String sym = SharedData.currencySymbol + " ";
+
         for (String[] expense : expenses) {
 
             tableModel.addRow(
@@ -769,14 +771,15 @@ public class ExpensePanel extends JPanel {
                             expense[0],
                             expense[1],
                             expense[2],
-                            "₱ " + expense[3]
+                            sym + expense[3]
                     }
             );
         }
 
         lblTotal.setText(
                 String.format(
-                        "₱ %.2f",
+                        "%s%.2f",
+                        sym,
                         SalesDAO
                                 .getThisMonthExpenseTotal()
                 )

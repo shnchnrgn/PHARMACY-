@@ -64,6 +64,7 @@ public class POSFrame extends JPanel {
             @Override
             public void componentShown(java.awt.event.ComponentEvent e) {
                 loadMedicinesToPOS();
+                updateSubtotal();
             }
         });
     }
@@ -358,19 +359,21 @@ public class POSFrame extends JPanel {
         final Color textColor = new Color(51, 51, 51);
         final Color lineColor = new Color(220, 220, 220);
 
+        String sym = SharedData.currencySymbol + " ";
+
         lblSubtotalVal = createSummaryValue(
-                "₱ 0.00",
+                sym + "0.00",
                 textColor
         );
 
         lblDiscountTitle = createSummaryLabel("Discount (0%):");
         lblDiscountVal = createSummaryValue(
-                "- ₱ 0.00",
+                "- " + sym + "0.00",
                 textColor
         );
 
         lblTotalVal = createSummaryValue(
-                "₱ 0.00",
+                sym + "0.00",
                 textColor
         );
 
@@ -501,6 +504,7 @@ public class POSFrame extends JPanel {
             }
 
             double price = parseMoney(priceText);
+            String sym = SharedData.currencySymbol + " ";
 
             int existingRow = findCartMedicineRow(medicineId);
 
@@ -531,7 +535,7 @@ public class POSFrame extends JPanel {
                 );
 
                 cartModel.setValueAt(
-                        String.format("₱%.2f", price * newQty),
+                        String.format("%s%.2f", sym, price * newQty),
                         existingRow,
                         3
                 );
@@ -540,9 +544,9 @@ public class POSFrame extends JPanel {
 
                 cartModel.addRow(new Object[]{
                         name,
-                        String.format("₱%.2f", price),
+                        String.format("%s%.2f", sym, price),
                         "1",
-                        String.format("₱%.2f", price),
+                        String.format("%s%.2f", sym, price),
                         medicineId
                 });
             }
@@ -769,7 +773,7 @@ public class POSFrame extends JPanel {
                             "<b>Discount:</b> " + discountType + "<br>" +
                             idNumberInfo +
                             "<b>Items Ordered:</b><br>" + itemsDetails.toString() + "<br>" +
-                            "<b>Total:</b> ₱" + String.format("%.2f", totalAmount) + "<br><br>" +
+                            "<b>Total:</b> " + SharedData.currencySymbol + String.format("%.2f", totalAmount) + "<br><br>" +
                             "Sale saved successfully.",
                     "Checkout Successful",
                     false
@@ -809,6 +813,7 @@ public class POSFrame extends JPanel {
 
             LocalDate today = LocalDate.now();
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+            String sym = SharedData.currencySymbol + " ";
 
             for (Medicine med : medicines) {
 
@@ -840,7 +845,7 @@ public class POSFrame extends JPanel {
                         new Object[]{
                                 name,
                                 category,
-                                String.format("₱%.2f", med.getSellPrice()),
+                                String.format("%s%.2f", sym, med.getSellPrice()),
                                 med.getStock(),
                                 status,
                                 med.getId()
@@ -911,10 +916,12 @@ public class POSFrame extends JPanel {
         double subtotal = calculateSubtotal();
         double discount = calculateDiscountAmount(subtotal);
         double total = Math.max(0, subtotal - discount);
+        String sym = SharedData.currencySymbol + " ";
 
         lblSubtotalVal.setText(
                 String.format(
-                        "₱ %.2f",
+                        "%s%.2f",
+                        sym,
                         subtotal
                 )
         );
@@ -934,14 +941,16 @@ public class POSFrame extends JPanel {
 
         lblDiscountVal.setText(
                 String.format(
-                        "- ₱ %.2f",
+                        "- %s%.2f",
+                        sym,
                         discount
                 )
         );
 
         lblTotalVal.setText(
                 String.format(
-                        "₱ %.2f",
+                        "%s%.2f",
+                        sym,
                         total
                 )
         );
@@ -955,8 +964,7 @@ public class POSFrame extends JPanel {
 
         return Double.parseDouble(
                 value
-                        .replace("₱", "")
-                        .replace(",", "")
+                        .replaceAll("[^0-9.]", "")
                         .trim()
         );
     }

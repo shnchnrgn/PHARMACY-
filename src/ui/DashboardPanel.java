@@ -69,11 +69,13 @@ public class DashboardPanel extends JPanel {
         container.add(pageHeader);
         container.add(Box.createVerticalStrut(12));
 
+        String sym = SharedData.currencySymbol + " ";
+
         JPanel topCardsPanel = new JPanel(new GridLayout(1, 4, 14, 0));
         topCardsPanel.setOpaque(false);
         topCardsPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
-        topCardsPanel.add(createMetricCard("Sales", "₱ 0.00", "Sales today", INFO));
-        topCardsPanel.add(createMetricCard("Expenses", "₱ 0.00", "Expenses today", WARNING));
+        topCardsPanel.add(createMetricCard("Sales", sym + "0.00", "Sales today", INFO));
+        topCardsPanel.add(createMetricCard("Expenses", sym + "0.00", "Expenses today", WARNING));
         topCardsPanel.add(createMetricCard("Medicines", String.valueOf(MedicineDAO.getAllMedicines().size()), "Total medicines", INFO));
         topCardsPanel.add(createMetricCard("Expired", String.valueOf(MedicineDAO.getExpiredCount()), "Expired medicines", DANGER));
         container.add(topCardsPanel);
@@ -97,105 +99,57 @@ public class DashboardPanel extends JPanel {
     }
 
     public static void refreshDashboardData() {
-        double todaySales =
-                SalesDAO.getTodaySalesTotal();
-        double todayExpenses =
-                SalesDAO.getTodayExpenseTotal();
-        int monthSalesCount =
-                SalesDAO.getThisMonthSalesCount();
-        double monthSalesTotal =
-                SalesDAO.getThisMonthSalesTotal();
-        double monthSalesProfit =
-                SalesDAO.getThisMonthSalesProfit();
-        int monthExpenseCount =
-                SalesDAO.getThisMonthExpenseCount();
-        double monthExpenseTotal =
-                SalesDAO.getThisMonthExpenseTotal();
-        SharedData.totalSalesToday =
-                todaySales;
+        double todaySales = SalesDAO.getTodaySalesTotal();
+        double todayExpenses = SalesDAO.getTodayExpenseTotal();
+        int monthSalesCount = SalesDAO.getThisMonthSalesCount();
+        double monthSalesTotal = SalesDAO.getThisMonthSalesTotal();
+        double monthSalesProfit = SalesDAO.getThisMonthSalesProfit();
+        int monthExpenseCount = SalesDAO.getThisMonthExpenseCount();
+        double monthExpenseTotal = SalesDAO.getThisMonthExpenseTotal();
+
+        SharedData.totalSalesToday = todaySales;
+
+        String sym = SharedData.currencySymbol + " ";
+
         if (lblSalesVal != null) {
-            lblSalesVal.setText(
-                    String.format(
-                            "₱ %.2f",
-                            todaySales
-                    )
-            );
+            lblSalesVal.setText(String.format("%s%.2f", sym, todaySales));
         }
         if (lblExpensesVal != null) {
-            lblExpensesVal.setText(
-                    String.format(
-                            "₱ %.2f",
-                            todayExpenses
-                    )
-            );
+            lblExpensesVal.setText(String.format("%s%.2f", sym, todayExpenses));
         }
         if (lblNumberOfSales != null) {
-            lblNumberOfSales.setText(
-                    String.valueOf(
-                            monthSalesCount
-                    )
-            );
+            lblNumberOfSales.setText(String.valueOf(monthSalesCount));
         }
         if (lblTotalSalesAmount != null) {
-            lblTotalSalesAmount.setText(
-                    String.format(
-                            "₱ %.2f",
-                            monthSalesTotal
-                    )
-            );
+            lblTotalSalesAmount.setText(String.format("%s%.2f", sym, monthSalesTotal));
         }
         if (lblSalesProfit != null) {
-            lblSalesProfit.setText(
-                    String.format(
-                            "₱ %.2f",
-                            monthSalesProfit
-                    )
-            );
+            lblSalesProfit.setText(String.format("%s%.2f", sym, monthSalesProfit));
         }
         if (lblNumberOfExpenses != null) {
-            lblNumberOfExpenses.setText(
-                    String.valueOf(
-                            monthExpenseCount
-                    )
-            );
+            lblNumberOfExpenses.setText(String.valueOf(monthExpenseCount));
         }
         if (lblTotalExpensesAmount != null) {
-            lblTotalExpensesAmount.setText(
-                    String.format(
-                            "₱ %.2f",
-                            monthExpenseTotal
-                    )
-            );
+            lblTotalExpensesAmount.setText(String.format("%s%.2f", sym, monthExpenseTotal));
         }
         if (lblMedicineVal != null) {
-            lblMedicineVal.setText(
-                    String.valueOf(
-                            MedicineDAO
-                                    .getAllMedicines()
-                                    .size()
-                    )
-            );
+            lblMedicineVal.setText(String.valueOf(MedicineDAO.getAllMedicines().size()));
         }
         if (lblExpiredVal != null) {
-            lblExpiredVal.setText(
-                    String.valueOf(
-                            MedicineDAO.getExpiredCount()
-                    )
-            );
+            lblExpiredVal.setText(String.valueOf(MedicineDAO.getExpiredCount()));
         }
         if (graphPanel != null) {
             graphPanel.repaint();
         }
         if (tableModel != null) {
             tableModel.setRowCount(0);
-            List<String[]> sales =
-                    SalesDAO.getLatestSales(10);
+            List<String[]> sales = SalesDAO.getLatestSales(10);
             for (String[] sale : sales) {
                 tableModel.addRow(
                         new Object[]{
                                 sale[0],
                                 sale[1],
-                                "₱ " + sale[2],
+                                sym + sale[2],
                                 sale[3]
                         }
                 );
@@ -255,11 +209,14 @@ public class DashboardPanel extends JPanel {
         content.setBackground(SURFACE);
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setBorder(new EmptyBorder(6, 14, 8, 14));
+        
+        String sym = SharedData.currencySymbol + " ";
+        
         content.add(createStatRow("Number of sales", "0", "NUMBER_OF_SALES"));
-        content.add(createStatRow("Sales amount", "₱ 0.00", "TOTAL_SALES_AMOUNT"));
-        content.add(createStatRow("Sales profit", "₱ 0.00", "SALES_PROFIT"));
+        content.add(createStatRow("Sales amount", sym + "0.00", "TOTAL_SALES_AMOUNT"));
+        content.add(createStatRow("Sales profit", sym + "0.00", "SALES_PROFIT"));
         content.add(createStatRow("Number of expenses", "0", "NUMBER_OF_EXPENSES"));
-        content.add(createStatRow("Expenses amount", "₱ 0.00", "TOTAL_EXPENSES_AMOUNT"));
+        content.add(createStatRow("Expenses amount", sym + "0.00", "TOTAL_EXPENSES_AMOUNT"));
         card.add(content, BorderLayout.CENTER);
         return card;
     }
@@ -336,7 +293,9 @@ public class DashboardPanel extends JPanel {
                     int y = top + height - barHeight;
                     g2.setColor(colors[i]);
                     g2.fillRoundRect(x, y, barWidth, Math.max(4, barHeight), 8, 8);
-                    String amount = String.format("₱ %.0f", values[i]);
+                    
+                    String amount = String.format("%s %.0f", SharedData.currencySymbol, values[i]);
+                    
                     g2.setColor(MUTED);
                     g2.setFont(new Font("Segoe UI", Font.PLAIN, 10));
                     FontMetrics fm = g2.getFontMetrics();
@@ -411,90 +370,33 @@ public class DashboardPanel extends JPanel {
         table.getTableHeader().setPreferredSize(new Dimension(0, 36));
     }
 
-    private void styleScrollBar(
-            JScrollBar scrollBar) {
-        scrollBar.setPreferredSize(
-                new Dimension(
-                        8,
-                        8
-                )
-        );
-        scrollBar.setBackground(
-                new Color(
-                        248,
-                        249,
-                        250
-                )
-        );
+    private void styleScrollBar(JScrollBar scrollBar) {
+        scrollBar.setPreferredSize(new Dimension(8, 8));
+        scrollBar.setBackground(new Color(248, 249, 250));
         scrollBar.setUI(
                 new BasicScrollBarUI() {
                     @Override
                     protected void configureScrollBarColors() {
-                        this.thumbColor =
-                                new Color(
-                                        200,
-                                        205,
-                                        210
-                                );
-                        this.trackColor =
-                                new Color(
-                                        248,
-                                        249,
-                                        250
-                                );
-                        this.thumbHighlightColor =
-                                new Color(
-                                        200,
-                                        205,
-                                        210
-                                );
-                        this.thumbDarkShadowColor =
-                                new Color(
-                                        200,
-                                        205,
-                                        210
-                                );
-                        this.thumbLightShadowColor =
-                                new Color(
-                                        200,
-                                        205,
-                                        210
-                                );
+                        this.thumbColor = new Color(200, 205, 210);
+                        this.trackColor = new Color(248, 249, 250);
+                        this.thumbHighlightColor = new Color(200, 205, 210);
+                        this.thumbDarkShadowColor = new Color(200, 205, 210);
+                        this.thumbLightShadowColor = new Color(200, 205, 210);
                     }
                     @Override
-                    protected JButton createDecreaseButton(
-                            int orientation) {
+                    protected JButton createDecreaseButton(int orientation) {
                         return createZeroButton();
                     }
                     @Override
-                    protected JButton createIncreaseButton(
-                            int orientation) {
+                    protected JButton createIncreaseButton(int orientation) {
                         return createZeroButton();
                     }
                     private JButton createZeroButton() {
-                        JButton button =
-                                new JButton();
-                        button.setPreferredSize(
-                                new Dimension(
-                                        0,
-                                        0
-                                )
-                        );
-                        button.setMinimumSize(
-                                new Dimension(
-                                        0,
-                                        0
-                                )
-                        );
-                        button.setMaximumSize(
-                                new Dimension(
-                                        0,
-                                        0
-                                )
-                        );
-                        button.setBorder(
-                                BorderFactory.createEmptyBorder()
-                        );
+                        JButton button = new JButton();
+                        button.setPreferredSize(new Dimension(0, 0));
+                        button.setMinimumSize(new Dimension(0, 0));
+                        button.setMaximumSize(new Dimension(0, 0));
+                        button.setBorder(BorderFactory.createEmptyBorder());
                         return button;
                     }
                 }

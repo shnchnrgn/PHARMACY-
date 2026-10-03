@@ -6,6 +6,26 @@ import java.util.List;
 public class SharedData {
     public static double totalSalesToday = 0.0;
 
+    // System Settings variables
+    public static String storeTitle = "Pharmacy Management System";
+    public static String storeName = "Vanguard Pharmacy";
+    public static String storeEmail = "Vanguard.p.m.s@gmail.com";
+    public static String storePhone = "";
+    public static String storeAddress = "";
+    public static String currencySymbol = "₱";
+    public static String discountType = "Flat";
+
+    public static String extractCurrencySymbol(String selectedItem) {
+        if (selectedItem != null && selectedItem.contains("(")) {
+            int start = selectedItem.indexOf("(") + 1;
+            int end = selectedItem.indexOf(")");
+            if (start < end) {
+                return selectedItem.substring(start, end);
+            }
+        }
+        return "₱";
+    }
+
     public static class SaleItem {
         public String orderNo;
         public String date;

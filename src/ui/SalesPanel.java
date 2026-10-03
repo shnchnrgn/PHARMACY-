@@ -92,9 +92,11 @@ public class SalesPanel extends JPanel {
         JPanel summaryPanel = new JPanel(new GridLayout(1, 3, 15, 0));
         summaryPanel.setOpaque(false);
 
-        lblGrossSales = new JLabel("₱ 0.00");
-        lblExpenses = new JLabel("₱ 0.00");
-        lblNetProfit = new JLabel("₱ 0.00");
+        String sym = SharedData.currencySymbol + " ";
+
+        lblGrossSales = new JLabel(sym + "0.00");
+        lblExpenses = new JLabel(sym + "0.00");
+        lblNetProfit = new JLabel(sym + "0.00");
 
         summaryPanel.add(createSummaryCard("Gross Sales", lblGrossSales, new Color(40, 167, 69)));
         summaryPanel.add(createSummaryCard("Total Expenses", lblExpenses, new Color(220, 53, 69)));
@@ -240,7 +242,7 @@ public class SalesPanel extends JPanel {
         if (!okClicked) return;
 
         String description = descriptionField.getText().trim();
-        String amountText = amountField.getText().trim().replace("₱", "").replace(",", "");
+        String amountText = amountField.getText().trim().replaceAll("[^0-9.]", "");
 
         if (description.isEmpty()) {
             showCustomDialog("Sale description is required.", "Validation Error", true);
@@ -309,6 +311,7 @@ public class SalesPanel extends JPanel {
         String selectedYearPrefix = String.format("%04d", selectedYear);
 
         double filteredGross = 0;
+        String sym = SharedData.currencySymbol + " ";
 
         // Filter and Populate Table Records
         List<String[]> sales = SalesDAO.getAllSales();
@@ -322,7 +325,7 @@ public class SalesPanel extends JPanel {
                         sale[0],
                         sale[1],
                         sale[2],
-                        "₱ " + sale[3]
+                        sym + sale[3]
                 });
 
                 try {
@@ -336,9 +339,9 @@ public class SalesPanel extends JPanel {
         double expenses = isYearly ? SalesDAO.getThisYearExpenseTotal() : SalesDAO.getThisMonthExpenseTotal();
         double netProfit = grossSales - expenses;
 
-        lblGrossSales.setText(String.format("₱ %.2f", grossSales));
-        lblExpenses.setText(String.format("₱ %.2f", expenses));
-        lblNetProfit.setText(String.format("₱ %.2f", netProfit));
+        lblGrossSales.setText(String.format("%s%.2f", sym, grossSales));
+        lblExpenses.setText(String.format("%s%.2f", sym, expenses));
+        lblNetProfit.setText(String.format("%s%.2f", sym, netProfit));
 
         // Adjust text color based on profit standing (red for loss, green for profit)
         if (netProfit < 0) {

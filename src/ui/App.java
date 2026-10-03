@@ -11,10 +11,16 @@ public class App extends JFrame {
     private JPanel mainContentPanel;
     private CardLayout cardLayout;
     private JPanel sidebar;
+    private JPanel salesSubMenu;
     private JPanel medicineSubMenu;
 
+    private MostPurchasedPanel mostPurchasedPanel;
+
+    private boolean isSalesMenuOpen = true;
     private boolean isMedicineMenuOpen = true;
-    private JLabel lblArrow;
+    private JLabel lblSalesArrow;
+    private JLabel lblMedicineArrow;
+    private JLabel lblWelcome;
 
     private JButton selectedButton;
     private final List<JButton> navigationButtons = new ArrayList<>();
@@ -42,9 +48,12 @@ public class App extends JFrame {
         cardLayout = new CardLayout();
         mainContentPanel = new JPanel(cardLayout);
 
+        mostPurchasedPanel = new MostPurchasedPanel();
+
         mainContentPanel.add(new DashboardPanel(), "DASHBOARD");
         mainContentPanel.add(new POSFrame(), "POS");
         mainContentPanel.add(new SalesPanel(), "SALES");
+        mainContentPanel.add(mostPurchasedPanel, "MOST_PURCHASED");
         mainContentPanel.add(new MedicinePanel(), "MEDICINE_LIST");
         mainContentPanel.add(new AddMedicinePanel(), "ADD_MEDICINE");
         mainContentPanel.add(new MedicineCategoryPanel(), "MEDICINE_CATEGORY");
@@ -71,7 +80,7 @@ public class App extends JFrame {
                 BorderFactory.createEmptyBorder(10, 20, 10, 20)
         ));
 
-        JLabel lblWelcome = new JLabel("Welcome to Pharmacy Management System");
+        lblWelcome = new JLabel("Welcome to Pharmacy Management System");
         lblWelcome.setFont(new Font("Segoe UI", Font.BOLD, 14));
         lblWelcome.setForeground(new Color(80, 90, 100));
         header.add(lblWelcome, BorderLayout.WEST);
@@ -79,9 +88,9 @@ public class App extends JFrame {
         JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
         rightPanel.setOpaque(false);
 
-        int expiredCount = 0; // Pwedeng i-link sa database
+        int expiredCount = 0;
 
-        JButton btnNotification = new JButton("🔔 Notifications (" + expiredCount + ")");
+        JButton btnNotification = new JButton("Notifications (" + expiredCount + ")");
         if (expiredCount > 0) {
             btnNotification.setForeground(new Color(192, 57, 43));
         } else {
@@ -92,7 +101,15 @@ public class App extends JFrame {
         btnNotification.setBackground(new Color(245, 247, 250));
         btnNotification.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
         btnNotification.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
+        
+        try {
+            ImageIcon bellIcon = new ImageIcon(getClass().getResource("/ui/notification.png"));
+            Image scaledBell = bellIcon.getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH);
+            btnNotification.setIcon(new ImageIcon(scaledBell));
+            btnNotification.setIconTextGap(8);
+        } catch (Exception e) {
+            btnNotification.setText("🔔 Notifications (" + expiredCount + ")");
+        }
         btnNotification.addActionListener(e -> {
             showCustomMessage(
                     this,
@@ -100,26 +117,37 @@ public class App extends JFrame {
                     "System Notifications"
             );
         });
-
-        JButton btnLogout = new JButton("🚪 Log out");
+        
+        JButton btnLogout = new JButton("Log out");
         btnLogout.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnLogout.setForeground(new Color(192, 57, 43));
         btnLogout.setFocusPainted(false);
         btnLogout.setBackground(new Color(245, 247, 250));
         btnLogout.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
         btnLogout.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
+        
+        try {
+            ImageIcon logoutIcon = new ImageIcon(getClass().getResource("/ui/logout.png"));
+            Image scaledLogout = logoutIcon.getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH);
+            btnLogout.setIcon(new ImageIcon(scaledLogout));
+            btnLogout.setIconTextGap(8);
+        } catch (Exception e) {
+            btnLogout.setText("🚪 Log out");
+        }
+        
         btnLogout.addActionListener(e -> {
             boolean confirmed = showCustomConfirm(
-                    this,
-                    "Are you sure you want to log out?",
-                    "Confirm Logout"
+                this,
+                "Are you sure you want to log out?",
+                "Confirm Logout"
             );
+            
             if (confirmed) {
                 dispose();
                 SwingUtilities.invokeLater(() -> {
                     LoginDialog loginDialog = new LoginDialog(null);
                     loginDialog.setVisible(true);
+                    
                     if (loginDialog.isLoggedIn()) {
                         App app = new App();
                         app.setVisible(true);
@@ -129,7 +157,7 @@ public class App extends JFrame {
                 });
             }
         });
-
+        
         rightPanel.add(btnNotification);
         rightPanel.add(btnLogout);
         header.add(rightPanel, BorderLayout.EAST);
@@ -290,15 +318,40 @@ public class App extends JFrame {
         });
         sb.add(posButton);
 
-        JButton salesButton = createStyledNavButton("Sales", "/ui/pos.png");
-        salesButton.addActionListener(e -> {
+        // Sales Dropdown Menu
+        JButton salesButton = createSalesDropdownButton();
+        sb.add(salesButton);
+
+        salesSubMenu = new JPanel();
+        salesSubMenu.setLayout(new BoxLayout(salesSubMenu, BoxLayout.Y_AXIS));
+        salesSubMenu.setBackground(SUBMENU_COLOR);
+        salesSubMenu.setMaximumSize(new Dimension(240, 92));
+        salesSubMenu.setBorder(BorderFactory.createEmptyBorder(2, 7, 4, 7));
+        salesSubMenu.setVisible(true);
+
+        JButton salesListButton = createSubNavButton("Sales List", "/ui/pos.png");
+        salesListButton.addActionListener(e -> {
             selectButton((JButton) e.getSource());
             cardLayout.show(mainContentPanel, "SALES");
             mainContentPanel.revalidate();
             mainContentPanel.repaint();
         });
-        sb.add(salesButton);
+        salesSubMenu.add(salesListButton);
 
+        JButton mostPurchasedButton = createSubNavButton("Most Purchased", "/ui/medicine_list.png");
+        mostPurchasedButton.addActionListener(e -> {
+            selectButton((JButton) e.getSource());
+            if (mostPurchasedPanel != null) {
+                mostPurchasedPanel.refreshData();
+            }
+            cardLayout.show(mainContentPanel, "MOST_PURCHASED");
+            mainContentPanel.revalidate();
+            mainContentPanel.repaint();
+        });
+        salesSubMenu.add(mostPurchasedButton);
+        sb.add(salesSubMenu);
+
+        // Medicine Dropdown Menu
         JButton medicineButton = createMedicineDropdownButton();
         sb.add(medicineButton);
 
@@ -435,6 +488,85 @@ public class App extends JFrame {
         return button;
     }
 
+    private JButton createSalesDropdownButton() {
+        JButton button = new JButton();
+        navigationButtons.add(button);
+        button.setLayout(new GridBagLayout());
+        button.setMaximumSize(new Dimension(240, 42));
+        button.setPreferredSize(new Dimension(240, 42));
+        button.setMinimumSize(new Dimension(240, 42));
+        button.setOpaque(false);
+        button.setContentAreaFilled(false);
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setAlignmentX(Component.LEFT_ALIGNMENT);
+        button.setBorder(BorderFactory.createEmptyBorder(0, 14, 0, 12));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.gridy = 0;
+        gbc.anchor = GridBagConstraints.CENTER;
+
+        try {
+            ImageIcon originalIcon = new ImageIcon(getClass().getResource("/ui/pos.png"));
+            Image scaledImg = originalIcon.getImage().getScaledInstance(17, 17, Image.SCALE_SMOOTH);
+            JLabel lblIcon = new JLabel(new ImageIcon(scaledImg));
+            gbc.gridx = 0;
+            gbc.insets = new Insets(0, 0, 0, 11);
+            button.add(lblIcon, gbc);
+        } catch (Exception ignored) {}
+
+        JLabel lblText = new JLabel("Sales");
+        lblText.setForeground(TEXT_COLOR);
+        lblText.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        gbc.gridx = 1;
+        gbc.weightx = 1.0;
+        gbc.anchor = GridBagConstraints.WEST;
+        button.add(lblText, gbc);
+
+        lblSalesArrow = new JLabel("^");
+        lblSalesArrow.setForeground(ACCENT_COLOR);
+        lblSalesArrow.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        gbc.gridx = 2;
+        gbc.weightx = 0.0;
+        gbc.anchor = GridBagConstraints.EAST;
+        button.add(lblSalesArrow, gbc);
+
+        button.setUI(new javax.swing.plaf.basic.BasicButtonUI() {
+            @Override
+            public void paint(Graphics g, JComponent c) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                JButton b = (JButton) c;
+                boolean selected = b == selectedButton;
+                boolean hover = b.getModel().isRollover();
+
+                if (selected) {
+                    g2.setColor(SELECTED_COLOR);
+                    g2.fillRoundRect(7, 3, b.getWidth() - 14, b.getHeight() - 6, 5, 5);
+                    g2.setColor(ACCENT_COLOR);
+                    g2.fillRoundRect(7, 8, 3, b.getHeight() - 16, 3, 3);
+                } else if (hover) {
+                    g2.setColor(HOVER_COLOR);
+                    g2.fillRoundRect(7, 3, b.getWidth() - 14, b.getHeight() - 6, 5, 5);
+                }
+                g2.dispose();
+                super.paint(g, c);
+            }
+        });
+
+        button.addActionListener(e -> {
+            selectButton((JButton) e.getSource());
+            isSalesMenuOpen = !isSalesMenuOpen;
+            salesSubMenu.setVisible(isSalesMenuOpen);
+            lblSalesArrow.setText(isSalesMenuOpen ? "^" : "v");
+            sidebar.revalidate();
+            sidebar.repaint();
+        });
+
+        return button;
+    }
+
     private JButton createMedicineDropdownButton() {
         JButton button = new JButton();
         navigationButtons.add(button);
@@ -471,13 +603,13 @@ public class App extends JFrame {
         gbc.anchor = GridBagConstraints.WEST;
         button.add(lblText, gbc);
 
-        lblArrow = new JLabel("^");
-        lblArrow.setForeground(ACCENT_COLOR);
-        lblArrow.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        lblMedicineArrow = new JLabel("^");
+        lblMedicineArrow.setForeground(ACCENT_COLOR);
+        lblMedicineArrow.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         gbc.gridx = 2;
         gbc.weightx = 0.0;
         gbc.anchor = GridBagConstraints.EAST;
-        button.add(lblArrow, gbc);
+        button.add(lblMedicineArrow, gbc);
 
         button.setUI(new javax.swing.plaf.basic.BasicButtonUI() {
             @Override
@@ -506,7 +638,7 @@ public class App extends JFrame {
             selectButton((JButton) e.getSource());
             isMedicineMenuOpen = !isMedicineMenuOpen;
             medicineSubMenu.setVisible(isMedicineMenuOpen);
-            lblArrow.setText(isMedicineMenuOpen ? "^" : "v");
+            lblMedicineArrow.setText(isMedicineMenuOpen ? "^" : "v");
             sidebar.revalidate();
             sidebar.repaint();
         });
@@ -562,6 +694,12 @@ public class App extends JFrame {
         }
 
         return button;
+    }
+
+    public void updateWelcomeTitle(String newTitle) {
+        if (lblWelcome != null) {
+            lblWelcome.setText("Welcome to " + newTitle);
+        }
     }
 
     public static void main(String[] args) {

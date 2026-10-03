@@ -768,6 +768,119 @@ public class SalesDAO {
         }
     }
 
+    public static List<String[]> getMostPurchasedOverall(int limit) {
+
+        List<String[]> list = new ArrayList<>();
+
+        String sql =
+                "SELECT " +
+                "m.name, " +
+                "COALESCE(m.category, 'N/A') AS category, " +
+                "COALESCE(m.company_name, 'N/A') AS company, " +
+                "SUM(si.quantity) AS total_sold " +
+                "FROM sale_items si " +
+                "INNER JOIN medicines m ON si.medicine_id = m.id " +
+                "GROUP BY m.id, m.name, m.category, m.company_name " +
+                "ORDER BY total_sold DESC " +
+                "LIMIT ?";
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setInt(1, limit);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    list.add(
+                            new String[]{
+                                    rs.getString("name"),
+                                    rs.getString("category"),
+                                    rs.getString("company"),
+                                    String.valueOf(rs.getInt("total_sold"))
+                            }
+                    );
+                }
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    public static List<String[]> getMostPurchasedByCategory() {
+
+        List<String[]> list = new ArrayList<>();
+
+        String sql =
+                "SELECT category, medicine_name, max_sold FROM (" +
+                "    SELECT COALESCE(m.category, 'Uncategorized') AS category, " +
+                "           m.name AS medicine_name, " +
+                "           SUM(si.quantity) AS max_sold, " +
+                "           ROW_NUMBER() OVER (PARTITION BY COALESCE(m.category, 'Uncategorized') ORDER BY SUM(si.quantity) DESC) as rn " +
+                "    FROM sale_items si " +
+                "    INNER JOIN medicines m ON si.medicine_id = m.id " +
+                "    GROUP BY COALESCE(m.category, 'Uncategorized'), m.id, m.name " +
+                ") t WHERE rn = 1 ORDER BY max_sold DESC";
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+
+            while (rs.next()) {
+                list.add(
+                        new String[]{
+                                rs.getString("category"),
+                                rs.getString("medicine_name"),
+                                String.valueOf(rs.getInt("max_sold"))
+                        }
+                );
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
+    public static List<String[]> getMostPurchasedByCompany() {
+
+        List<String[]> list = new ArrayList<>();
+
+        String sql =
+                "SELECT company_name, medicine_name, max_sold FROM (" +
+                "    SELECT COALESCE(m.company_name, 'Unknown Company') AS company_name, " +
+                "           m.name AS medicine_name, " +
+                "           SUM(si.quantity) AS max_sold, " +
+                "           ROW_NUMBER() OVER (PARTITION BY COALESCE(m.company_name, 'Unknown Company') ORDER BY SUM(si.quantity) DESC) as rn " +
+                "    FROM sale_items si " +
+                "    INNER JOIN medicines m ON si.medicine_id = m.id " +
+                "    GROUP BY COALESCE(m.company_name, 'Unknown Company'), m.id, m.name " +
+                ") t WHERE rn = 1 ORDER BY max_sold DESC";
+
+        try (Connection conn = Database.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
+
+            while (rs.next()) {
+                list.add(
+                        new String[]{
+                                rs.getString("company_name"),
+                                rs.getString("medicine_name"),
+                                String.valueOf(rs.getInt("max_sold"))
+                        }
+                );
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return list;
+    }
+
     private static int getInt(
             String sql,
             String... params) {

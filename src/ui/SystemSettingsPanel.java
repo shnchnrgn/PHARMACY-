@@ -97,21 +97,41 @@ public class SystemSettingsPanel extends JPanel {
         btnSave.setFocusPainted(false);
         btnSave.setBorder(BorderFactory.createEmptyBorder(8, 25, 8, 25));
         btnSave.setCursor(new Cursor(Cursor.HAND_CURSOR));
-
+        
         btnSave.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 String storeTitle = txtStoreTitle.getText().trim();
                 String storeName = txtStoreName.getText().trim();
-
+                
                 if (storeTitle.isEmpty() || storeName.isEmpty()) {
                     showCustomDialog("Store Title and Store Name are required.", "Error");
                     return;
                 }
+                
+                SharedData.storeTitle = storeTitle;
+                SharedData.storeName = storeName;
+                SharedData.storeEmail = txtStoreEmail.getText().trim();
+                SharedData.storePhone = txtStorePhone.getText().trim();
+                SharedData.storeAddress = txtAddress.getText().trim();
 
-                showCustomDialog("Store information saved successfully!", "Information");
-            }
-        });
+                String selectedCurrency = (String) cmbCurrency.getSelectedItem();
+                SharedData.currencySymbol = SharedData.extractCurrencySymbol(selectedCurrency);
+
+                if (cmbDiscountType.getSelectedItem() != null) {
+                    SharedData.discountType = cmbDiscountType.getSelectedItem().toString();
+                }
+
+                Window parentWindow = SwingUtilities.getWindowAncestor(SystemSettingsPanel.this);
+                if (parentWindow instanceof App) {
+                    ((App) parentWindow).updateWelcomeTitle(storeTitle);
+                }
+                
+                    DashboardPanel.refreshDashboardData();
+                    
+                    showCustomDialog("Store information saved successfully!", "Information");
+                }
+            });
 
         fieldsPanel.add(btnSave, gbc);
 
