@@ -93,7 +93,7 @@ public class LoginDialog extends JDialog {
         panel.setBackground(new Color(250, 249, 246));
         panel.setBorder(grayBorder);
 
-        ImageIcon logoIcon = new ImageIcon(getClass().getResource("/ui/VANGUARD LOGO HEADER.png"));
+        ImageIcon logoIcon = new ImageIcon(getClass().getResource("/pngs/VANGUARD LOGO HEADER.png"));
         Image scaledImage = logoIcon.getImage().getScaledInstance(240, 80, Image.SCALE_SMOOTH);
         ImageIcon resizedLogo = new ImageIcon(scaledImage);
 
@@ -183,7 +183,7 @@ public class LoginDialog extends JDialog {
         panel.setBackground(new Color(250, 249, 246));
         GridBagConstraints gbc = createGBC();
 
-        ImageIcon logoIcon = new ImageIcon(getClass().getResource("/ui/VANGUARD LOGO HEADER.png"));
+        ImageIcon logoIcon = new ImageIcon(getClass().getResource("/pngs/VANGUARD LOGO HEADER.png"));
         Image scaledImage = logoIcon.getImage().getScaledInstance(200, 65, Image.SCALE_SMOOTH);
         ImageIcon resizedLogo = new ImageIcon(scaledImage);
 

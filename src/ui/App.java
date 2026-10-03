@@ -103,7 +103,7 @@ public class App extends JFrame {
         btnNotification.setCursor(new Cursor(Cursor.HAND_CURSOR));
         
         try {
-            ImageIcon bellIcon = new ImageIcon(getClass().getResource("/ui/notification.png"));
+            ImageIcon bellIcon = new ImageIcon(getClass().getResource("/pngs/notification.png"));
             Image scaledBell = bellIcon.getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH);
             btnNotification.setIcon(new ImageIcon(scaledBell));
             btnNotification.setIconTextGap(8);
@@ -127,7 +127,7 @@ public class App extends JFrame {
         btnLogout.setCursor(new Cursor(Cursor.HAND_CURSOR));
         
         try {
-            ImageIcon logoutIcon = new ImageIcon(getClass().getResource("/ui/logout.png"));
+            ImageIcon logoutIcon = new ImageIcon(getClass().getResource("/pngs/logout.png"));
             Image scaledLogout = logoutIcon.getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH);
             btnLogout.setIcon(new ImageIcon(scaledLogout));
             btnLogout.setIconTextGap(8);
@@ -278,7 +278,7 @@ public class App extends JFrame {
 
         JLabel lblLogo;
         try {
-            ImageIcon originalIcon = new ImageIcon(getClass().getResource("/ui/VANGUARD LOGO HEADER.png"));
+            ImageIcon originalIcon = new ImageIcon(getClass().getResource("/pngs/VANGUARD LOGO HEADER.png"));
             Image image = originalIcon.getImage();
             int targetWidth = 205;
             int targetHeight = (int) ((double) image.getHeight(null) / image.getWidth(null) * targetWidth);
@@ -299,7 +299,7 @@ public class App extends JFrame {
         sb.add(lblLogo);
         sb.add(Box.createVerticalStrut(4));
 
-        JButton dashboardButton = createStyledNavButton("Dashboard", "/ui/dashboard.png");
+        JButton dashboardButton = createStyledNavButton("Dashboard", "/pngs/dashboard.png");
         dashboardButton.addActionListener(e -> {
             selectButton((JButton) e.getSource());
             DashboardPanel.refreshDashboardData();
@@ -309,7 +309,7 @@ public class App extends JFrame {
         });
         sb.add(dashboardButton);
 
-        JButton posButton = createStyledNavButton("Point Of Sales", "/ui/pos.png");
+        JButton posButton = createStyledNavButton("Point Of Sales", "/pngs/pos.png");
         posButton.addActionListener(e -> {
             selectButton((JButton) e.getSource());
             cardLayout.show(mainContentPanel, "POS");
@@ -329,7 +329,7 @@ public class App extends JFrame {
         salesSubMenu.setBorder(BorderFactory.createEmptyBorder(2, 7, 4, 7));
         salesSubMenu.setVisible(true);
 
-        JButton salesListButton = createSubNavButton("Sales List", "/ui/pos.png");
+        JButton salesListButton = createSubNavButton("Sales List", "/pngs/pos.png");
         salesListButton.addActionListener(e -> {
             selectButton((JButton) e.getSource());
             cardLayout.show(mainContentPanel, "SALES");
@@ -338,7 +338,7 @@ public class App extends JFrame {
         });
         salesSubMenu.add(salesListButton);
 
-        JButton mostPurchasedButton = createSubNavButton("Most Purchased", "/ui/medicine_list.png");
+        JButton mostPurchasedButton = createSubNavButton("Most Purchased", "/pngs/medicine_list.png");
         mostPurchasedButton.addActionListener(e -> {
             selectButton((JButton) e.getSource());
             if (mostPurchasedPanel != null) {
@@ -362,7 +362,7 @@ public class App extends JFrame {
         medicineSubMenu.setBorder(BorderFactory.createEmptyBorder(2, 7, 4, 7));
         medicineSubMenu.setVisible(true);
 
-        JButton addMedicineButton = createSubNavButton("Add Medicine", "/ui/add_medicine.png");
+        JButton addMedicineButton = createSubNavButton("Add Medicine", "/pngs/add_medicine.png");
         addMedicineButton.addActionListener(e -> {
             selectButton((JButton) e.getSource());
             cardLayout.show(mainContentPanel, "ADD_MEDICINE");
@@ -371,7 +371,7 @@ public class App extends JFrame {
         });
         medicineSubMenu.add(addMedicineButton);
 
-        JButton medicineListButton = createSubNavButton("Medicine List", "/ui/medicine_list.png");
+        JButton medicineListButton = createSubNavButton("Medicine List", "/pngs/medicine_list.png");
         medicineListButton.addActionListener(e -> {
             selectButton((JButton) e.getSource());
             cardLayout.show(mainContentPanel, "MEDICINE_LIST");
@@ -380,7 +380,7 @@ public class App extends JFrame {
         });
         medicineSubMenu.add(medicineListButton);
 
-        JButton medicineCategoryButton = createSubNavButton("Medicine Category", "/ui/medicine_category.png");
+        JButton medicineCategoryButton = createSubNavButton("Medicine Category", "/pngs/medicine_category.png");
         medicineCategoryButton.addActionListener(e -> {
             selectButton((JButton) e.getSource());
             cardLayout.show(mainContentPanel, "MEDICINE_CATEGORY");
@@ -390,7 +390,7 @@ public class App extends JFrame {
         medicineSubMenu.add(medicineCategoryButton);
         sb.add(medicineSubMenu);
 
-        JButton customerButton = createStyledNavButton("Customers", "/ui/customers.png");
+        JButton customerButton = createStyledNavButton("Customers", "/pngs/customers.png");
         customerButton.addActionListener(e -> {
             selectButton((JButton) e.getSource());
             cardLayout.show(mainContentPanel, "CUSTOMERS");
@@ -399,7 +399,7 @@ public class App extends JFrame {
         });
         sb.add(customerButton);
 
-        JButton expenseButton = createStyledNavButton("Expenses", "/ui/Expense.png");
+        JButton expenseButton = createStyledNavButton("Expenses", "/pngs/Expense.png");
         expenseButton.addActionListener(e -> {
             selectButton((JButton) e.getSource());
             cardLayout.show(mainContentPanel, "EXPENSES");
@@ -408,7 +408,7 @@ public class App extends JFrame {
         });
         sb.add(expenseButton);
 
-        JButton settingsButton = createStyledNavButton("System Settings", "/ui/system_settings.png");
+        JButton settingsButton = createStyledNavButton("System Settings", "/pngs/system_settings.png");
         settingsButton.addActionListener(e -> {
             selectButton((JButton) e.getSource());
             cardLayout.show(mainContentPanel, "SYSTEM_SETTINGS");
@@ -508,7 +508,7 @@ public class App extends JFrame {
         gbc.anchor = GridBagConstraints.CENTER;
 
         try {
-            ImageIcon originalIcon = new ImageIcon(getClass().getResource("/ui/pos.png"));
+            ImageIcon originalIcon = new ImageIcon(getClass().getResource("/pngs/pos.png"));
             Image scaledImg = originalIcon.getImage().getScaledInstance(17, 17, Image.SCALE_SMOOTH);
             JLabel lblIcon = new JLabel(new ImageIcon(scaledImg));
             gbc.gridx = 0;
