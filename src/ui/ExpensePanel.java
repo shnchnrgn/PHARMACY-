@@ -4,7 +4,10 @@ import db.SalesDAO;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
+import javax.swing.table.TableColumn;
 import java.awt.*;
 import java.time.LocalDate;
 import java.util.List;
@@ -177,48 +180,69 @@ public class ExpensePanel extends JPanel {
                 )
         );
 
-        expenseTable.getTableHeader().setFont(
-                new Font(
-                        "Segoe UI",
-                        Font.BOLD,
-                        12
-                )
-        );
-
-        expenseTable.getTableHeader()
-                .setBackground(
-                        new Color(248, 249, 250)
-                );
-
-        expenseTable.getTableHeader()
-                .setForeground(
-                        new Color(80, 85, 90)
-                );
-
-        expenseTable.setShowVerticalLines(false);
-
-        expenseTable.setGridColor(
-                new Color(235, 238, 242)
-        );
-
+        // data-table look: grid lines on every cell
+        final Color gridColor = new Color(208, 211, 215);
+        expenseTable.setShowGrid(true);
+        expenseTable.setShowVerticalLines(true);
+        expenseTable.setShowHorizontalLines(true);
+        expenseTable.setGridColor(gridColor);
+        expenseTable.setIntercellSpacing(new Dimension(1, 1));
+        expenseTable.setFillsViewportHeight(true);
         expenseTable.setSelectionBackground(new Color(210, 215, 220));
         expenseTable.setSelectionForeground(Color.BLACK);
 
-        expenseTable.getColumnModel()
-                .getColumn(0)
-                .setPreferredWidth(60);
+        // header: light gray cells with borders, left-aligned text
+        JTableHeader header = expenseTable.getTableHeader();
+        header.setPreferredSize(new Dimension(0, 36));
+        header.setResizingAllowed(false);
+        header.setReorderingAllowed(false);
+        header.setDefaultRenderer(new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                                                           boolean hasFocus, int row, int column) {
+                JLabel lbl = new JLabel(String.valueOf(value));
+                lbl.setOpaque(true);
+                lbl.setBackground(new Color(242, 243, 245));
+                lbl.setForeground(new Color(60, 65, 70));
+                lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                lbl.setHorizontalAlignment(JLabel.LEFT);
+                lbl.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(1, 0, 1, 1, gridColor),
+                        new EmptyBorder(0, 10, 0, 10)
+                ));
+                return lbl;
+            }
+        });
 
-        expenseTable.getColumnModel()
-                .getColumn(1)
-                .setPreferredWidth(120);
+        // body cells: left-aligned with padding, no focus border
+        DefaultTableCellRenderer cellRenderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                                                           boolean hasFocus, int row, int column) {
+                super.getTableCellRendererComponent(table, value, isSelected, false, row, column);
+                setBorder(new EmptyBorder(0, 10, 0, 10));
+                setHorizontalAlignment(JLabel.LEFT);
+                setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
+                setForeground(isSelected ? table.getSelectionForeground() : new Color(60, 65, 70));
+                return this;
+            }
+        };
+        for (int i = 0; i < expenseTable.getColumnModel().getColumnCount(); i++) {
+            expenseTable.getColumnModel().getColumn(i).setCellRenderer(cellRenderer);
+        }
 
-        expenseTable.getColumnModel()
-                .getColumn(2)
-                .setPreferredWidth(400);
-
-        expenseTable.getColumnModel()
-                .getColumn(3)
-                .setPreferredWidth(150);
+        // columns fill the whole table width; user can't drag/resize them.
+        // ID and Date stay fixed, Description and Amount share the leftover space.
+        expenseTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        int[] fixed = {80, 140};
+        for (int i = 0; i < fixed.length; i++) {
+            TableColumn col = expenseTable.getColumnModel().getColumn(i);
+            col.setMinWidth(fixed[i]);
+            col.setMaxWidth(fixed[i]);
+            col.setPreferredWidth(fixed[i]);
+        }
+        expenseTable.getColumnModel().getColumn(2).setPreferredWidth(600);
+        expenseTable.getColumnModel().getColumn(3).setPreferredWidth(200);
 
         JScrollPane scrollPane =
                 new JScrollPane(
@@ -411,7 +435,7 @@ public class ExpensePanel extends JPanel {
         btnOk.setFocusPainted(false);
         btnOk.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
         btnOk.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        
+
         JButton btnCancel = new JButton("Cancel");
         btnCancel.setFont(new Font("Segoe UI", Font.BOLD, 12));
         btnCancel.setBackground(new Color(192, 57, 43));
@@ -449,13 +473,13 @@ public class ExpensePanel extends JPanel {
 
         JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 25));
         centerPanel.setBackground(Color.WHITE);
-        
+
         String colorHex = isError ? "#C0392B" : "#261436";
         JLabel lblMsg = new JLabel("<html><font color='" + colorHex + "'><b>" + title + ":</b></font> " + message + "</html>");
         lblMsg.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         lblMsg.setForeground(new Color(70, 75, 80));
         centerPanel.add(lblMsg);
-        
+
         dialog.add(centerPanel, BorderLayout.CENTER);
 
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
@@ -473,7 +497,7 @@ public class ExpensePanel extends JPanel {
 
         bottomPanel.add(btnOk);
         dialog.add(bottomPanel, BorderLayout.SOUTH);
-        
+
         dialog.pack();
         dialog.setSize(Math.max(dialog.getWidth() + 80, 520), Math.max(dialog.getHeight() + 40, 150));
         dialog.setLocationRelativeTo(this);
@@ -488,12 +512,12 @@ public class ExpensePanel extends JPanel {
 
         JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 25));
         centerPanel.setBackground(Color.WHITE);
-        
+
         JLabel lblMsg = new JLabel("<html><font color='#C0392B'><b>" + title + ":</b></font> " + message + "</html>");
         lblMsg.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         lblMsg.setForeground(new Color(70, 75, 80));
         centerPanel.add(lblMsg);
-        
+
         dialog.add(centerPanel, BorderLayout.CENTER);
 
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
@@ -527,7 +551,7 @@ public class ExpensePanel extends JPanel {
         bottomPanel.add(btnYes);
         bottomPanel.add(btnNo);
         dialog.add(bottomPanel, BorderLayout.SOUTH);
-        
+
         dialog.pack();
         dialog.setSize(Math.max(dialog.getWidth() + 80, 520), Math.max(dialog.getHeight() + 40, 150));
         dialog.setLocationRelativeTo(this);

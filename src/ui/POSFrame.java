@@ -8,17 +8,38 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.plaf.basic.BasicScrollBarUI;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableRowSorter;
 import models.Customer;
 import models.Medicine;
 
 public class POSFrame extends JPanel {
+
+    // same palette / spacing as MedicinePanel
+    private static final Color BORDER = new Color(220, 225, 230);
+    private static final Color TEXT = new Color(60, 65, 70);
+    private static final Color MUTED = new Color(108, 117, 125);
+    private static final Color PRIMARY_SOFT = new Color(224, 243, 241);
+    private static final Color DANGER = new Color(192, 57, 43);
+    private static final int CELL_PAD = 10;
+
+    // model column indexes of the medicine table
+    private static final int M_NAME = 0, M_CATEGORY = 1, M_PRICE = 2, M_STOCK = 3, M_STATUS = 4, M_ID = 5;
+
+    // order of the columns as shown on screen (model indexes)
+    private static final int[] MED_VIEW_ORDER = {M_CATEGORY, M_NAME, M_PRICE, M_STOCK, M_STATUS, M_ID};
+    // group label above each column (by view position). null = no group, header spans both rows
+    private static final String[] MED_HEADER_GROUPS = {null, null, "Price", "Stock", "Stock", null};
 
     private JTable medicineTable;
     private JTable cartTable;
@@ -106,7 +127,8 @@ public class POSFrame extends JPanel {
                 if (text.isEmpty()) {
                     medicineRowSorter.setRowFilter(null);
                 } else {
-                    medicineRowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+                    // Pattern.quote so characters like ( or [ do not break the search
+                    medicineRowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + Pattern.quote(text)));
                 }
             }
         });
@@ -116,11 +138,12 @@ public class POSFrame extends JPanel {
 
         leftPanel.add(searchPanel, BorderLayout.NORTH);
 
+        // same header names as the Medicine List page
         String[] medColumns = {
                 "Medicine Name",
-                "Category",
-                "Price",
-                "Stock",
+                "Medicine Category",
+                "Sell Price",
+                "Quantity",
                 "Status",
                 "ID"
         };
@@ -133,73 +156,79 @@ public class POSFrame extends JPanel {
         };
 
         medicineTable = new JTable(medicineModel);
-        
-        medicineTable.setSelectionBackground(new Color(210, 215, 220));
-        medicineTable.setSelectionForeground(Color.BLACK);
+
+        medicineTable.setSelectionBackground(PRIMARY_SOFT);
+        medicineTable.setSelectionForeground(TEXT);
 
         medicineRowSorter = new TableRowSorter<>(medicineModel);
         medicineTable.setRowSorter(medicineRowSorter);
 
-        medicineTable.setRowHeight(32);
-        medicineTable.setShowVerticalLines(false);
+        medicineTable.setRowHeight(33);
+        medicineTable.setShowVerticalLines(true);
         medicineTable.setShowHorizontalLines(true);
         medicineTable.setGridColor(new Color(235, 238, 242));
         medicineTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        medicineTable.getTableHeader().setFont(
-                new Font("Segoe UI", Font.BOLD, 12)
-        );
-        medicineTable.getTableHeader().setBackground(
-                new Color(248, 249, 250)
-        );
-        medicineTable.getTableHeader().setForeground(
-                new Color(80, 85, 90)
-        );
+        medicineTable.setFillsViewportHeight(true);
         medicineTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
-        DefaultTableCellRenderer statusRenderer = new DefaultTableCellRenderer() {
+        // two-level header (Price / Stock groups) like the Medicine List page
+        JTableHeader medHeader = new GroupHeader(medicineTable.getColumnModel(), MED_HEADER_GROUPS, 52);
+        medHeader.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        medicineTable.setTableHeader(medHeader);
+
+        int[] widths = {140, 120, 85, 75, 95, 0};
+        for (int i = 0; i < widths.length; i++) {
+            medicineTable.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
+        }
+
+        DefaultTableCellRenderer cellRenderer = new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                setHorizontalAlignment(column == 3 || column == 4 ? JLabel.CENTER : JLabel.LEFT);
-                
+                super.getTableCellRendererComponent(table, value, isSelected, false, row, column);
+
+                int mc = table.convertColumnIndexToModel(column);
                 int modelRow = table.convertRowIndexToModel(row);
+
+                setBorder(new EmptyBorder(0, CELL_PAD, 0, CELL_PAD));
+                setHorizontalAlignment(mc == M_STOCK || mc == M_STATUS ? JLabel.CENTER : JLabel.LEFT);
+
+                boolean problem = false;
                 try {
-                    String status = table.getModel().getValueAt(modelRow, 4).toString();
-                    
-                    if ("Out of Stock".equalsIgnoreCase(status) || "Expired".equalsIgnoreCase(status)) {
-                        c.setForeground(new Color(192, 57, 43));
-                        setFont(new Font("Segoe UI", Font.BOLD, 12));
-                    } else {
-                        c.setForeground(new Color(70, 75, 80));
-                        setFont(new Font("Segoe UI", Font.PLAIN, 12));
-                    }
+                    String status = table.getModel().getValueAt(modelRow, M_STATUS).toString();
+                    problem = "Out of Stock".equalsIgnoreCase(status) || "Expired".equalsIgnoreCase(status);
                 } catch (Exception ignored) {}
 
+                setFont(new Font("Segoe UI", problem ? Font.BOLD : Font.PLAIN, 12));
+                setForeground(problem ? DANGER : TEXT);
+
                 if (isSelected) {
-                    c.setBackground(table.getSelectionBackground());
-                    c.setForeground(table.getSelectionForeground());
+                    setBackground(table.getSelectionBackground());
+                    setForeground(table.getSelectionForeground());
                 } else {
-                    c.setBackground(Color.WHITE);
+                    setBackground(Color.WHITE);
                 }
-                return c;
+                return this;
             }
         };
 
-        for (int i = 0; i < 5; i++) {
-            medicineTable.getColumnModel().getColumn(i).setCellRenderer(statusRenderer);
+        for (int i = 0; i < medicineTable.getColumnModel().getColumnCount(); i++) {
+            medicineTable.getColumnModel().getColumn(i).setCellRenderer(cellRenderer);
         }
 
-        medicineTable.getColumnModel().getColumn(5).setMinWidth(0);
-        medicineTable.getColumnModel().getColumn(5).setMaxWidth(0);
-        medicineTable.getColumnModel().getColumn(5).setPreferredWidth(0);
+        // arrange columns visually: Category | Name | Price | Quantity | Status  (ID stays hidden)
+        for (int pos = 0; pos < MED_VIEW_ORDER.length; pos++) {
+            int from = medicineTable.convertColumnIndexToView(MED_VIEW_ORDER[pos]);
+            if (from != pos) medicineTable.moveColumn(from, pos);
+        }
+        medicineTable.getTableHeader().setReorderingAllowed(false);
+        medicineTable.getTableHeader().setResizingAllowed(false); // columns can't be dragged
 
-        JScrollPane medScroll = new JScrollPane(medicineTable);
-        medScroll.getViewport().setBackground(Color.WHITE);
-        medScroll.setBorder(
-                BorderFactory.createLineBorder(new Color(220, 224, 230))
-        );
+        // hidden ID column
+        medicineTable.getColumnModel().getColumn(medicineTable.convertColumnIndexToView(M_ID)).setMinWidth(0);
+        medicineTable.getColumnModel().getColumn(medicineTable.convertColumnIndexToView(M_ID)).setMaxWidth(0);
+        medicineTable.getColumnModel().getColumn(medicineTable.convertColumnIndexToView(M_ID)).setPreferredWidth(0);
 
-        leftPanel.add(medScroll, BorderLayout.CENTER);
+        leftPanel.add(scroll(medicineTable, true), BorderLayout.CENTER);
 
         JButton btnAddToCart = createButton(
                 "Add to Cart",
@@ -269,37 +298,52 @@ public class POSFrame extends JPanel {
         };
 
         cartTable = new JTable(cartModel);
-        
-        cartTable.setSelectionBackground(new Color(210, 215, 220));
-        cartTable.setSelectionForeground(Color.BLACK);
 
-        cartTable.setRowHeight(32);
-        cartTable.setShowVerticalLines(false);
+        cartTable.setSelectionBackground(PRIMARY_SOFT);
+        cartTable.setSelectionForeground(TEXT);
+
+        cartTable.setRowHeight(33);
+        cartTable.setShowVerticalLines(true);
         cartTable.setShowHorizontalLines(true);
         cartTable.setGridColor(new Color(235, 238, 242));
         cartTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        cartTable.getTableHeader().setFont(
-                new Font("Segoe UI", Font.BOLD, 12)
-        );
-        cartTable.getTableHeader().setBackground(
-                new Color(248, 249, 250)
-        );
-        cartTable.getTableHeader().setForeground(
-                new Color(80, 85, 90)
-        );
+        cartTable.setFillsViewportHeight(true);
         cartTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        // same header look as the medicine table (single row, no groups)
+        JTableHeader cartHeader = new GroupHeader(cartTable.getColumnModel(), new String[cartColumns.length], 36);
+        cartHeader.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        cartTable.setTableHeader(cartHeader);
+        cartTable.getTableHeader().setReorderingAllowed(false);
+        cartTable.getTableHeader().setResizingAllowed(false);
+
+        DefaultTableCellRenderer cartRenderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                super.getTableCellRendererComponent(table, value, isSelected, false, row, column);
+                int mc = table.convertColumnIndexToModel(column);
+                setBorder(new EmptyBorder(0, CELL_PAD, 0, CELL_PAD));
+                setHorizontalAlignment(mc == 2 ? JLabel.CENTER : JLabel.LEFT);
+                setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                setForeground(TEXT);
+                if (isSelected) {
+                    setBackground(table.getSelectionBackground());
+                    setForeground(table.getSelectionForeground());
+                } else {
+                    setBackground(Color.WHITE);
+                }
+                return this;
+            }
+        };
+        for (int i = 0; i < cartColumns.length; i++) {
+            cartTable.getColumnModel().getColumn(i).setCellRenderer(cartRenderer);
+        }
 
         cartTable.getColumnModel().getColumn(4).setMinWidth(0);
         cartTable.getColumnModel().getColumn(4).setMaxWidth(0);
         cartTable.getColumnModel().getColumn(4).setPreferredWidth(0);
 
-        JScrollPane cartScroll = new JScrollPane(cartTable);
-        cartScroll.getViewport().setBackground(Color.WHITE);
-        cartScroll.setBorder(
-                BorderFactory.createLineBorder(new Color(220, 224, 230))
-        );
-
-        rightPanel.add(cartScroll, BorderLayout.CENTER);
+        rightPanel.add(scroll(cartTable, false), BorderLayout.CENTER);
 
         JPanel bottomCartPanel = new JPanel(new BorderLayout());
         bottomCartPanel.setOpaque(false);
@@ -441,6 +485,66 @@ public class POSFrame extends JPanel {
         return summaryWrap;
     }
 
+    // ------------------------------------------------------------------ table helpers
+
+    /** Scroll pane with the same thin scrollbars as the Medicine List page. */
+    private JScrollPane scroll(JTable t, boolean responsive) {
+        JScrollPane sp = new JScrollPane(t);
+        sp.getViewport().setBackground(Color.WHITE);
+        sp.setBorder(BorderFactory.createLineBorder(new Color(220, 224, 230)));
+        for (JScrollBar bar : new JScrollBar[]{sp.getVerticalScrollBar(), sp.getHorizontalScrollBar()}) {
+            bar.setUI(new SlimScrollBarUI());
+            bar.setOpaque(true);
+            bar.setBackground(Color.WHITE);
+            bar.setUnitIncrement(16);
+        }
+        JPanel corner = new JPanel();
+        corner.setBackground(Color.WHITE);
+        sp.setCorner(JScrollPane.LOWER_RIGHT_CORNER, corner);
+        if (responsive) {
+            sp.getViewport().addComponentListener(new java.awt.event.ComponentAdapter() {
+                @Override
+                public void componentResized(java.awt.event.ComponentEvent e) {
+                    updateResizeMode(t);
+                }
+            });
+        }
+        return sp;
+    }
+
+    /** Size every column to its longest value so nothing (like medicine names) is cut off. */
+    private void fitColumns(JTable t) {
+        DefaultTableModel model = (DefaultTableModel) t.getModel();
+        FontMetrics fm = t.getFontMetrics(new Font("Segoe UI", Font.BOLD, 12));
+        TableColumnModel cm = t.getColumnModel();
+        for (int v = 0; v < cm.getColumnCount(); v++) {
+            TableColumn col = cm.getColumn(v);
+            int mc = col.getModelIndex();
+            if (mc == M_ID) continue; // hidden column
+
+            int w = fm.stringWidth(String.valueOf(col.getHeaderValue()));
+            for (int r = 0; r < model.getRowCount(); r++) {
+                Object val = model.getValueAt(r, mc);
+                if (val != null) w = Math.max(w, fm.stringWidth(val.toString()));
+            }
+            w += CELL_PAD * 2 + 6;
+            col.setMinWidth(w);
+            col.setPreferredWidth(w);
+        }
+    }
+
+    /** Fill the width when there is room, scroll sideways when the columns do not fit. */
+    private void updateResizeMode(JTable t) {
+        int total = 0;
+        TableColumnModel cm = t.getColumnModel();
+        for (int i = 0; i < cm.getColumnCount(); i++) total += cm.getColumn(i).getPreferredWidth();
+        Container vp = SwingUtilities.getAncestorOfClass(JViewport.class, t);
+        int avail = vp == null ? 0 : vp.getWidth();
+        t.setAutoResizeMode(avail > 0 && total > avail ? JTable.AUTO_RESIZE_OFF : JTable.AUTO_RESIZE_ALL_COLUMNS);
+    }
+
+    // ------------------------------------------------------------------ cart / checkout logic
+
     private void addSelectedMedicineToCart() {
 
         int selectedRow = medicineTable.getSelectedRow();
@@ -460,26 +564,26 @@ public class POSFrame extends JPanel {
         try {
 
             String name = medicineModel
-                    .getValueAt(modelRow, 0)
+                    .getValueAt(modelRow, M_NAME)
                     .toString();
 
             String priceText = medicineModel
-                    .getValueAt(modelRow, 2)
+                    .getValueAt(modelRow, M_PRICE)
                     .toString();
 
             int availableStock = Integer.parseInt(
                     medicineModel
-                            .getValueAt(modelRow, 3)
+                            .getValueAt(modelRow, M_STOCK)
                             .toString()
             );
 
             String status = medicineModel
-                    .getValueAt(modelRow, 4)
+                    .getValueAt(modelRow, M_STATUS)
                     .toString();
 
             int medicineId = Integer.parseInt(
                     medicineModel
-                            .getValueAt(modelRow, 5)
+                            .getValueAt(modelRow, M_ID)
                             .toString()
             );
 
@@ -719,11 +823,11 @@ public class POSFrame extends JPanel {
                 );
 
                 String itemName = cartModel.getValueAt(i, 0).toString();
-                
+
                 String itemCategory = "N/A";
                 for (int m = 0; m < medicineModel.getRowCount(); m++) {
-                    if (medicineModel.getValueAt(m, 0).toString().equals(itemName)) {
-                        itemCategory = medicineModel.getValueAt(m, 1).toString();
+                    if (medicineModel.getValueAt(m, M_NAME).toString().equals(itemName)) {
+                        itemCategory = medicineModel.getValueAt(m, M_CATEGORY).toString();
                         break;
                     }
                 }
@@ -819,7 +923,7 @@ public class POSFrame extends JPanel {
 
                 String name = med.getName() == null ? "" : med.getName();
                 String category = med.getMedicineCategory() == null ? "" : med.getMedicineCategory();
-                
+
                 boolean isExpired = false;
                 try {
                     if (med.getExpiryDate() != null && !med.getExpiryDate().isEmpty()) {
@@ -838,7 +942,7 @@ public class POSFrame extends JPanel {
                 } else if (isOutOfStock) {
                     status = "Out of Stock";
                 } else {
-                    status = "Active";
+                    status = "Available"; // same wording as the Medicine List page
                 }
 
                 medicineModel.addRow(
@@ -865,6 +969,9 @@ public class POSFrame extends JPanel {
                     true
             );
         }
+
+        fitColumns(medicineTable);
+        updateResizeMode(medicineTable);
     }
 
     private double calculateSubtotal() {
@@ -926,14 +1033,14 @@ public class POSFrame extends JPanel {
                 )
         );
 
-        if (activeCheckoutCustomer != null && activeCheckoutCustomer.getDiscountType() != null && 
+        if (activeCheckoutCustomer != null && activeCheckoutCustomer.getDiscountType() != null &&
            !activeCheckoutCustomer.getDiscountType().trim().equalsIgnoreCase("No Discount") &&
            !activeCheckoutCustomer.getDiscountType().trim().isEmpty()) {
-            
+
             String dtype = activeCheckoutCustomer.getDiscountType().trim();
             double dpct = activeCheckoutCustomer.getDiscountPercent();
             if (dpct <= 0) dpct = 20.0;
-            
+
             lblDiscountTitle.setText(dtype + " (" + (int)dpct + "%):");
         } else {
             lblDiscountTitle.setText("Discount (0%):");
@@ -1045,6 +1152,135 @@ public class POSFrame extends JPanel {
 
         return label;
     }
+
+    // ------------------------------------------------------------ grouped header
+
+    /** Table header: optional group label on top, column names below. Same look as the Medicine List page. */
+    private static class GroupHeader extends JTableHeader {
+        private final String[] groups;
+
+        GroupHeader(TableColumnModel cm, String[] groups, int height) {
+            super(cm);
+            this.groups = groups;
+            setPreferredSize(new Dimension(0, height));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g0) {
+            Graphics2D g = (Graphics2D) g0;
+            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g.setColor(new Color(248, 250, 252));
+            g.fillRect(0, 0, getWidth(), getHeight());
+
+            int n = columnModel.getColumnCount();
+            int h = getHeight();
+            int half = h / 2;
+            int i = 0;
+            while (i < n) {
+                String grp = i < groups.length ? groups[i] : null;
+                if (grp == null) {
+                    Rectangle r = getHeaderRect(i);
+                    if (r.width > 0) cell(g, r.x, 0, r.width, h, title(i), isCentered(i));
+                    i++;
+                } else {
+                    int j = i;
+                    while (j + 1 < n && j + 1 < groups.length && grp.equals(groups[j + 1])) j++;
+                    Rectangle a = getHeaderRect(i), b = getHeaderRect(j);
+                    cell(g, a.x, 0, b.x + b.width - a.x, half, grp, true);
+                    for (int k = i; k <= j; k++) {
+                        Rectangle r = getHeaderRect(k);
+                        if (r.width > 0) cell(g, r.x, half, r.width, h - half, title(k), isCentered(k));
+                    }
+                    i = j + 1;
+                }
+            }
+        }
+
+        private String title(int viewCol) {
+            return String.valueOf(columnModel.getColumn(viewCol).getHeaderValue());
+        }
+
+        private boolean isCentered(int viewCol) {
+            int mc = columnModel.getColumn(viewCol).getModelIndex();
+            // medicine table: Quantity / Status. The cart table uses different headers, so match by title too.
+            String t = title(viewCol);
+            return (t.equals("Quantity") || t.equals("Status") || t.equals("Qty"))
+                    || (mc == M_STOCK && t.equals("Quantity"));
+        }
+
+        private void cell(Graphics2D g, int x, int y, int w, int h, String text, boolean centered) {
+            g.setColor(new Color(248, 250, 252));
+            g.fillRect(x, y, w, h);
+            g.setColor(BORDER);
+            g.drawRect(x, y, w - 1, h - 1);
+            g.setColor(MUTED);
+            g.setFont(getFont());
+            FontMetrics fm = g.getFontMetrics();
+            int tx = centered ? x + (w - fm.stringWidth(text)) / 2 : x + CELL_PAD;
+            int ty = y + (h + fm.getAscent() - fm.getDescent()) / 2;
+            g.drawString(text, tx, ty);
+        }
+    }
+
+    // ------------------------------------------------------------ slim scrollbar
+
+    /** Thin rounded scrollbar: no arrow buttons, no track, just a soft gray thumb. */
+    private static class SlimScrollBarUI extends BasicScrollBarUI {
+        private static final int SIZE = 12;
+        private static final Color THUMB = new Color(176, 184, 192);
+        private static final Color THUMB_HOVER = new Color(150, 159, 168);
+
+        @Override
+        protected void configureScrollBarColors() {
+            super.configureScrollBarColors();
+            thumbColor = THUMB;
+            trackColor = Color.WHITE;
+        }
+
+        @Override
+        public Dimension getPreferredSize(JComponent c) {
+            return new Dimension(SIZE, SIZE);
+        }
+
+        @Override
+        protected JButton createDecreaseButton(int orientation) {
+            return noButton();
+        }
+
+        @Override
+        protected JButton createIncreaseButton(int orientation) {
+            return noButton();
+        }
+
+        private JButton noButton() {
+            JButton b = new JButton();
+            Dimension zero = new Dimension(0, 0);
+            b.setPreferredSize(zero);
+            b.setMinimumSize(zero);
+            b.setMaximumSize(zero);
+            return b;
+        }
+
+        @Override
+        protected void paintTrack(Graphics g, JComponent c, Rectangle trackBounds) {
+            g.setColor(Color.WHITE);
+            g.fillRect(trackBounds.x, trackBounds.y, trackBounds.width, trackBounds.height);
+        }
+
+        @Override
+        protected void paintThumb(Graphics g, JComponent c, Rectangle r) {
+            if (r.isEmpty() || !scrollbar.isEnabled()) return;
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(isThumbRollover() || isDragging ? THUMB_HOVER : THUMB);
+            int pad = 2;
+            int arc = Math.min(r.width, r.height) - pad * 2;
+            g2.fillRoundRect(r.x + pad, r.y + pad, r.width - pad * 2, r.height - pad * 2, arc, arc);
+            g2.dispose();
+        }
+    }
+
+    // ------------------------------------------------------------ dialogs
 
     private static class CustomDialog {
 

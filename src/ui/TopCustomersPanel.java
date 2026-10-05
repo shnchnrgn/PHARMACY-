@@ -4,6 +4,7 @@ import facade.MostPurchasedFacade;
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableColumn;
 import java.awt.*;
 import java.util.List;
 
@@ -60,11 +61,26 @@ public class TopCustomersPanel extends JPanel {
         table.getTableHeader().setForeground(new Color(70, 80, 90));
         table.getTableHeader().setPreferredSize(new Dimension(0, 38));
 
+        // fixed columns: can't be dragged to resize or reorder
+        table.getTableHeader().setResizingAllowed(false);
+        table.getTableHeader().setReorderingAllowed(false);
+
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(JLabel.CENTER);
 
         for (int i = 0; i < table.getColumnCount(); i++) {
             table.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
+        }
+
+        // fixed column widths (not resizable, not auto-fitted)
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        int[] widths = {220, 220, 130, 150};
+        for (int i = 0; i < widths.length; i++) {
+            TableColumn col = table.getColumnModel().getColumn(i);
+            col.setMinWidth(widths[i]);
+            col.setMaxWidth(widths[i]);
+            col.setPreferredWidth(widths[i]);
+            col.setResizable(false);
         }
 
         JScrollPane scrollPane = new JScrollPane(table);

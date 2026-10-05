@@ -340,6 +340,7 @@ public class MedicinePanel extends JPanel {
                 if (from != pos) t.moveColumn(from, pos);
             }
             t.getTableHeader().setReorderingAllowed(false);
+            t.getTableHeader().setResizingAllowed(false); // columns can't be dragged
 
             // hand cursor + highlight while the mouse is over a category row
             MouseAdapter hover = new MouseAdapter() {

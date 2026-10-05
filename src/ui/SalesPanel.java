@@ -4,7 +4,12 @@ import db.SalesDAO;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.plaf.basic.BasicScrollBarUI;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.Month;
@@ -13,6 +18,13 @@ import java.util.List;
 import java.util.Locale;
 
 public class SalesPanel extends JPanel {
+
+    // same palette / spacing as MedicinePanel
+    private static final Color BORDER = new Color(220, 225, 230);
+    private static final Color TEXT = new Color(60, 65, 70);
+    private static final Color MUTED = new Color(108, 117, 125);
+    private static final Color PRIMARY_SOFT = new Color(224, 243, 241);
+    private static final int CELL_PAD = 10;
 
     private JTable salesTable;
     private DefaultTableModel tableModel;
@@ -137,25 +149,72 @@ public class SalesPanel extends JPanel {
         };
 
         salesTable = new JTable(tableModel);
-        salesTable.setRowHeight(32);
+
+        // same look as the Medicine List table
+        salesTable.setRowHeight(33);
         salesTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        salesTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-        salesTable.getTableHeader().setBackground(new Color(248, 249, 250));
-        salesTable.getTableHeader().setForeground(new Color(80, 85, 90));
-        salesTable.setShowVerticalLines(false);
+        salesTable.setShowVerticalLines(true);
+        salesTable.setShowHorizontalLines(true);
         salesTable.setGridColor(new Color(235, 238, 242));
+        salesTable.setFillsViewportHeight(true);
+        salesTable.setSelectionBackground(PRIMARY_SOFT);
+        salesTable.setSelectionForeground(TEXT);
 
-        salesTable.setSelectionBackground(new Color(210, 215, 220));
-        salesTable.setSelectionForeground(Color.BLACK);
+        JTableHeader header = new StyledHeader(salesTable.getColumnModel(), 36);
+        header.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        salesTable.setTableHeader(header);
 
-        salesTable.getColumnModel().getColumn(0).setPreferredWidth(60);
-        salesTable.getColumnModel().getColumn(1).setPreferredWidth(120);
-        salesTable.getColumnModel().getColumn(2).setPreferredWidth(400);
-        salesTable.getColumnModel().getColumn(3).setPreferredWidth(150);
+        // fixed columns: can't be dragged to resize or reorder
+        salesTable.getTableHeader().setResizingAllowed(false);
+        salesTable.getTableHeader().setReorderingAllowed(false);
+
+        DefaultTableCellRenderer cellRenderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                                                           boolean hasFocus, int row, int column) {
+                super.getTableCellRendererComponent(table, value, isSelected, false, row, column);
+                setBorder(new EmptyBorder(0, CELL_PAD, 0, CELL_PAD));
+                setHorizontalAlignment(JLabel.LEFT);
+                setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                setForeground(TEXT);
+                if (isSelected) {
+                    setBackground(table.getSelectionBackground());
+                    setForeground(table.getSelectionForeground());
+                } else {
+                    setBackground(Color.WHITE);
+                }
+                return this;
+            }
+        };
+        for (int i = 0; i < salesTable.getColumnModel().getColumnCount(); i++) {
+            salesTable.getColumnModel().getColumn(i).setCellRenderer(cellRenderer);
+        }
+
+        // fixed column widths (not resizable, not auto-fitted)
+        salesTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        int[] widths = {60, 120, 400, 150};
+        for (int i = 0; i < widths.length; i++) {
+            TableColumn col = salesTable.getColumnModel().getColumn(i);
+            col.setMinWidth(widths[i]);
+            col.setMaxWidth(widths[i]);
+            col.setPreferredWidth(widths[i]);
+            col.setResizable(false);
+        }
 
         JScrollPane scrollPane = new JScrollPane(salesTable);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(Color.WHITE);
+
+        // same thin scrollbars as the Medicine List page
+        for (JScrollBar bar : new JScrollBar[]{scrollPane.getVerticalScrollBar(), scrollPane.getHorizontalScrollBar()}) {
+            bar.setUI(new SlimScrollBarUI());
+            bar.setOpaque(true);
+            bar.setBackground(Color.WHITE);
+            bar.setUnitIncrement(16);
+        }
+        JPanel corner = new JPanel();
+        corner.setBackground(Color.WHITE);
+        scrollPane.setCorner(JScrollPane.LOWER_RIGHT_CORNER, corner);
 
         tablePanel.add(scrollPane, BorderLayout.CENTER);
         mainPanel.add(tablePanel, BorderLayout.CENTER);
@@ -176,6 +235,8 @@ public class SalesPanel extends JPanel {
 
         refreshSalesData();
     }
+
+    // ------------------------------------------------------------------ helpers
 
     private JPanel createSummaryCard(String title, JLabel value, Color highlightColor) {
         JPanel panel = new JPanel(new BorderLayout());
@@ -504,5 +565,99 @@ public class SalesPanel extends JPanel {
         dialog.setVisible(true);
 
         return result[0];
+    }
+
+    // ------------------------------------------------------------ header
+
+    /** Table header with the same look as the Medicine List page (single row, no groups). */
+    private static class StyledHeader extends JTableHeader {
+
+        StyledHeader(TableColumnModel cm, int height) {
+            super(cm);
+            setPreferredSize(new Dimension(0, height));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g0) {
+            Graphics2D g = (Graphics2D) g0;
+            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g.setColor(new Color(248, 250, 252));
+            g.fillRect(0, 0, getWidth(), getHeight());
+
+            int h = getHeight();
+            for (int i = 0; i < columnModel.getColumnCount(); i++) {
+                Rectangle r = getHeaderRect(i);
+                if (r.width <= 0) continue;
+                String text = String.valueOf(columnModel.getColumn(i).getHeaderValue());
+
+                g.setColor(new Color(248, 250, 252));
+                g.fillRect(r.x, 0, r.width, h);
+                g.setColor(BORDER);
+                g.drawRect(r.x, 0, r.width - 1, h - 1);
+                g.setColor(MUTED);
+                g.setFont(getFont());
+                FontMetrics fm = g.getFontMetrics();
+                int ty = (h + fm.getAscent() - fm.getDescent()) / 2;
+                g.drawString(text, r.x + CELL_PAD, ty);
+            }
+        }
+    }
+
+    // ------------------------------------------------------------ slim scrollbar
+
+    /** Thin rounded scrollbar: no arrow buttons, no track, just a soft gray thumb. */
+    private static class SlimScrollBarUI extends BasicScrollBarUI {
+        private static final int SIZE = 12;
+        private static final Color THUMB = new Color(176, 184, 192);
+        private static final Color THUMB_HOVER = new Color(150, 159, 168);
+
+        @Override
+        protected void configureScrollBarColors() {
+            super.configureScrollBarColors();
+            thumbColor = THUMB;
+            trackColor = Color.WHITE;
+        }
+
+        @Override
+        public Dimension getPreferredSize(JComponent c) {
+            return new Dimension(SIZE, SIZE);
+        }
+
+        @Override
+        protected JButton createDecreaseButton(int orientation) {
+            return noButton();
+        }
+
+        @Override
+        protected JButton createIncreaseButton(int orientation) {
+            return noButton();
+        }
+
+        private JButton noButton() {
+            JButton b = new JButton();
+            Dimension zero = new Dimension(0, 0);
+            b.setPreferredSize(zero);
+            b.setMinimumSize(zero);
+            b.setMaximumSize(zero);
+            return b;
+        }
+
+        @Override
+        protected void paintTrack(Graphics g, JComponent c, Rectangle trackBounds) {
+            g.setColor(Color.WHITE);
+            g.fillRect(trackBounds.x, trackBounds.y, trackBounds.width, trackBounds.height);
+        }
+
+        @Override
+        protected void paintThumb(Graphics g, JComponent c, Rectangle r) {
+            if (r.isEmpty() || !scrollbar.isEnabled()) return;
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(isThumbRollover() || isDragging ? THUMB_HOVER : THUMB);
+            int pad = 2;
+            int arc = Math.min(r.width, r.height) - pad * 2;
+            g2.fillRoundRect(r.x + pad, r.y + pad, r.width - pad * 2, r.height - pad * 2, arc, arc);
+            g2.dispose();
+        }
     }
 }
