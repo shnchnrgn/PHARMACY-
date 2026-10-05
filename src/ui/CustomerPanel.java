@@ -22,12 +22,10 @@ public class CustomerPanel extends JPanel {
 
     private static final Color COLOR_GREEN = new Color(13, 148, 136);
     private static final Color COLOR_RED = new Color(220, 53, 69);
-    private static final Color COLOR_BLUE = new Color(107, 114, 128);
     private static final Color COLOR_GRAY = new Color(108, 117, 125);
     private static final Color COLOR_BORDER = new Color(200, 205, 210);
     private static final Color COLOR_BORDER_ERROR = new Color(220, 53, 69);
     private static final Color COLOR_TEXT = new Color(60, 65, 70);
-    private static final Color COLOR_ACTIVE = new Color(13, 148, 136);
     private static final Color COLOR_INACTIVE = new Color(193, 47, 47);
 
     private static final Color COLOR_TEAL = new Color(13, 148, 136);

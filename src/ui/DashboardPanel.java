@@ -24,11 +24,9 @@ public class DashboardPanel extends JPanel {
     private static final Color DANGER = new Color(192, 57, 43);
     private static final Color WARNING = new Color(243, 156, 18);
     private static final Color INFO = new Color(41, 128, 185);
-    private static final Font TITLE = new Font("Segoe UI", Font.BOLD, 20);
     private static final Font SECTION = new Font("Segoe UI", Font.BOLD, 13);
     private static final Font SMALL = new Font("Segoe UI", Font.PLAIN, 11);
 
-    private final Border grayBorder = cardBorder();
     private static DefaultTableModel tableModel;
     private static JLabel lblSalesVal;
     private static JLabel lblExpensesVal;

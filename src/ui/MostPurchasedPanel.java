@@ -1,6 +1,7 @@
 package ui;
 
-import db.SalesDAO;
+import facade.MostPurchasedFacade;
+
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,12 +21,13 @@ public class MostPurchasedPanel extends JPanel {
     private static final Color TEXT = new Color(60, 65, 70);
     private static final Color MUTED = new Color(108, 117, 125);
     private static final Color BAR_COLOR = new Color(13, 148, 136);
-    private static final Color BAR_HOVER_COLOR = new Color(15, 118, 110);
     private static final Font SECTION = new Font("Segoe UI", Font.BOLD, 13);
 
     private DefaultTableModel overallModel;
     private DefaultTableModel companyModel;
     private BarChartPanel barChartPanel;
+
+    private final MostPurchasedFacade salesFacade = new MostPurchasedFacade();
 
     public MostPurchasedPanel() {
         setLayout(new BorderLayout());
@@ -58,7 +60,7 @@ public class MostPurchasedPanel extends JPanel {
         container.add(pageHeader);
         container.add(Box.createVerticalStrut(14));
 
-        // 1. Overall Table Card (Removed "Category" column)
+        // 1. Overall Table Card
         String[] overallCols = {"Medicine Name", "Company", "Total Quantity Sold"};
         overallModel = new DefaultTableModel(overallCols, 0);
         JTable overallTable = createStyledTable(overallModel);
@@ -96,17 +98,18 @@ public class MostPurchasedPanel extends JPanel {
     }
 
     public void refreshData() {
-        // Refresh Overall Table & Chart
         overallModel.setRowCount(0);
-        List<String[]> overallData = SalesDAO.getMostPurchasedOverall(10);
-        
+        companyModel.setRowCount(0);
+
+        // Fetch overall data through Facade
+        List<String[]> overallData = salesFacade.getTopPurchasedMedicines(10);
         List<BarChartData> chartDataList = new ArrayList<>();
+
         for (String[] row : overallData) {
-            // Original DAO returns: [Medicine Name, Category, Company, Total Quantity Sold]
             String name = row[0];
-            String company = row[2];
-            String qtyStr = row[3];
-            
+            String company = row[1];
+            String qtyStr = row[2];
+
             overallModel.addRow(new Object[]{name, company, qtyStr});
 
             try {
@@ -116,9 +119,8 @@ public class MostPurchasedPanel extends JPanel {
         }
         barChartPanel.setData(chartDataList);
 
-        // Refresh Company Table
-        companyModel.setRowCount(0);
-        List<String[]> companyData = SalesDAO.getMostPurchasedByCompany();
+        // Fetch company table data through Facade
+        List<String[]> companyData = salesFacade.getTopMedicinesByCompany();
         for (String[] row : companyData) {
             companyModel.addRow(row);
         }
@@ -214,7 +216,6 @@ public class MostPurchasedPanel extends JPanel {
         });
     }
 
-    // Custom Data Model for Chart
     private static class BarChartData {
         String label;
         int value;
@@ -225,7 +226,6 @@ public class MostPurchasedPanel extends JPanel {
         }
     }
 
-    // Custom Bar Chart Component
     private static class BarChartPanel extends JPanel {
         private List<BarChartData> data = new ArrayList<>();
 
@@ -275,7 +275,6 @@ public class MostPurchasedPanel extends JPanel {
             }
             if (maxValue == 0) maxValue = 1;
 
-            // Draw Horizontal Grid Lines
             g2.setColor(BORDER_LIGHT);
             g2.setFont(new Font("Segoe UI", Font.PLAIN, 10));
             int gridCount = 4;
@@ -291,7 +290,6 @@ public class MostPurchasedPanel extends JPanel {
                 g2.setColor(BORDER_LIGHT);
             }
 
-            // Render Bars
             int itemCount = data.size();
             int barWidth = Math.max(12, Math.min(36, (chartWidth / itemCount) - 12));
             int gap = (chartWidth - (barWidth * itemCount)) / (itemCount + 1);
@@ -302,24 +300,20 @@ public class MostPurchasedPanel extends JPanel {
                 int x = paddingLeft + gap + i * (barWidth + gap);
                 int y = paddingTop + (chartHeight - barHeight);
 
-                // Draw Bar
                 g2.setColor(BAR_COLOR);
                 g2.fillRoundRect(x, y, barWidth, barHeight, 4, 4);
 
-                // Draw Value on Top of Bar
                 g2.setColor(TEXT);
                 g2.setFont(new Font("Segoe UI", Font.BOLD, 10));
                 FontMetrics fm = g2.getFontMetrics();
                 String valStr = String.valueOf(item.value);
                 g2.drawString(valStr, x + (barWidth - fm.stringWidth(valStr)) / 2, y - 4);
 
-                // Draw Label Below Bar
                 g2.setColor(MUTED);
                 g2.setFont(new Font("Segoe UI", Font.PLAIN, 10));
                 fm = g2.getFontMetrics();
                 String label = item.label;
                 if (fm.stringWidth(label) > barWidth + gap) {
-                    // Truncate text if too long
                     while (label.length() > 3 && fm.stringWidth(label + "..") > barWidth + gap) {
                         label = label.substring(0, label.length() - 1);
                     }

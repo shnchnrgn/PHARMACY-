@@ -1,7 +1,6 @@
 package db;
 
 import models.User;
-import ui.LoginFrame;
 
 import java.sql.Connection;
 import java.sql.DriverManager;

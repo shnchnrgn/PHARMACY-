@@ -26,12 +26,10 @@ public class MedicinePanel extends JPanel {
     private static final Color PAGE_BG = new Color(240, 242, 245);
     private static final Color SURFACE = Color.WHITE;
     private static final Color BORDER = new Color(220, 225, 230);
-    private static final Color BORDER_LIGHT = new Color(235, 238, 242);
     private static final Color TEXT = new Color(60, 65, 70);
     private static final Color MUTED = new Color(108, 117, 125);
     private static final Color PRIMARY = new Color(13, 148, 136);
     private static final Color PRIMARY_SOFT = new Color(224, 243, 241);
-    private static final Color PRIMARY_HOVER = new Color(15, 118, 110);
     private static final Color DANGER = new Color(192, 57, 43);
     private JTable activeTable, outOfStockTable, expiredTable;
     private DefaultTableModel activeModel, outOfStockModel, expiredModel;

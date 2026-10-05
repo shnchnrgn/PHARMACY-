@@ -20,6 +20,7 @@ public class App extends JFrame {
     private JPanel medicineSubMenu;
 
     private MostPurchasedPanel mostPurchasedPanel;
+    private TopCustomersPanel topCustomersPanel;
 
     private boolean isSalesMenuOpen = true;
     private boolean isMedicineMenuOpen = true;
@@ -54,11 +55,13 @@ public class App extends JFrame {
         mainContentPanel = new JPanel(cardLayout);
 
         mostPurchasedPanel = new MostPurchasedPanel();
+        topCustomersPanel = new TopCustomersPanel();
 
         mainContentPanel.add(new DashboardPanel(), "DASHBOARD");
         mainContentPanel.add(new POSFrame(), "POS");
         mainContentPanel.add(new SalesPanel(), "SALES");
         mainContentPanel.add(mostPurchasedPanel, "MOST_PURCHASED");
+        mainContentPanel.add(topCustomersPanel, "TOP_CUSTOMERS");
         mainContentPanel.add(new MedicinePanel(), "MEDICINE_LIST");
         mainContentPanel.add(new AddMedicinePanel(), "ADD_MEDICINE");
         mainContentPanel.add(new MedicineCategoryPanel(), "MEDICINE_CATEGORY");
@@ -165,7 +168,6 @@ public class App extends JFrame {
         return header;
     }
 
-
     private int getNotificationCount() {
         return MedicineDAO.getExpiredCount()
                 + MedicineDAO.getLowStockCount()
@@ -217,7 +219,7 @@ public class App extends JFrame {
         return result;
     }
 
-   private void showSystemNotifications() {
+    private void showSystemNotifications() {
         List<Medicine> expired =
                 MedicineDAO.getExpiredMedicines();
 
@@ -242,8 +244,6 @@ public class App extends JFrame {
                         18, 20, 18, 20
                 )
         );
-
-        // Tinanggal na ang dobleng "System Notifications" title dito sa loob
         
         if (!expired.isEmpty()) {
             addNotificationSection(
@@ -483,7 +483,6 @@ public class App extends JFrame {
         details.setOpaque(false);
         details.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 0));
 
-       
         JPanel nameRow = new JPanel(new BorderLayout(8, 0));
         nameRow.setOpaque(false);
         nameRow.setMaximumSize(
@@ -763,47 +762,6 @@ public class App extends JFrame {
         );
     }
 
-    private void showCustomMessage(Component parent, String htmlMessage, String title) {
-        Window owner = SwingUtilities.getWindowAncestor(parent);
-        JDialog dialog = new JDialog(owner, title, Dialog.ModalityType.APPLICATION_MODAL);
-        dialog.setLayout(new BorderLayout());
-        dialog.setResizable(false);
-
-        JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 20));
-        centerPanel.setBackground(Color.WHITE);
-
-        JLabel lblMsg = new JLabel("<html>" + htmlMessage + "</html>");
-        lblMsg.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lblMsg.setForeground(new Color(70, 75, 80));
-        centerPanel.add(lblMsg);
-
-        JScrollPane scrollPane = new JScrollPane(centerPanel);
-        scrollPane.setBorder(null);
-        scrollPane.getViewport().setBackground(Color.WHITE);
-        dialog.add(scrollPane, BorderLayout.CENTER);
-
-        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
-        bottomPanel.setBackground(new Color(248, 249, 250));
-        bottomPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(220, 225, 230)));
-
-        JButton btnOk = new JButton("OK");
-        btnOk.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnOk.setBackground(THEME_TEAL);
-        btnOk.setForeground(Color.WHITE);
-        btnOk.setFocusPainted(false);
-        btnOk.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
-        btnOk.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnOk.addActionListener(ev -> dialog.dispose());
-
-        bottomPanel.add(btnOk);
-        dialog.add(bottomPanel, BorderLayout.SOUTH);
-
-        dialog.pack();
-        dialog.setSize(Math.max(dialog.getWidth() + 80, 480), Math.min(Math.max(dialog.getHeight() + 40, 160), 350));
-        dialog.setLocationRelativeTo(parent);
-        dialog.setVisible(true);
-    }
-
     private final boolean[] logoutResult = {false};
 
     private boolean showCustomConfirm(Component parent, String message, String title) {
@@ -922,7 +880,7 @@ public class App extends JFrame {
         salesSubMenu = new JPanel();
         salesSubMenu.setLayout(new BoxLayout(salesSubMenu, BoxLayout.Y_AXIS));
         salesSubMenu.setBackground(SUBMENU_COLOR);
-        salesSubMenu.setMaximumSize(new Dimension(240, 92));
+        salesSubMenu.setMaximumSize(new Dimension(240, 138));
         salesSubMenu.setBorder(BorderFactory.createEmptyBorder(2, 7, 4, 7));
         salesSubMenu.setVisible(true);
 
@@ -946,9 +904,21 @@ public class App extends JFrame {
             mainContentPanel.repaint();
         });
         salesSubMenu.add(mostPurchasedButton);
+
+        JButton topCustomersButton = createSubNavButton("Top Customers", "/pngs/customers.png");
+        topCustomersButton.addActionListener(e -> {
+            selectButton((JButton) e.getSource());
+            if (topCustomersPanel != null) {
+                topCustomersPanel.refreshData();
+            }
+            cardLayout.show(mainContentPanel, "TOP_CUSTOMERS");
+            mainContentPanel.revalidate();
+            mainContentPanel.repaint();
+        });
+        salesSubMenu.add(topCustomersButton);
+
         sb.add(salesSubMenu);
 
-    
         JButton medicineButton = createMedicineDropdownButton();
         sb.add(medicineButton);
 
@@ -1299,24 +1269,24 @@ public class App extends JFrame {
         }
     }
 
-public static void main(String[] args) {
-    SwingUtilities.invokeLater(() -> {
-        try {
-            UIManager.setLookAndFeel(
-                UIManager.getCrossPlatformLookAndFeelClassName()
-            );
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+    public static void main(String[] args) {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                UIManager.setLookAndFeel(
+                    UIManager.getCrossPlatformLookAndFeelClassName()
+                );
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
 
-        LoginDialog loginDialog = new LoginDialog(null);
-        loginDialog.setVisible(true);
+            LoginDialog loginDialog = new LoginDialog(null);
+            loginDialog.setVisible(true);
 
-        if (loginDialog.isLoggedIn()) {
-            new App().setVisible(true);
-        } else {
-            System.exit(0);
-        }
-    });
-}
+            if (loginDialog.isLoggedIn()) {
+                new App().setVisible(true);
+            } else {
+                System.exit(0);
+            }
+        });
+    }
 }

@@ -16,12 +16,7 @@ public class AddMedicinePanel extends JPanel {
     private static final Color BORDER = BORDER_LIGHT;
     private static final Color TEXT = new Color(60, 65, 70);
     private static final Color MUTED = new Color(108, 117, 125);
-    private static final Color PRIMARY = new Color(13, 148, 136);
-    private static final Color PRIMARY_HOVER = new Color(15, 118, 110);
-    private static final Color DANGER = new Color(192, 57, 43);
     private static final Font TITLE = new Font("Segoe UI", Font.BOLD, 16);
-    private static final Font SUBTITLE = new Font("Segoe UI", Font.PLAIN, 11);
-    private static final Font BODY = new Font("Segoe UI", Font.PLAIN, 12);
 
     private static final Border grayBorder =
 
