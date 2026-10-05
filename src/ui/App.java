@@ -1,7 +1,12 @@
 package ui;
 
 import db.Database;
+import db.MedicineDAO;
+import models.Medicine;
 import java.awt.*;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
@@ -88,10 +93,10 @@ public class App extends JFrame {
         JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
         rightPanel.setOpaque(false);
 
-        int expiredCount = 0;
+        int notificationCount = getNotificationCount();
 
-        JButton btnNotification = new JButton("Notifications (" + expiredCount + ")");
-        if (expiredCount > 0) {
+        JButton btnNotification = new JButton("Notifications (" + notificationCount + ")");
+        if (notificationCount > 0) {
             btnNotification.setForeground(new Color(192, 57, 43));
         } else {
             btnNotification.setForeground(new Color(90, 100, 110));
@@ -108,15 +113,10 @@ public class App extends JFrame {
             btnNotification.setIcon(new ImageIcon(scaledBell));
             btnNotification.setIconTextGap(8);
         } catch (Exception e) {
-            btnNotification.setText("🔔 Notifications (" + expiredCount + ")");
+            btnNotification.setText("🔔 Notifications (" + notificationCount + ")");
         }
-        btnNotification.addActionListener(e -> {
-            showCustomMessage(
-                    this,
-                    "<b>Expired Medicines Count:</b> " + expiredCount + "<br><br>Please check the Medicine List or Dashboard for full details.",
-                    "System Notifications"
-            );
-        });
+
+        btnNotification.addActionListener(e -> showSystemNotifications());
         
         JButton btnLogout = new JButton("Log out");
         btnLogout.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -163,6 +163,604 @@ public class App extends JFrame {
         header.add(rightPanel, BorderLayout.EAST);
 
         return header;
+    }
+
+
+    private int getNotificationCount() {
+        return MedicineDAO.getExpiredCount()
+                + MedicineDAO.getLowStockCount()
+                + getExpiringSoonMedicines().size();
+    }
+
+    private List<Medicine> getExpiringSoonMedicines() {
+        List<Medicine> result = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+        DateTimeFormatter formatter =
+                DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        for (Medicine medicine : MedicineDAO.getAllMedicines()) {
+            try {
+                if (medicine.getExpiryDate() == null
+                        || medicine.getExpiryDate().trim().isEmpty()) {
+                    continue;
+                }
+
+                LocalDate expiryDate = LocalDate.parse(
+                        medicine.getExpiryDate().trim(),
+                        formatter
+                );
+
+                long days = ChronoUnit.DAYS.between(
+                        today,
+                        expiryDate
+                );
+
+                if (days >= 0 && days <= 30) {
+                    result.add(medicine);
+                }
+            } catch (Exception ignored) {
+            }
+        }
+
+        return result;
+    }
+
+    private List<Medicine> getLowStockMedicines() {
+        List<Medicine> result = new ArrayList<>();
+
+        for (Medicine medicine : MedicineDAO.getAllMedicines()) {
+            if (medicine.getStock() < 5) {
+                result.add(medicine);
+            }
+        }
+
+        return result;
+    }
+
+   private void showSystemNotifications() {
+        List<Medicine> expired =
+                MedicineDAO.getExpiredMedicines();
+
+        List<Medicine> expiringSoon =
+                getExpiringSoonMedicines();
+
+        List<Medicine> lowStock =
+                getLowStockMedicines();
+
+        int total =
+                expired.size()
+                + expiringSoon.size()
+                + lowStock.size();
+
+        JPanel content = new JPanel();
+        content.setLayout(
+                new BoxLayout(content, BoxLayout.Y_AXIS)
+        );
+        content.setBackground(Color.WHITE);
+        content.setBorder(
+                BorderFactory.createEmptyBorder(
+                        18, 20, 18, 20
+                )
+        );
+
+        // Tinanggal na ang dobleng "System Notifications" title dito sa loob
+        
+        if (!expired.isEmpty()) {
+            addNotificationSection(
+                    content,
+                    "Expired Medicines (" + expired.size() + ")",
+                    new Color(192, 57, 43),
+                    expired,
+                    "expired"
+            );
+        }
+
+        if (!expiringSoon.isEmpty()) {
+            addNotificationSection(
+                    content,
+                    "Expiring Soon (" + expiringSoon.size() + ")",
+                    new Color(230, 126, 34),
+                    expiringSoon,
+                    "soon"
+            );
+        }
+
+        if (!lowStock.isEmpty()) {
+            addNotificationSection(
+                    content,
+                    "Low Stock (" + lowStock.size() + ")",
+                    new Color(218, 165, 32),
+                    lowStock,
+                    "stock"
+            );
+        }
+
+        if (total == 0) {
+            JLabel empty = new JLabel(
+                    "No notifications at the moment."
+            );
+            empty.setFont(
+                    new Font("Segoe UI", Font.PLAIN, 13)
+            );
+            empty.setForeground(
+                    new Color(90, 100, 110)
+            );
+            empty.setAlignmentX(Component.LEFT_ALIGNMENT);
+            content.add(empty);
+        }
+
+        JScrollPane scrollPane = new JScrollPane(content);
+        scrollPane.setBorder(
+                BorderFactory.createLineBorder(
+                        new Color(225, 228, 230)
+                )
+        );
+        scrollPane.setHorizontalScrollBarPolicy(
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
+        );
+        scrollPane.setVerticalScrollBarPolicy(
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED
+        );
+        scrollPane.getViewport().setBackground(Color.WHITE);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+        installNotificationScrollBar(
+                scrollPane.getVerticalScrollBar()
+        );
+
+        Window owner =
+                SwingUtilities.getWindowAncestor(this);
+
+        JDialog dialog = new JDialog(
+                owner,
+                "System Notifications",
+                Dialog.ModalityType.APPLICATION_MODAL
+        );
+
+        dialog.setLayout(new BorderLayout());
+        dialog.setResizable(false);
+
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(Color.WHITE);
+        header.setBorder(
+                BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(
+                                0, 0, 1, 0,
+                                new Color(225, 228, 230)
+                        ),
+                        BorderFactory.createEmptyBorder(
+                                12, 18, 12, 12
+                        )
+                )
+        );
+
+        JLabel headerTitle =
+                new JLabel("System Notifications (" + total + ")");
+
+        headerTitle.setFont(
+                new Font("Segoe UI", Font.BOLD, 16)
+        );
+        headerTitle.setForeground(
+                new Color(50, 55, 60)
+        );
+
+        JButton close = new JButton("×");
+        close.setFont(
+                new Font("Segoe UI", Font.PLAIN, 23)
+        );
+        close.setForeground(
+                new Color(110, 115, 120)
+        );
+        close.setBorderPainted(false);
+        close.setFocusPainted(false);
+        close.setContentAreaFilled(false);
+        close.setCursor(
+                new Cursor(Cursor.HAND_CURSOR)
+        );
+        close.addActionListener(
+                e -> dialog.dispose()
+        );
+
+        header.add(
+                headerTitle,
+                BorderLayout.WEST
+        );
+        header.add(
+                close,
+                BorderLayout.EAST
+        );
+
+        JPanel footer = new JPanel(
+                new FlowLayout(
+                        FlowLayout.RIGHT,
+                        15,
+                        10
+                )
+        );
+
+        footer.setBackground(
+                new Color(248, 249, 250)
+        );
+        footer.setBorder(
+                BorderFactory.createMatteBorder(
+                        1, 0, 0, 0,
+                        new Color(225, 228, 230)
+                )
+        );
+
+        JButton ok = new JButton("OK");
+        ok.setFont(
+                new Font("Segoe UI", Font.BOLD, 12)
+        );
+        ok.setForeground(Color.WHITE);
+        ok.setBackground(THEME_TEAL);
+        ok.setFocusPainted(false);
+        ok.setBorder(
+                BorderFactory.createEmptyBorder(
+                        8, 28, 8, 28
+                )
+        );
+        ok.setCursor(
+                new Cursor(Cursor.HAND_CURSOR)
+        );
+        ok.addActionListener(
+                e -> dialog.dispose()
+        );
+
+        footer.add(ok);
+
+        dialog.add(header, BorderLayout.NORTH);
+        dialog.add(scrollPane, BorderLayout.CENTER);
+        dialog.add(footer, BorderLayout.SOUTH);
+
+        dialog.setSize(570, 620);
+        dialog.setLocationRelativeTo(this);
+        dialog.setVisible(true);
+    }
+
+    private void addNotificationSection(
+            JPanel parent,
+            String title,
+            Color titleColor,
+            List<Medicine> medicines,
+            String type
+    ) {
+        JLabel section = new JLabel(title);
+        section.setFont(
+                new Font("Segoe UI", Font.BOLD, 14)
+        );
+        section.setForeground(titleColor);
+        section.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        parent.add(section);
+        parent.add(Box.createVerticalStrut(8));
+
+        for (Medicine medicine : medicines) {
+            JPanel card = createNotificationCard(
+                    medicine,
+                    titleColor,
+                    type
+            );
+
+            card.setAlignmentX(
+                    Component.LEFT_ALIGNMENT
+            );
+
+            parent.add(card);
+            parent.add(Box.createVerticalStrut(8));
+        }
+
+        parent.add(Box.createVerticalStrut(8));
+    }
+
+    private JPanel createNotificationCard(
+            Medicine medicine,
+            Color accentColor,
+            String type
+    ) {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(
+                new Color(250, 251, 252)
+        );
+        card.setBorder(
+                BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(
+                                new Color(225, 228, 230)
+                        ),
+                        BorderFactory.createEmptyBorder(
+                                12, 14, 12, 14
+                        )
+                )
+        );
+
+        JPanel details = new JPanel();
+        details.setLayout(
+                new BoxLayout(
+                        details,
+                        BoxLayout.Y_AXIS
+                )
+        );
+        details.setOpaque(false);
+        details.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 0));
+
+       
+        JPanel nameRow = new JPanel(new BorderLayout(8, 0));
+        nameRow.setOpaque(false);
+        nameRow.setMaximumSize(
+                new Dimension(
+                        Integer.MAX_VALUE,
+                        24
+                )
+        );
+
+        JLabel name = new JLabel(
+                medicine.getName() == null
+                        ? "-"
+                        : medicine.getName()
+        );
+        name.setFont(
+                new Font("Segoe UI", Font.BOLD, 14)
+        );
+        name.setForeground(
+                new Color(45, 50, 55)
+        );
+
+        nameRow.add(name, BorderLayout.WEST);
+        details.add(nameRow);
+        details.add(Box.createVerticalStrut(6));
+
+        addDetailRow(
+                details,
+                "Category",
+                medicine.getMedicineCategory()
+        );
+
+        addDetailRow(
+                details,
+                "Quantity",
+                String.valueOf(medicine.getStock())
+        );
+
+        if ("stock".equals(type)) {
+            addDetailRow(
+                    details,
+                    "Status",
+                    medicine.getStock() <= 0
+                            ? "Out of Stock"
+                            : "Low Stock"
+            );
+        } else {
+            addDetailRow(
+                    details,
+                    "Expiry Date",
+                    medicine.getExpiryDate()
+            );
+
+            if ("soon".equals(type)) {
+                try {
+                    LocalDate expiry =
+                            LocalDate.parse(
+                                    medicine.getExpiryDate(),
+                                    DateTimeFormatter.ofPattern(
+                                            "yyyy-MM-dd"
+                                    )
+                            );
+
+                    long days =
+                            ChronoUnit.DAYS.between(
+                                    LocalDate.now(),
+                                    expiry
+                            );
+
+                    addDetailRow(
+                            details,
+                            "Remaining",
+                            days == 0
+                                    ? "Expires today"
+                                    : days + " day(s)"
+                    );
+                } catch (Exception ignored) {
+                }
+            }
+        }
+
+        addDetailRow(
+                details,
+                "Company",
+                medicine.getCompanyName()
+        );
+
+        JPanel accent = new JPanel();
+        accent.setBackground(accentColor);
+        accent.setPreferredSize(
+                new Dimension(4, 1)
+        );
+
+        card.add(
+                accent,
+                BorderLayout.WEST
+        );
+        card.add(
+                details,
+                BorderLayout.CENTER
+        );
+
+        return card;
+    }
+
+    private void addDetailRow(
+            JPanel parent,
+            String label,
+            String value
+    ) {
+        JPanel row = new JPanel(
+                new BorderLayout(8, 0)
+        );
+
+        row.setOpaque(false);
+        row.setMaximumSize(
+                new Dimension(
+                        Integer.MAX_VALUE,
+                        22
+                )
+        );
+
+        JLabel labelText = new JLabel(label);
+        labelText.setFont(
+                new Font(
+                        "Segoe UI",
+                        Font.PLAIN,
+                        12
+                )
+        );
+        labelText.setForeground(
+                new Color(95, 100, 105)
+        );
+        labelText.setPreferredSize(
+                new Dimension(95, 22)
+        );
+
+        JLabel valueText = new JLabel(
+                value == null ||
+                        value.trim().isEmpty()
+                        ? "-"
+                        : value
+        );
+        valueText.setFont(
+                new Font(
+                        "Segoe UI",
+                        Font.PLAIN,
+                        12
+                )
+        );
+        valueText.setForeground(
+                new Color(55, 60, 65)
+        );
+
+        row.add(
+                labelText,
+                BorderLayout.WEST
+        );
+        row.add(
+                valueText,
+                BorderLayout.CENTER
+        );
+
+        parent.add(row);
+    }
+
+    private void installNotificationScrollBar(
+            JScrollBar scrollBar
+    ) {
+        scrollBar.setPreferredSize(
+                new Dimension(9, 0)
+        );
+        scrollBar.setOpaque(false);
+
+        scrollBar.setUI(
+                new javax.swing.plaf.basic.BasicScrollBarUI() {
+
+                    @Override
+                    protected void configureScrollBarColors() {
+                        thumbColor =
+                                new Color(185, 185, 185);
+                        trackColor =
+                                new Color(245, 246, 247);
+                    }
+
+                    @Override
+                    protected JButton createDecreaseButton(
+                            int orientation
+                    ) {
+                        return createBlankButton();
+                    }
+
+                    @Override
+                    protected JButton createIncreaseButton(
+                            int orientation
+                    ) {
+                        return createBlankButton();
+                    }
+
+                    private JButton createBlankButton() {
+                        JButton button = new JButton();
+                        button.setPreferredSize(
+                                new Dimension(0, 0)
+                        );
+                        button.setMinimumSize(
+                                new Dimension(0, 0)
+                        );
+                        button.setMaximumSize(
+                                new Dimension(0, 0)
+                        );
+                        button.setBorder(null);
+                        button.setBorderPainted(false);
+                        button.setContentAreaFilled(false);
+                        button.setFocusPainted(false);
+                        return button;
+                    }
+
+                    @Override
+                    protected void paintTrack(
+                            Graphics g,
+                            JComponent c,
+                            Rectangle bounds
+                    ) {
+                        Graphics2D g2 =
+                                (Graphics2D) g.create();
+
+                        g2.setColor(
+                                new Color(245, 246, 247)
+                        );
+
+                        g2.fillRect(
+                                bounds.x,
+                                bounds.y,
+                                bounds.width,
+                                bounds.height
+                        );
+
+                        g2.dispose();
+                    }
+
+                    @Override
+                    protected void paintThumb(
+                            Graphics g,
+                            JComponent c,
+                            Rectangle bounds
+                    ) {
+                        if (bounds.isEmpty()) {
+                            return;
+                        }
+
+                        Graphics2D g2 =
+                                (Graphics2D) g.create();
+
+                        g2.setRenderingHint(
+                                RenderingHints.KEY_ANTIALIASING,
+                                RenderingHints.VALUE_ANTIALIAS_ON
+                        );
+
+                        g2.setColor(
+                                new Color(180, 180, 180)
+                        );
+
+                        g2.fillRoundRect(
+                                bounds.x + 2,
+                                bounds.y,
+                                Math.max(
+                                        3,
+                                        bounds.width - 4
+                                ),
+                                bounds.height,
+                                7,
+                                7
+                        );
+
+                        g2.dispose();
+                    }
+                }
+        );
     }
 
     private void showCustomMessage(Component parent, String htmlMessage, String title) {
@@ -318,7 +916,6 @@ public class App extends JFrame {
         });
         sb.add(posButton);
 
-        // Sales Dropdown Menu
         JButton salesButton = createSalesDropdownButton();
         sb.add(salesButton);
 
@@ -351,7 +948,7 @@ public class App extends JFrame {
         salesSubMenu.add(mostPurchasedButton);
         sb.add(salesSubMenu);
 
-        // Medicine Dropdown Menu
+    
         JButton medicineButton = createMedicineDropdownButton();
         sb.add(medicineButton);
 
@@ -702,23 +1299,24 @@ public class App extends JFrame {
         }
     }
 
-    public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> {
-            try {
-                UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+public static void main(String[] args) {
+    SwingUtilities.invokeLater(() -> {
+        try {
+            UIManager.setLookAndFeel(
+                UIManager.getCrossPlatformLookAndFeelClassName()
+            );
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
-            LoginDialog loginDialog = new LoginDialog(null);
-            loginDialog.setVisible(true);
+        LoginDialog loginDialog = new LoginDialog(null);
+        loginDialog.setVisible(true);
 
-            if (loginDialog.isLoggedIn()) {
-                App app = new App();
-                app.setVisible(true);
-            } else {
-                System.exit(0);
-            }
-        });
-    }
+        if (loginDialog.isLoggedIn()) {
+            new App().setVisible(true);
+        } else {
+            System.exit(0);
+        }
+    });
+}
 }
