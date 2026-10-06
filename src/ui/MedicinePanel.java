@@ -3,6 +3,7 @@ package ui;
 import db.MedicineDAO;
 import models.Medicine;
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.plaf.basic.BasicScrollBarUI;
 import javax.swing.plaf.basic.BasicTabbedPaneUI;
@@ -39,6 +40,7 @@ public class MedicinePanel extends JPanel {
     private static final Color PAGE_BG = new Color(240, 242, 245);
     private static final Color SURFACE = Color.WHITE;
     private static final Color BORDER = new Color(220, 225, 230);
+    private static final Color LINE = new Color(226, 231, 236); // table lines (header + body use the same color)
     private static final Color TEXT = new Color(60, 65, 70);
     private static final Color MUTED = new Color(108, 117, 125);
     private static final Color PRIMARY = new Color(13, 148, 136);
@@ -48,12 +50,31 @@ public class MedicinePanel extends JPanel {
     private static final Color GROUP_HOVER = new Color(233, 244, 242);
     private static final Color TOTAL_BG = new Color(238, 245, 244);
     private static final Color TOTAL_LINE = new Color(200, 208, 214);
+    private static final Color HEADER_BG = new Color(248, 250, 252);
 
-    private static final int CELL_PAD = 10; // same left padding for header text and cell text
+    private static final int CELL_PAD = 10; // same left/right padding for header text and cell text
+    private static final int ACTION_WIDTH = 160; // Action column keeps a fixed width
 
     // Model column indexes (unchanged order + new Total Value column)
     private static final int COL_ID = 0, COL_NAME = 1, COL_CATEGORY = 2, COL_BUY = 3, COL_SELL = 4,
             COL_QTY = 5, COL_COMPANY = 6, COL_EXPIRE = 7, COL_STATUS = 8, COL_TOTAL = 9, COL_ACTION = 10;
+
+    // Everything is centered. The header uses this same list, so a header always sits
+    // exactly over its cells. Change an entry to JLabel.LEFT / RIGHT to align one column differently.
+    // (indexed by MODEL column)
+    private static final int[] ALIGN = {
+        JLabel.CENTER, // ID
+        JLabel.CENTER, // Medicine Name
+        JLabel.CENTER, // Medicine Category
+        JLabel.CENTER, // Buy Price
+        JLabel.CENTER, // Sell Price
+        JLabel.CENTER, // Quantity
+        JLabel.CENTER, // Company Name
+        JLabel.CENTER, // Expire Date
+        JLabel.CENTER, // Status
+        JLabel.CENTER, // Total Value
+        JLabel.CENTER  // Action
+    };
 
     // Order of columns as shown on screen (model indexes)
     private static final int[] VIEW_ORDER = {
@@ -73,6 +94,7 @@ public class MedicinePanel extends JPanel {
 
     private final Map<JTable, List<Medicine>> tableData = new HashMap<>();
     private final Map<JTable, Set<String>> collapsed = new HashMap<>();
+    private final Map<JTable, int[]> naturalWidths = new HashMap<>();
 
     public MedicinePanel() {
         UIManager.put("TabbedPane.highlight", new Color(200, 205, 210));
@@ -266,14 +288,17 @@ public class MedicinePanel extends JPanel {
                 DefaultTableModel mdl = (DefaultTableModel) table.getModel();
                 boolean group = isGroup(mdl, mr);
                 boolean total = mr == mdl.getRowCount() - 1;
+                boolean lastColumn = column == table.getColumnCount() - 1;
+                boolean nextIsGroup = row == table.getRowCount() - 1
+                        || isGroup(mdl, table.convertRowIndexToModel(row + 1));
+
+                // Inside a category the (blank) category cell has no line between medicine rows,
+                // so the whole category reads as one block. It closes at the last medicine row.
+                boolean bottomLine = group || mc != COL_CATEGORY || nextIsGroup;
 
                 setIcon(null);
-                setBorder(total
-                    ? BorderFactory.createCompoundBorder(
-                        BorderFactory.createMatteBorder(1, 0, 0, 0, TOTAL_LINE),
-                        new EmptyBorder(0, CELL_PAD, 0, CELL_PAD))
-                    : new EmptyBorder(0, CELL_PAD, 0, CELL_PAD));
-                setHorizontalAlignment(mc == COL_QTY || mc == COL_STATUS ? JLabel.CENTER : JLabel.LEFT);
+                setBorder(lineBorder(total, bottomLine, !lastColumn, true));
+                setHorizontalAlignment(ALIGN[mc]);
                 setFont(new Font("Segoe UI", group ? Font.BOLD : Font.PLAIN, 12));
                 setForeground(TEXT);
 
@@ -311,9 +336,12 @@ public class MedicinePanel extends JPanel {
             t.setSelectionBackground(PRIMARY_SOFT);
             t.setSelectionForeground(TEXT);
             t.setRowHeight(33);
-            t.setShowVerticalLines(true);
-            t.setShowHorizontalLines(true);
-            t.setGridColor(new Color(235, 238, 242));
+
+            // The lines are drawn by the cell borders (see lineBorder) instead of the JTable grid,
+            // so header and body share the exact same line color and position.
+            t.setShowGrid(false);
+            t.setIntercellSpacing(new Dimension(0, 0));
+
             t.setFont(new Font("Segoe UI", Font.PLAIN, 12));
             t.setFillsViewportHeight(true);
 
@@ -322,7 +350,7 @@ public class MedicinePanel extends JPanel {
             header.setFont(new Font("Segoe UI", Font.BOLD, 11));
             t.setTableHeader(header);
 
-            int[] widths = {40, 140, 120, 75, 75, 65, 110, 85, 95, 100, 160};
+            int[] widths = {40, 140, 120, 75, 75, 65, 110, 85, 95, 100, ACTION_WIDTH};
             for (int i = 0; i < widths.length; i++) {
                 t.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
             }
@@ -472,7 +500,7 @@ public class MedicinePanel extends JPanel {
         sp.getViewport().addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override
             public void componentResized(java.awt.event.ComponentEvent e) {
-                updateResizeMode(t);
+                layoutColumns(t);
             }
         });
         return sp;
@@ -495,6 +523,19 @@ public class MedicinePanel extends JPanel {
 
     private static String money(double v) {
         return "\u20B1" + String.format("%.2f", v);
+    }
+
+    /**
+     * Border that draws a cell's bottom / right line (plus the padding when asked).
+     * The Total row also gets a darker line on top.
+     */
+    private static Border lineBorder(boolean totalRow, boolean bottom, boolean right, boolean padded) {
+        Border line = BorderFactory.createMatteBorder(0, 0, bottom ? 1 : 0, right ? 1 : 0, LINE);
+        Border inner = padded
+                ? BorderFactory.createCompoundBorder(line, new EmptyBorder(0, CELL_PAD, 0, CELL_PAD))
+                : line;
+        if (!totalRow) return inner;
+        return BorderFactory.createCompoundBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, TOTAL_LINE), inner);
     }
 
     private void applyFilter() {
@@ -632,8 +673,8 @@ public class MedicinePanel extends JPanel {
                     m.getId(),
                     m.getName(),
                     m.getMedicineCategory(),
-                    "\u20B1" + m.getBuyPrice(),
-                    "\u20B1" + m.getSellPrice(),
+                    money(m.getBuyPrice()),    // always 2 decimals so the amounts line up
+                    money(m.getSellPrice()),
                     m.getStock(),
                     m.getCompanyName(),
                     m.getExpiryDate(),
@@ -646,19 +687,24 @@ public class MedicinePanel extends JPanel {
 
         model.addRow(new Object[]{"", "", "Total", "", "", grandQty, "", "", "", money(grandValue), ""});
 
-        fitColumns(table);
-        updateResizeMode(table);
+        measureColumns(table);
+        layoutColumns(table);
     }
 
-    /** Size every column to its longest value so nothing (like medicine names) is cut off. */
-    private void fitColumns(JTable t) {
+    /** Measure the natural width of every column (its longest value) so nothing gets cut off. */
+    private void measureColumns(JTable t) {
         DefaultTableModel model = (DefaultTableModel) t.getModel();
         FontMetrics fm = t.getFontMetrics(new Font("Segoe UI", Font.BOLD, 12));
         TableColumnModel cm = t.getColumnModel();
+        int[] natural = new int[cm.getColumnCount()];
+
         for (int v = 0; v < cm.getColumnCount(); v++) {
             TableColumn col = cm.getColumn(v);
             int mc = col.getModelIndex();
-            if (mc == COL_ACTION) continue;
+            if (mc == COL_ACTION) {
+                natural[v] = ACTION_WIDTH;
+                continue;
+            }
 
             int w = fm.stringWidth(String.valueOf(col.getHeaderValue()));
             for (int r = 0; r < model.getRowCount(); r++) {
@@ -668,20 +714,60 @@ public class MedicinePanel extends JPanel {
                 if (val != null) w = Math.max(w, fm.stringWidth(val.toString()));
             }
             if (mc == COL_CATEGORY) w += 60; // room for chevron + item count
-            w += CELL_PAD * 2 + 6;
-            col.setMinWidth(w);
-            col.setPreferredWidth(w);
+            natural[v] = w + CELL_PAD * 2 + 6;
         }
+        naturalWidths.put(t, natural);
     }
 
-    /** Fill the width when there is room, scroll sideways when the columns do not fit. */
-    private void updateResizeMode(JTable t) {
-        int total = 0;
+    /**
+     * Lay the columns out. When there is spare room, it is shared between the columns in
+     * proportion to their natural width (so the spacing stays even). When the window is too
+     * narrow, columns keep their natural width and the table scrolls sideways instead.
+     * The Action column always stays at a fixed width.
+     */
+    private void layoutColumns(JTable t) {
+        if (naturalWidths.get(t) == null) measureColumns(t);
+        int[] natural = naturalWidths.get(t);
         TableColumnModel cm = t.getColumnModel();
-        for (int i = 0; i < cm.getColumnCount(); i++) total += cm.getColumn(i).getPreferredWidth();
+        int n = cm.getColumnCount();
+        if (natural.length != n) return;
+
+        int flexTotal = 0;
+        int fixedTotal = 0;
+        int lastFlex = -1;
+        for (int v = 0; v < n; v++) {
+            if (cm.getColumn(v).getModelIndex() == COL_ACTION) {
+                fixedTotal += natural[v];
+            } else {
+                flexTotal += natural[v];
+                lastFlex = v;
+            }
+        }
+        if (lastFlex == -1 || flexTotal == 0) return;
+
         Container vp = SwingUtilities.getAncestorOfClass(JViewport.class, t);
         int avail = vp == null ? 0 : vp.getWidth();
-        t.setAutoResizeMode(avail > 0 && total > avail ? JTable.AUTO_RESIZE_OFF : JTable.AUTO_RESIZE_ALL_COLUMNS);
+        int target = Math.max(avail, flexTotal + fixedTotal);
+        double scale = (double) (target - fixedTotal) / flexTotal;
+
+        t.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+
+        int used = 0;
+        for (int v = 0; v < n; v++) {
+            TableColumn col = cm.getColumn(v);
+            int w;
+            if (col.getModelIndex() == COL_ACTION) {
+                w = natural[v];
+            } else if (v == lastFlex) {
+                w = target - fixedTotal - used; // whatever is left, so rounding never leaves a gap
+            } else {
+                w = (int) Math.round(natural[v] * scale);
+                used += w;
+            }
+            col.setMinWidth(15);
+            col.setPreferredWidth(w);
+            col.setWidth(w);
+        }
     }
 
     @Override
@@ -779,55 +865,94 @@ public class MedicinePanel extends JPanel {
 
         @Override
         protected void paintComponent(Graphics g0) {
-            Graphics2D g = (Graphics2D) g0;
+            Graphics2D g = (Graphics2D) g0.create();
             g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-            g.setColor(new Color(248, 250, 252));
+            g.setColor(HEADER_BG);
             g.fillRect(0, 0, getWidth(), getHeight());
 
             int n = columnModel.getColumnCount();
             int h = getHeight();
             int half = h / 2;
+
+            // the last column has no divider on its right (the scroll pane border is there)
+            int last = n - 1;
+
             int i = 0;
             while (i < n) {
                 String grp = i < groups.length ? groups[i] : null;
                 if (grp == null) {
                     Rectangle r = getHeaderRect(i);
-                    cell(g, r.x, 0, r.width, h, title(i), isCentered(i));
+                    label(g, title(i), r.x, 0, r.width, h, align(i));
+                    if (i != last) divider(g, r.x + r.width - 1, 0, h);
                     i++;
                 } else {
                     int j = i;
                     while (j + 1 < n && j + 1 < groups.length && grp.equals(groups[j + 1])) j++;
                     Rectangle a = getHeaderRect(i), b = getHeaderRect(j);
-                    cell(g, a.x, 0, b.x + b.width - a.x, half, grp, true);
+                    int spanW = b.x + b.width - a.x;
+
+                    // group label (top row) with a line under it
+                    label(g, grp, a.x, 0, spanW, half, JLabel.CENTER);
+                    g.setColor(LINE);
+                    g.drawLine(a.x, half - 1, a.x + spanW - 1, half - 1);
+                    if (j != last) divider(g, b.x + b.width - 1, 0, half);
+
+                    // column names (bottom row)
                     for (int k = i; k <= j; k++) {
                         Rectangle r = getHeaderRect(k);
-                        cell(g, r.x, half, r.width, h - half, title(k), isCentered(k));
+                        label(g, title(k), r.x, half, r.width, h - half, align(k));
+                        if (k != last) divider(g, r.x + r.width - 1, half, h);
                     }
                     i = j + 1;
                 }
             }
+
+            // bottom line of the header
+            g.setColor(LINE);
+            g.drawLine(0, h - 1, getWidth(), h - 1);
+            g.dispose();
         }
 
         private String title(int viewCol) {
             return String.valueOf(columnModel.getColumn(viewCol).getHeaderValue());
         }
 
-        private boolean isCentered(int viewCol) {
-            int mc = columnModel.getColumn(viewCol).getModelIndex();
-            return mc == COL_QTY || mc == COL_STATUS;
+        private int align(int viewCol) {
+            return ALIGN[columnModel.getColumn(viewCol).getModelIndex()];
         }
 
-        private void cell(Graphics2D g, int x, int y, int w, int h, String text, boolean centered) {
-            g.setColor(new Color(248, 250, 252));
-            g.fillRect(x, y, w, h);
-            g.setColor(BORDER);
-            g.drawRect(x, y, w - 1, h - 1);
+        // drawn on the same pixel column as the vertical line of the cells below
+        private void divider(Graphics2D g, int x, int y1, int y2) {
+            g.setColor(LINE);
+            g.drawLine(x, y1, x, y2);
+        }
+
+        private void label(Graphics2D g, String text, int x, int y, int w, int h, int alignment) {
             g.setColor(MUTED);
             g.setFont(getFont());
             FontMetrics fm = g.getFontMetrics();
-            int tx = centered ? x + (w - fm.stringWidth(text)) / 2 : x + CELL_PAD;
+
+            // same padding as the cells (the 1px line is on the right edge)
+            int max = w - 1 - CELL_PAD * 2;
+            String shown = text;
+            if (fm.stringWidth(shown) > max) {
+                while (shown.length() > 1 && fm.stringWidth(shown + "...") > max) {
+                    shown = shown.substring(0, shown.length() - 1);
+                }
+                shown = shown.trim() + "...";
+            }
+
+            int textWidth = fm.stringWidth(shown);
+            int tx;
+            if (alignment == JLabel.CENTER) {
+                tx = x + (w - 1 - textWidth) / 2;
+            } else if (alignment == JLabel.RIGHT) {
+                tx = x + w - 1 - CELL_PAD - textWidth;
+            } else {
+                tx = x + CELL_PAD;
+            }
             int ty = y + (h + fm.getAscent() - fm.getDescent()) / 2;
-            g.drawString(text, tx, ty);
+            g.drawString(shown, tx, ty);
         }
     }
 
@@ -898,7 +1023,8 @@ public class MedicinePanel extends JPanel {
         private JButton btnEdit, btnDelete;
 
         public ActionButtonPanel() {
-            panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 4));
+            // row is 33px tall, minus the 1px bottom line = 32 -> 3 + 26 + 3 keeps the buttons centered
+            panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 3));
             panel.setOpaque(true);
             blank = new JPanel();
             blank.setOpaque(true);
@@ -989,19 +1115,23 @@ public class MedicinePanel extends JPanel {
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
             int mr = table.convertRowIndexToModel(row);
             DefaultTableModel tm = (DefaultTableModel) table.getModel();
+            boolean lastColumn = column == table.getColumnCount() - 1;
+            boolean total = mr == tm.getRowCount() - 1;
+
             if (isGroup(tm, mr)) {
                 blank.setBackground(rowBackground(table, row, isSelected));
-                blank.setBorder(mr == tm.getRowCount() - 1
-                    ? BorderFactory.createMatteBorder(1, 0, 0, 0, TOTAL_LINE) : null);
+                blank.setBorder(lineBorder(total, true, !lastColumn, false));
                 return blank;
             }
             panel.setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
+            panel.setBorder(lineBorder(false, true, !lastColumn, false));
             return panel;
         }
 
         @Override
         public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
             panel.setBackground(table.getSelectionBackground());
+            panel.setBorder(lineBorder(false, true, column != table.getColumnCount() - 1, false));
             return panel;
         }
 
