@@ -4,21 +4,69 @@ import db.CustomerDAO;
 import db.MedicineDAO;
 import db.SalesDAO;
 import java.awt.*;
+import java.awt.event.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 import javax.swing.*;
+import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.plaf.basic.BasicScrollBarUI;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableRowSorter;
 import models.Customer;
 import models.Medicine;
 
 public class POSFrame extends JPanel {
+
+    // same palette / spacing as MedicinePanel and TopCustomersPanel
+    private static final Color PAGE_BG = new Color(240, 242, 245);
+    private static final Color BORDER = new Color(220, 225, 230);
+    private static final Color GRID = new Color(228, 232, 237);
+    private static final Color TEXT = new Color(60, 65, 70);
+    private static final Color TEXT_DARK = new Color(40, 45, 50);
+    private static final Color MUTED = new Color(108, 117, 125);
+    private static final Color HEADER_BG = new Color(245, 247, 250);
+    private static final Color HEADER_TEXT = new Color(70, 80, 90);
+    private static final Color ROW_ALT = new Color(250, 251, 253);
+    private static final Color PRIMARY = new Color(26, 143, 136);       // teal
+    private static final Color PRIMARY_SOFT = new Color(224, 243, 241);
+    private static final Color DANGER = new Color(192, 57, 43);
+    private static final int CELL_PAD = 10;
+
+    // model column indexes of the medicine table
+    private static final int M_NAME = 0, M_CATEGORY = 1, M_PRICE = 2, M_STOCK = 3, M_STATUS = 4, M_ID = 5;
+
+    // model column index of the cart table's Total column
+    private static final int C_TOTAL = 3;
+
+    // order of the columns as shown on screen (model indexes)
+    private static final int[] MED_VIEW_ORDER = {M_CATEGORY, M_NAME, M_PRICE, M_STOCK, M_STATUS, M_ID};
+    // group label above each column (by view position). null = no group, header spans both rows
+    private static final String[] MED_HEADER_GROUPS = {null, null, "Price", "Stock", "Stock", null};
+
+    // Text is aligned left, numbers right, short values centered.
+    // The header uses the same alignment so it always lines up with the cells below it.
+    // (indexed by MODEL column)
+    private static final int[] MED_ALIGN = {
+            JLabel.LEFT, JLabel.LEFT, JLabel.RIGHT, JLabel.CENTER, JLabel.CENTER, JLabel.LEFT
+    };
+    private static final int[] CART_ALIGN = {
+            JLabel.LEFT, JLabel.RIGHT, JLabel.CENTER, JLabel.RIGHT, JLabel.LEFT
+    };
+
+    // Share of the table width per column (by VIEW position, 0 = hidden ID column).
+    // Columns are fixed, so these are what keep everything evenly spaced.
+    private static final double[] MED_RATIOS = {0.22, 0.32, 0.14, 0.13, 0.19, 0};
+    private static final double[] CART_RATIOS = {0.40, 0.20, 0.12, 0.28, 0};
 
     private JTable medicineTable;
     private JTable cartTable;
@@ -37,90 +85,115 @@ public class POSFrame extends JPanel {
     public POSFrame() {
 
         setLayout(new BorderLayout());
-        setBackground(new Color(245, 247, 250));
+        setBackground(PAGE_BG);
         setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        JLabel lblTitle = new JLabel("Point of Sales (POS)");
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        lblTitle.setForeground(new Color(60, 65, 70));
-
-        add(lblTitle, BorderLayout.NORTH);
-
-        JPanel contentPanel = new JPanel(new GridLayout(1, 2, 15, 0));
-        contentPanel.setOpaque(false);
-        contentPanel.setBorder(new EmptyBorder(15, 0, 0, 0));
+        add(buildHeader(), BorderLayout.NORTH);
 
         JPanel leftPanel = buildMedicinePanel();
         JPanel rightPanel = buildCartPanel();
 
-        contentPanel.add(leftPanel);
-        contentPanel.add(rightPanel);
+        // The medicine list gets a bit more room than the cart (58 / 42).
+        // Tiny preferred sizes + weights = the extra space is split exactly by the weights.
+        leftPanel.setPreferredSize(new Dimension(58, 100));
+        rightPanel.setPreferredSize(new Dimension(42, 100));
+
+        JPanel contentPanel = new JPanel(new GridBagLayout());
+        contentPanel.setOpaque(false);
+        contentPanel.setBorder(new EmptyBorder(15, 0, 0, 0));
+
+        GridBagConstraints gc = new GridBagConstraints();
+        gc.fill = GridBagConstraints.BOTH;
+        gc.weighty = 1;
+
+        gc.gridx = 0;
+        gc.weightx = 58;
+        gc.insets = new Insets(0, 0, 0, 8);
+        contentPanel.add(leftPanel, gc);
+
+        gc.gridx = 1;
+        gc.weightx = 42;
+        gc.insets = new Insets(0, 8, 0, 0);
+        contentPanel.add(rightPanel, gc);
 
         add(contentPanel, BorderLayout.CENTER);
 
         loadMedicinesToPOS();
 
-        addComponentListener(new java.awt.event.ComponentAdapter() {
+        addComponentListener(new ComponentAdapter() {
             @Override
-            public void componentShown(java.awt.event.ComponentEvent e) {
+            public void componentShown(ComponentEvent e) {
                 loadMedicinesToPOS();
                 updateSubtotal();
             }
         });
     }
 
+    private JPanel buildHeader() {
+        JLabel lblTitle = new JLabel("Point of Sales (POS)");
+        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        lblTitle.setForeground(TEXT_DARK);
+
+        JLabel lblSubtitle = new JLabel("Pick a medicine, add it to the cart, then check out");
+        lblSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblSubtitle.setForeground(MUTED);
+
+        JPanel titleContainer = new JPanel();
+        titleContainer.setLayout(new BoxLayout(titleContainer, BoxLayout.Y_AXIS));
+        titleContainer.setOpaque(false);
+        titleContainer.add(lblTitle);
+        titleContainer.add(Box.createVerticalStrut(3));
+        titleContainer.add(lblSubtitle);
+
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        headerPanel.setOpaque(false);
+        headerPanel.add(titleContainer, BorderLayout.WEST);
+        return headerPanel;
+    }
+
+    private Border cardBorder() {
+        return BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(BORDER),
+                new EmptyBorder(14, 14, 14, 14)
+        );
+    }
+
+    // ------------------------------------------------------------------ medicine list (left)
+
     private JPanel buildMedicinePanel() {
 
         JPanel leftPanel = new JPanel(new BorderLayout());
         leftPanel.setBackground(Color.WHITE);
-        leftPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(210, 215, 220)),
-                new EmptyBorder(12, 12, 12, 12)
-        ));
+        leftPanel.setBorder(cardBorder());
 
-        JPanel searchPanel = new JPanel(new BorderLayout(8, 0));
+        JPanel searchPanel = new JPanel(new BorderLayout(10, 0));
         searchPanel.setOpaque(false);
         searchPanel.setBorder(new EmptyBorder(0, 0, 12, 0));
 
         JLabel lblSearch = new JLabel("Search Medicine:");
         lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        lblSearch.setForeground(new Color(70, 75, 80));
+        lblSearch.setForeground(TEXT);
 
-        searchField = new JTextField();
-        searchField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        searchField.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(200, 205, 210)),
-                new EmptyBorder(6, 8, 6, 8)
-        ));
-
-        searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+        searchField = new SearchField("Type to search medicines...");
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
             @Override
-            public void insertUpdate(javax.swing.event.DocumentEvent e) { filterTable(); }
+            public void insertUpdate(DocumentEvent e) { filterTable(); }
             @Override
-            public void removeUpdate(javax.swing.event.DocumentEvent e) { filterTable(); }
+            public void removeUpdate(DocumentEvent e) { filterTable(); }
             @Override
-            public void changedUpdate(javax.swing.event.DocumentEvent e) { filterTable(); }
-
-            private void filterTable() {
-                String text = searchField.getText().trim();
-                if (text.isEmpty()) {
-                    medicineRowSorter.setRowFilter(null);
-                } else {
-                    medicineRowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
-                }
-            }
+            public void changedUpdate(DocumentEvent e) { filterTable(); }
         });
 
         searchPanel.add(lblSearch, BorderLayout.WEST);
         searchPanel.add(searchField, BorderLayout.CENTER);
-
         leftPanel.add(searchPanel, BorderLayout.NORTH);
 
+        // same header names as the Medicine List page
         String[] medColumns = {
                 "Medicine Name",
-                "Category",
-                "Price",
-                "Stock",
+                "Medicine Category",
+                "Sell Price",
+                "Quantity",
                 "Status",
                 "ID"
         };
@@ -132,121 +205,113 @@ public class POSFrame extends JPanel {
             }
         };
 
-        medicineTable = new JTable(medicineModel);
-        
-        medicineTable.setSelectionBackground(new Color(210, 215, 220));
-        medicineTable.setSelectionForeground(Color.BLACK);
+        medicineTable = new JTable(medicineModel) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                drawEmptyMessage(g, this, "No medicines found");
+            }
+        };
+        styleTable(medicineTable);
 
         medicineRowSorter = new TableRowSorter<>(medicineModel);
         medicineTable.setRowSorter(medicineRowSorter);
 
-        medicineTable.setRowHeight(32);
-        medicineTable.setShowVerticalLines(false);
-        medicineTable.setShowHorizontalLines(true);
-        medicineTable.setGridColor(new Color(235, 238, 242));
-        medicineTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        medicineTable.getTableHeader().setFont(
-                new Font("Segoe UI", Font.BOLD, 12)
-        );
-        medicineTable.getTableHeader().setBackground(
-                new Color(248, 249, 250)
-        );
-        medicineTable.getTableHeader().setForeground(
-                new Color(80, 85, 90)
-        );
-        medicineTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        // two-level header (Price / Stock groups) like the Medicine List page
+        JTableHeader medHeader = new GroupHeader(medicineTable.getColumnModel(), MED_HEADER_GROUPS, MED_ALIGN, 56);
+        medHeader.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        medicineTable.setTableHeader(medHeader);
 
-        DefaultTableCellRenderer statusRenderer = new DefaultTableCellRenderer() {
-            @Override
-            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-                setHorizontalAlignment(column == 3 || column == 4 ? JLabel.CENTER : JLabel.LEFT);
-                
-                int modelRow = table.convertRowIndexToModel(row);
-                try {
-                    String status = table.getModel().getValueAt(modelRow, 4).toString();
-                    
-                    if ("Out of Stock".equalsIgnoreCase(status) || "Expired".equalsIgnoreCase(status)) {
-                        c.setForeground(new Color(192, 57, 43));
-                        setFont(new Font("Segoe UI", Font.BOLD, 12));
-                    } else {
-                        c.setForeground(new Color(70, 75, 80));
-                        setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        // cells: red bold for expired / out of stock rows, teal for "Available"
+        for (int v = 0; v < medicineTable.getColumnCount(); v++) {
+            TableColumn col = medicineTable.getColumnModel().getColumn(v);
+            int mc = col.getModelIndex();
+
+            col.setCellRenderer(new BodyRenderer(MED_ALIGN[mc]) {
+                @Override
+                protected void style(JTable t, Object value, int row, int column) {
+                    boolean problem = false;
+                    try {
+                        int modelRow = t.convertRowIndexToModel(row);
+                        String status = t.getModel().getValueAt(modelRow, M_STATUS).toString();
+                        problem = "Out of Stock".equalsIgnoreCase(status) || "Expired".equalsIgnoreCase(status);
+                    } catch (Exception ignored) {}
+
+                    if (problem) {
+                        setFont(t.getFont().deriveFont(Font.BOLD));
+                        setForeground(DANGER);
+                    } else if (mc == M_STATUS) {
+                        setFont(t.getFont().deriveFont(Font.BOLD));
+                        setForeground(PRIMARY);
                     }
-                } catch (Exception ignored) {}
-
-                if (isSelected) {
-                    c.setBackground(table.getSelectionBackground());
-                    c.setForeground(table.getSelectionForeground());
-                } else {
-                    c.setBackground(Color.WHITE);
                 }
-                return c;
-            }
-        };
-
-        for (int i = 0; i < 5; i++) {
-            medicineTable.getColumnModel().getColumn(i).setCellRenderer(statusRenderer);
+            });
         }
 
-        medicineTable.getColumnModel().getColumn(5).setMinWidth(0);
-        medicineTable.getColumnModel().getColumn(5).setMaxWidth(0);
-        medicineTable.getColumnModel().getColumn(5).setPreferredWidth(0);
+        // arrange columns visually: Category | Name | Price | Quantity | Status  (ID stays hidden)
+        for (int pos = 0; pos < MED_VIEW_ORDER.length; pos++) {
+            int from = medicineTable.convertColumnIndexToView(MED_VIEW_ORDER[pos]);
+            if (from != pos) medicineTable.moveColumn(from, pos);
+        }
+        medicineTable.getTableHeader().setReorderingAllowed(false);
+        medicineTable.getTableHeader().setResizingAllowed(false); // columns can't be dragged
 
-        JScrollPane medScroll = new JScrollPane(medicineTable);
-        medScroll.getViewport().setBackground(Color.WHITE);
-        medScroll.setBorder(
-                BorderFactory.createLineBorder(new Color(220, 224, 230))
-        );
+        // hidden ID column
+        TableColumn idCol = medicineTable.getColumnModel().getColumn(medicineTable.convertColumnIndexToView(M_ID));
+        idCol.setMinWidth(0);
+        idCol.setMaxWidth(0);
+        idCol.setPreferredWidth(0);
 
-        leftPanel.add(medScroll, BorderLayout.CENTER);
+        applyColumnWidths(medicineTable, MED_RATIOS, 520); // starting size, re-fitted once the panel is on screen
 
-        JButton btnAddToCart = createButton(
-                "Add to Cart",
-                new Color(41, 128, 185),
-                Color.WHITE
-        );
+        leftPanel.add(scroll(medicineTable, MED_RATIOS), BorderLayout.CENTER);
 
-        btnAddToCart.setBorder(
-                new EmptyBorder(10, 0, 10, 0)
-        );
+        JButton btnAddToCart = createButton("Add to Cart", PRIMARY, Color.WHITE);
+        btnAddToCart.setBorder(new EmptyBorder(11, 0, 11, 0));
 
         JPanel btnAddWrapper = new JPanel(new BorderLayout());
         btnAddWrapper.setOpaque(false);
-        btnAddWrapper.setBorder(new EmptyBorder(10, 0, 0, 0));
+        btnAddWrapper.setBorder(new EmptyBorder(12, 0, 0, 0));
         btnAddWrapper.add(btnAddToCart, BorderLayout.CENTER);
 
         leftPanel.add(btnAddWrapper, BorderLayout.SOUTH);
 
-        medicineTable.addMouseListener(new java.awt.event.MouseAdapter() {
+        medicineTable.addMouseListener(new MouseAdapter() {
             @Override
-            public void mouseClicked(java.awt.event.MouseEvent e) {
+            public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e)) {
                     addSelectedMedicineToCart();
                 }
             }
         });
 
-        btnAddToCart.addActionListener(e ->
-                addSelectedMedicineToCart()
-        );
+        btnAddToCart.addActionListener(e -> addSelectedMedicineToCart());
 
         return leftPanel;
     }
+
+    private void filterTable() {
+        String text = searchField.getText().trim();
+        if (text.isEmpty()) {
+            medicineRowSorter.setRowFilter(null);
+        } else {
+            // Pattern.quote so characters like ( or [ do not break the search
+            medicineRowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + Pattern.quote(text)));
+        }
+    }
+
+    // ------------------------------------------------------------------ cart (right)
 
     private JPanel buildCartPanel() {
 
         JPanel rightPanel = new JPanel(new BorderLayout());
         rightPanel.setBackground(Color.WHITE);
-        rightPanel.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(210, 215, 220)),
-                new EmptyBorder(12, 12, 12, 12)
-        ));
+        rightPanel.setBorder(cardBorder());
 
         JLabel lblCartTitle = new JLabel("Current Cart & Checkout");
         lblCartTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        lblCartTitle.setForeground(new Color(70, 75, 80));
-        lblCartTitle.setBorder(new EmptyBorder(0, 0, 10, 0));
+        lblCartTitle.setForeground(TEXT_DARK);
+        lblCartTitle.setBorder(new EmptyBorder(0, 0, 12, 0));
 
         rightPanel.add(lblCartTitle, BorderLayout.NORTH);
 
@@ -258,74 +323,64 @@ public class POSFrame extends JPanel {
                 "Medicine ID"
         };
 
-        cartModel = new DefaultTableModel(
-                new Object[][]{},
-                cartColumns
-        ) {
+        cartModel = new DefaultTableModel(new Object[][]{}, cartColumns) {
             @Override
             public boolean isCellEditable(int row, int column) {
                 return false;
             }
         };
 
-        cartTable = new JTable(cartModel);
-        
-        cartTable.setSelectionBackground(new Color(210, 215, 220));
-        cartTable.setSelectionForeground(Color.BLACK);
+        cartTable = new JTable(cartModel) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                drawEmptyMessage(g, this, "Your cart is empty");
+            }
+        };
+        styleTable(cartTable);
 
-        cartTable.setRowHeight(32);
-        cartTable.setShowVerticalLines(false);
-        cartTable.setShowHorizontalLines(true);
-        cartTable.setGridColor(new Color(235, 238, 242));
-        cartTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        cartTable.getTableHeader().setFont(
-                new Font("Segoe UI", Font.BOLD, 12)
-        );
-        cartTable.getTableHeader().setBackground(
-                new Color(248, 249, 250)
-        );
-        cartTable.getTableHeader().setForeground(
-                new Color(80, 85, 90)
-        );
-        cartTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        // same header look as the medicine table (single row, no groups)
+        JTableHeader cartHeader = new GroupHeader(cartTable.getColumnModel(), new String[cartColumns.length], CART_ALIGN, 40);
+        cartHeader.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        cartTable.setTableHeader(cartHeader);
+        cartTable.getTableHeader().setReorderingAllowed(false);
+        cartTable.getTableHeader().setResizingAllowed(false);
 
+        for (int v = 0; v < cartTable.getColumnCount(); v++) {
+            TableColumn col = cartTable.getColumnModel().getColumn(v);
+            int mc = col.getModelIndex();
+
+            col.setCellRenderer(new BodyRenderer(CART_ALIGN[mc]) {
+                @Override
+                protected void style(JTable t, Object value, int row, int column) {
+                    if (mc == C_TOTAL) setFont(t.getFont().deriveFont(Font.BOLD));
+                }
+            });
+        }
+
+        // hidden Medicine ID column
         cartTable.getColumnModel().getColumn(4).setMinWidth(0);
         cartTable.getColumnModel().getColumn(4).setMaxWidth(0);
         cartTable.getColumnModel().getColumn(4).setPreferredWidth(0);
 
-        JScrollPane cartScroll = new JScrollPane(cartTable);
-        cartScroll.getViewport().setBackground(Color.WHITE);
-        cartScroll.setBorder(
-                BorderFactory.createLineBorder(new Color(220, 224, 230))
-        );
+        applyColumnWidths(cartTable, CART_RATIOS, 380);
 
-        rightPanel.add(cartScroll, BorderLayout.CENTER);
+        rightPanel.add(scroll(cartTable, CART_RATIOS), BorderLayout.CENTER);
 
         JPanel bottomCartPanel = new JPanel(new BorderLayout());
         bottomCartPanel.setOpaque(false);
         bottomCartPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
 
-        JPanel summaryWrap = buildSummaryPanel();
-
-        bottomCartPanel.add(summaryWrap, BorderLayout.NORTH);
+        bottomCartPanel.add(buildSummaryPanel(), BorderLayout.NORTH);
 
         JPanel actionButtons = new JPanel(new GridLayout(1, 2, 10, 0));
         actionButtons.setOpaque(false);
 
-        JButton btnRemove = createButton(
-                "Remove Item",
-                new Color(192, 57, 43),
-                Color.WHITE
-        );
+        JButton btnRemove = createButton("Remove Item", DANGER, Color.WHITE);
+        JButton btnCheckout = createButton("Checkout", PRIMARY, Color.WHITE);
 
-        JButton btnCheckout = createButton(
-                "Checkout",
-                new Color(26, 143, 136),
-                Color.WHITE
-        );
-
-        btnRemove.setBorder(new EmptyBorder(10, 0, 10, 0));
-        btnCheckout.setBorder(new EmptyBorder(10, 0, 10, 0));
+        btnRemove.setBorder(new EmptyBorder(11, 0, 11, 0));
+        btnCheckout.setBorder(new EmptyBorder(11, 0, 11, 0));
 
         actionButtons.add(btnRemove);
         actionButtons.add(btnCheckout);
@@ -334,17 +389,12 @@ public class POSFrame extends JPanel {
 
         rightPanel.add(bottomCartPanel, BorderLayout.SOUTH);
 
-        btnRemove.addActionListener(e ->
-                removeSelectedCartItem()
-        );
+        btnRemove.addActionListener(e -> removeSelectedCartItem());
+        btnCheckout.addActionListener(e -> processCheckout());
 
-        btnCheckout.addActionListener(e ->
-                processCheckout()
-        );
-
-        cartTable.addMouseListener(new java.awt.event.MouseAdapter() {
+        cartTable.addMouseListener(new MouseAdapter() {
             @Override
-            public void mouseClicked(java.awt.event.MouseEvent e) {
+            public void mouseClicked(MouseEvent e) {
                 if (e.getClickCount() == 2 && SwingUtilities.isLeftMouseButton(e)) {
                     removeSelectedCartItem();
                 }
@@ -361,29 +411,15 @@ public class POSFrame extends JPanel {
 
         String sym = SharedData.currencySymbol + " ";
 
-        lblSubtotalVal = createSummaryValue(
-                sym + "0.00",
-                textColor
-        );
+        lblSubtotalVal = createSummaryValue(sym + "0.00", textColor);
 
         lblDiscountTitle = createSummaryLabel("Discount (0%):");
-        lblDiscountVal = createSummaryValue(
-                "- " + sym + "0.00",
-                textColor
-        );
+        lblDiscountVal = createSummaryValue("- " + sym + "0.00", textColor);
 
-        lblTotalVal = createSummaryValue(
-                sym + "0.00",
-                textColor
-        );
+        lblTotalVal = createSummaryValue(sym + "0.00", PRIMARY);
+        lblTotalVal.setFont(new Font("Segoe UI", Font.BOLD, 18));
 
-        lblTotalVal.setFont(
-                new Font("Segoe UI", Font.BOLD, 16)
-        );
-
-        JPanel summaryPanel = new JPanel(
-                new GridLayout(0, 2, 5, 6)
-        );
+        JPanel summaryPanel = new JPanel(new GridLayout(0, 2, 5, 6));
         summaryPanel.setOpaque(false);
 
         summaryPanel.add(createSummaryLabel("Subtotal:"));
@@ -393,53 +429,111 @@ public class POSFrame extends JPanel {
         summaryPanel.add(lblDiscountVal);
 
         JLabel lblTotalText = createSummaryLabel("TOTAL:");
-        lblTotalText.setFont(
-                new Font("Segoe UI", Font.BOLD, 15)
-        );
+        lblTotalText.setFont(new Font("Segoe UI", Font.BOLD, 15));
         lblTotalText.setForeground(textColor);
 
         JPanel totalRow = new JPanel(new BorderLayout());
         totalRow.setOpaque(false);
         totalRow.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(
-                        1, 0, 0, 0, lineColor
-                ),
+                BorderFactory.createMatteBorder(1, 0, 0, 0, lineColor),
                 new EmptyBorder(8, 0, 0, 0)
         ));
 
         totalRow.add(lblTotalText, BorderLayout.WEST);
         totalRow.add(lblTotalVal, BorderLayout.EAST);
 
-        JPanel summaryBox = new JPanel(
-                new BorderLayout(0, 8)
-        );
+        JPanel summaryBox = new JPanel(new BorderLayout(0, 8));
         summaryBox.setOpaque(false);
-        summaryBox.setBorder(
-                new EmptyBorder(5, 0, 10, 0)
-        );
+        summaryBox.setBorder(new EmptyBorder(5, 0, 10, 0));
 
-        summaryBox.add(
-                summaryPanel,
-                BorderLayout.CENTER
-        );
+        summaryBox.add(summaryPanel, BorderLayout.CENTER);
+        summaryBox.add(totalRow, BorderLayout.SOUTH);
 
-        summaryBox.add(
-                totalRow,
-                BorderLayout.SOUTH
-        );
-
-        JPanel summaryWrap = new JPanel(
-                new BorderLayout()
-        );
+        JPanel summaryWrap = new JPanel(new BorderLayout());
         summaryWrap.setOpaque(false);
-
-        summaryWrap.add(
-                summaryBox,
-                BorderLayout.CENTER
-        );
+        summaryWrap.add(summaryBox, BorderLayout.CENTER);
 
         return summaryWrap;
     }
+
+    // ------------------------------------------------------------------ table helpers
+
+    /** Common look for both tables. */
+    private void styleTable(JTable t) {
+        t.setRowHeight(36);
+        t.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        t.setShowGrid(true);
+        t.setGridColor(GRID);
+        t.setIntercellSpacing(new Dimension(1, 1));
+        t.setFillsViewportHeight(true);
+        t.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        t.setSelectionBackground(PRIMARY_SOFT);
+        t.setSelectionForeground(TEXT);
+        t.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+    }
+
+    /** Scroll pane with the same thin scrollbar as the Medicine List page. No sideways scrolling. */
+    private JScrollPane scroll(JTable t, double[] ratios) {
+        JScrollPane sp = new JScrollPane(t);
+        sp.getViewport().setBackground(Color.WHITE);
+        sp.setBorder(BorderFactory.createLineBorder(BORDER));
+
+        // columns always fit the panel, so a horizontal scrollbar is never needed
+        sp.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
+
+        JScrollBar bar = sp.getVerticalScrollBar();
+        bar.setUI(new SlimScrollBarUI());
+        bar.setOpaque(true);
+        bar.setBackground(Color.WHITE);
+        bar.setUnitIncrement(16);
+
+        // keep the column proportions whenever the window (or the scrollbar) changes the width
+        sp.getViewport().addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                applyColumnWidths(t, ratios, sp.getViewport().getWidth());
+            }
+        });
+        return sp;
+    }
+
+    /** Gives every visible column its share of the width. Hidden columns (ratio 0) stay at 0. */
+    private void applyColumnWidths(JTable t, double[] ratios, int totalWidth) {
+        if (totalWidth <= 0) return;
+
+        TableColumnModel cm = t.getColumnModel();
+
+        int lastVisible = -1;
+        for (int i = 0; i < cm.getColumnCount(); i++) {
+            if (ratios[i] > 0) lastVisible = i;
+        }
+
+        int used = 0;
+        for (int i = 0; i < cm.getColumnCount(); i++) {
+            if (ratios[i] <= 0) continue;
+
+            // last column takes whatever is left so rounding never leaves a gap
+            int w = (i == lastVisible) ? totalWidth - used : (int) Math.round(totalWidth * ratios[i]);
+            cm.getColumn(i).setPreferredWidth(w);
+            cm.getColumn(i).setWidth(w);
+            used += w;
+        }
+    }
+
+    /** Centered hint when a table has no rows. */
+    private static void drawEmptyMessage(Graphics g, JTable t, String message) {
+        if (t.getRowCount() > 0) return;
+
+        Graphics2D g2 = (Graphics2D) g.create();
+        g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+        g2.setColor(new Color(150, 158, 166));
+        g2.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        FontMetrics fm = g2.getFontMetrics();
+        g2.drawString(message, (t.getWidth() - fm.stringWidth(message)) / 2, t.getHeight() / 2);
+        g2.dispose();
+    }
+
+    // ------------------------------------------------------------------ cart / checkout logic
 
     private void addSelectedMedicineToCart() {
 
@@ -459,29 +553,11 @@ public class POSFrame extends JPanel {
 
         try {
 
-            String name = medicineModel
-                    .getValueAt(modelRow, 0)
-                    .toString();
-
-            String priceText = medicineModel
-                    .getValueAt(modelRow, 2)
-                    .toString();
-
-            int availableStock = Integer.parseInt(
-                    medicineModel
-                            .getValueAt(modelRow, 3)
-                            .toString()
-            );
-
-            String status = medicineModel
-                    .getValueAt(modelRow, 4)
-                    .toString();
-
-            int medicineId = Integer.parseInt(
-                    medicineModel
-                            .getValueAt(modelRow, 5)
-                            .toString()
-            );
+            String name = medicineModel.getValueAt(modelRow, M_NAME).toString();
+            String priceText = medicineModel.getValueAt(modelRow, M_PRICE).toString();
+            int availableStock = Integer.parseInt(medicineModel.getValueAt(modelRow, M_STOCK).toString());
+            String status = medicineModel.getValueAt(modelRow, M_STATUS).toString();
+            int medicineId = Integer.parseInt(medicineModel.getValueAt(modelRow, M_ID).toString());
 
             if ("Out of Stock".equalsIgnoreCase(status)) {
                 CustomDialog.showMessage(
@@ -510,11 +586,7 @@ public class POSFrame extends JPanel {
 
             if (existingRow != -1) {
 
-                int currentQty = Integer.parseInt(
-                        cartModel
-                                .getValueAt(existingRow, 2)
-                                .toString()
-                );
+                int currentQty = Integer.parseInt(cartModel.getValueAt(existingRow, 2).toString());
 
                 if (currentQty + 1 > availableStock) {
                     CustomDialog.showMessage(
@@ -528,17 +600,8 @@ public class POSFrame extends JPanel {
 
                 int newQty = currentQty + 1;
 
-                cartModel.setValueAt(
-                        String.valueOf(newQty),
-                        existingRow,
-                        2
-                );
-
-                cartModel.setValueAt(
-                        String.format("%s%.2f", sym, price * newQty),
-                        existingRow,
-                        3
-                );
+                cartModel.setValueAt(String.valueOf(newQty), existingRow, 2);
+                cartModel.setValueAt(String.format("%s%.2f", sym, price * newQty), existingRow, 3);
 
             } else {
 
@@ -570,9 +633,7 @@ public class POSFrame extends JPanel {
 
         for (int i = 0; i < cartModel.getRowCount(); i++) {
 
-            int existingId = Integer.parseInt(
-                    cartModel.getValueAt(i, 4).toString()
-            );
+            int existingId = Integer.parseInt(cartModel.getValueAt(i, 4).toString());
 
             if (existingId == medicineId) {
                 return i;
@@ -632,11 +693,7 @@ public class POSFrame extends JPanel {
                 return;
             }
 
-            int customerId =
-                    CustomerDAO.getCustomerIdByNameIgnoreCase(
-                            firstName,
-                            lastName
-                    );
+            int customerId = CustomerDAO.getCustomerIdByNameIgnoreCase(firstName, lastName);
 
             if (customerId == -1) {
                 CustomDialog.showMessage(
@@ -685,56 +742,33 @@ public class POSFrame extends JPanel {
 
             double totalAmount = calculateTotal();
 
-            String orderNo =
-                    "ORD-" + System.currentTimeMillis();
+            String orderNo = "ORD-" + System.currentTimeMillis();
 
-            String currentDate =
-                    LocalDate.now().toString();
+            String currentDate = LocalDate.now().toString();
 
-            List<SalesDAO.SaleItemData> items =
-                    new ArrayList<>();
+            List<SalesDAO.SaleItemData> items = new ArrayList<>();
 
             StringBuilder itemsDetails = new StringBuilder();
 
-            for (int i = 0;
-                 i < cartModel.getRowCount();
-                 i++) {
+            for (int i = 0; i < cartModel.getRowCount(); i++) {
 
-                int medicineId = Integer.parseInt(
-                        cartModel
-                                .getValueAt(i, 4)
-                                .toString()
-                );
+                int medicineId = Integer.parseInt(cartModel.getValueAt(i, 4).toString());
 
-                int qtySold = Integer.parseInt(
-                        cartModel
-                                .getValueAt(i, 2)
-                                .toString()
-                );
+                int qtySold = Integer.parseInt(cartModel.getValueAt(i, 2).toString());
 
-                double unitPrice = parseMoney(
-                        cartModel
-                                .getValueAt(i, 1)
-                                .toString()
-                );
+                double unitPrice = parseMoney(cartModel.getValueAt(i, 1).toString());
 
                 String itemName = cartModel.getValueAt(i, 0).toString();
-                
+
                 String itemCategory = "N/A";
                 for (int m = 0; m < medicineModel.getRowCount(); m++) {
-                    if (medicineModel.getValueAt(m, 0).toString().equals(itemName)) {
-                        itemCategory = medicineModel.getValueAt(m, 1).toString();
+                    if (medicineModel.getValueAt(m, M_NAME).toString().equals(itemName)) {
+                        itemCategory = medicineModel.getValueAt(m, M_CATEGORY).toString();
                         break;
                     }
                 }
 
-                items.add(
-                        new SalesDAO.SaleItemData(
-                                medicineId,
-                                qtySold,
-                                unitPrice
-                        )
-                );
+                items.add(new SalesDAO.SaleItemData(medicineId, qtySold, unitPrice));
 
                 itemsDetails.append("- ").append(itemName)
                             .append(" (Category: ").append(itemCategory)
@@ -751,8 +785,7 @@ public class POSFrame extends JPanel {
                     items
             );
 
-            SharedData.totalSalesToday =
-                    SalesDAO.getTodaySalesTotal();
+            SharedData.totalSalesToday = SalesDAO.getTodaySalesTotal();
 
             SharedData.addSale(
                     orderNo,
@@ -808,8 +841,7 @@ public class POSFrame extends JPanel {
 
         try {
 
-            List<Medicine> medicines =
-                    MedicineDAO.getAllMedicines();
+            List<Medicine> medicines = MedicineDAO.getAllMedicines();
 
             LocalDate today = LocalDate.now();
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd");
@@ -819,7 +851,7 @@ public class POSFrame extends JPanel {
 
                 String name = med.getName() == null ? "" : med.getName();
                 String category = med.getMedicineCategory() == null ? "" : med.getMedicineCategory();
-                
+
                 boolean isExpired = false;
                 try {
                     if (med.getExpiryDate() != null && !med.getExpiryDate().isEmpty()) {
@@ -838,7 +870,7 @@ public class POSFrame extends JPanel {
                 } else if (isOutOfStock) {
                     status = "Out of Stock";
                 } else {
-                    status = "Active";
+                    status = "Available"; // same wording as the Medicine List page
                 }
 
                 medicineModel.addRow(
@@ -859,8 +891,7 @@ public class POSFrame extends JPanel {
 
             CustomDialog.showMessage(
                     this,
-                    "Unable to load medicines.\n" +
-                            e.getMessage(),
+                    "Unable to load medicines.\n" + e.getMessage(),
                     "Database Error",
                     true
             );
@@ -871,15 +902,8 @@ public class POSFrame extends JPanel {
 
         double total = 0;
 
-        for (int i = 0;
-             i < cartModel.getRowCount();
-             i++) {
-
-            total += parseMoney(
-                    cartModel
-                            .getValueAt(i, 3)
-                            .toString()
-            );
+        for (int i = 0; i < cartModel.getRowCount(); i++) {
+            total += parseMoney(cartModel.getValueAt(i, 3).toString());
         }
 
         return total;
@@ -905,10 +929,7 @@ public class POSFrame extends JPanel {
         double subtotal = calculateSubtotal();
         double discount = calculateDiscountAmount(subtotal);
 
-        return Math.max(
-                0,
-                subtotal - discount
-        );
+        return Math.max(0, subtotal - discount);
     }
 
     private void updateSubtotal() {
@@ -918,42 +939,24 @@ public class POSFrame extends JPanel {
         double total = Math.max(0, subtotal - discount);
         String sym = SharedData.currencySymbol + " ";
 
-        lblSubtotalVal.setText(
-                String.format(
-                        "%s%.2f",
-                        sym,
-                        subtotal
-                )
-        );
+        lblSubtotalVal.setText(String.format("%s%.2f", sym, subtotal));
 
-        if (activeCheckoutCustomer != null && activeCheckoutCustomer.getDiscountType() != null && 
+        if (activeCheckoutCustomer != null && activeCheckoutCustomer.getDiscountType() != null &&
            !activeCheckoutCustomer.getDiscountType().trim().equalsIgnoreCase("No Discount") &&
            !activeCheckoutCustomer.getDiscountType().trim().isEmpty()) {
-            
+
             String dtype = activeCheckoutCustomer.getDiscountType().trim();
             double dpct = activeCheckoutCustomer.getDiscountPercent();
             if (dpct <= 0) dpct = 20.0;
-            
-            lblDiscountTitle.setText(dtype + " (" + (int)dpct + "%):");
+
+            lblDiscountTitle.setText(dtype + " (" + (int) dpct + "%):");
         } else {
             lblDiscountTitle.setText("Discount (0%):");
         }
 
-        lblDiscountVal.setText(
-                String.format(
-                        "- %s%.2f",
-                        sym,
-                        discount
-                )
-        );
+        lblDiscountVal.setText(String.format("- %s%.2f", sym, discount));
 
-        lblTotalVal.setText(
-                String.format(
-                        "%s%.2f",
-                        sym,
-                        total
-                )
-        );
+        lblTotalVal.setText(String.format("%s%.2f", sym, total));
     }
 
     private double parseMoney(String value) {
@@ -962,89 +965,319 @@ public class POSFrame extends JPanel {
             return 0;
         }
 
-        return Double.parseDouble(
-                value
-                        .replaceAll("[^0-9.]", "")
-                        .trim()
-        );
+        return Double.parseDouble(value.replaceAll("[^0-9.]", "").trim());
     }
 
-    private JButton createButton(
-            String text,
-            Color background,
-            Color foreground) {
+    // ------------------------------------------------------------------ small ui helpers
+
+    private JButton createButton(String text, Color background, Color foreground) {
 
         JButton button = new JButton(text);
 
-        button.setFont(
-                new Font(
-                        "Segoe UI",
-                        Font.BOLD,
-                        12
-                )
-        );
-
+        button.setFont(new Font("Segoe UI", Font.BOLD, 12));
         button.setBackground(background);
         button.setForeground(foreground);
         button.setFocusPainted(false);
-        button.setCursor(
-                new Cursor(Cursor.HAND_CURSOR)
-        );
+        button.setOpaque(true);
+        button.setBorderPainted(false);
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        button.setBorder(new EmptyBorder(8, 14, 8, 14));
 
-        button.setBorder(
-                new EmptyBorder(
-                        8,
-                        14,
-                        8,
-                        14
-                )
-        );
+        // slightly darker on hover
+        Color hover = darken(background, 0.88);
+        button.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) { button.setBackground(hover); }
+            @Override
+            public void mouseExited(MouseEvent e) { button.setBackground(background); }
+        });
 
         return button;
     }
 
-    private JLabel createSummaryLabel(
-            String text) {
+    private static Color darken(Color c, double factor) {
+        return new Color(
+                (int) (c.getRed() * factor),
+                (int) (c.getGreen() * factor),
+                (int) (c.getBlue() * factor)
+        );
+    }
+
+    private JLabel createSummaryLabel(String text) {
 
         JLabel label = new JLabel(text);
-
-        label.setFont(
-                new Font(
-                        "Segoe UI",
-                        Font.PLAIN,
-                        13
-                )
-        );
-
-        label.setForeground(
-                new Color(90, 95, 100)
-        );
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        label.setForeground(new Color(90, 95, 100));
 
         return label;
     }
 
-    private JLabel createSummaryValue(
-            String text,
-            Color color) {
+    private JLabel createSummaryValue(String text, Color color) {
 
-        JLabel label =
-                new JLabel(
-                        text,
-                        SwingConstants.RIGHT
-                );
-
-        label.setFont(
-                new Font(
-                        "Segoe UI",
-                        Font.PLAIN,
-                        13
-                )
-        );
-
+        JLabel label = new JLabel(text, SwingConstants.RIGHT);
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         label.setForeground(color);
 
         return label;
     }
+
+    // ------------------------------------------------------------ search field
+
+    /** Text field with a gray hint when empty and a teal border while typing. */
+    private static class SearchField extends JTextField {
+        private final String hint;
+        private boolean focused = false;
+
+        SearchField(String hint) {
+            this.hint = hint;
+            setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            setForeground(TEXT);
+            setCaretColor(PRIMARY);
+            updateBorder();
+
+            addFocusListener(new FocusAdapter() {
+                @Override
+                public void focusGained(FocusEvent e) {
+                    focused = true;
+                    updateBorder();
+                }
+
+                @Override
+                public void focusLost(FocusEvent e) {
+                    focused = false;
+                    updateBorder();
+                }
+            });
+        }
+
+        private void updateBorder() {
+            setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(focused ? PRIMARY : new Color(200, 205, 210)),
+                    new EmptyBorder(7, 10, 7, 10)
+            ));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            super.paintComponent(g);
+            if (!getText().isEmpty()) return;
+
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g2.setColor(new Color(160, 167, 174));
+            g2.setFont(getFont());
+            FontMetrics fm = g2.getFontMetrics();
+            g2.drawString(hint, getInsets().left, (getHeight() + fm.getAscent() - fm.getDescent()) / 2);
+            g2.dispose();
+        }
+    }
+
+    // ------------------------------------------------------------ body cells
+
+    /** Table cell: padding, zebra stripes, teal selection. Override style() for per-cell tweaks. */
+    private static class BodyRenderer extends DefaultTableCellRenderer {
+
+        BodyRenderer(int alignment) {
+            setHorizontalAlignment(alignment);
+        }
+
+        @Override
+        public Component getTableCellRendererComponent(JTable t, Object value,
+                boolean isSelected, boolean hasFocus, int row, int column) {
+            super.getTableCellRendererComponent(t, value, isSelected, false, row, column);
+
+            setBorder(new EmptyBorder(0, CELL_PAD, 0, CELL_PAD));
+            setFont(t.getFont());
+            setForeground(TEXT);
+            setBackground(isSelected ? t.getSelectionBackground() : (row % 2 == 0 ? Color.WHITE : ROW_ALT));
+
+            // long names get cut with "..." so show the full text on hover
+            setToolTipText(value == null ? null : value.toString());
+
+            style(t, value, row, column);
+            return this;
+        }
+
+        protected void style(JTable t, Object value, int row, int column) {
+            // nothing by default
+        }
+    }
+
+    // ------------------------------------------------------------ grouped header
+
+    /** Table header: optional group label on top, column names below. Same look as the Medicine List page. */
+    private static class GroupHeader extends JTableHeader {
+        private final String[] groups;
+        private final int[] alignByModel;
+
+        GroupHeader(TableColumnModel cm, String[] groups, int[] alignByModel, int height) {
+            super(cm);
+            this.groups = groups;
+            this.alignByModel = alignByModel;
+            setPreferredSize(new Dimension(0, height));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g0) {
+            Graphics2D g = (Graphics2D) g0.create();
+            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g.setColor(HEADER_BG);
+            g.fillRect(0, 0, getWidth(), getHeight());
+
+            int n = columnModel.getColumnCount();
+            int h = getHeight();
+            int half = h / 2;
+
+            // the last visible column doesn't need a divider on its right side
+            int lastVisible = -1;
+            for (int k = 0; k < n; k++) {
+                if (columnModel.getColumn(k).getWidth() > 0) lastVisible = k;
+            }
+
+            int i = 0;
+            while (i < n) {
+                String grp = i < groups.length ? groups[i] : null;
+
+                if (grp == null) {
+                    Rectangle r = getHeaderRect(i);
+                    if (r.width > 0) {
+                        label(g, title(i), r.x, 0, r.width, h, align(i));
+                        if (i != lastVisible) divider(g, r.x + r.width - 1, 0, h);
+                    }
+                    i++;
+                } else {
+                    int j = i;
+                    while (j + 1 < n && j + 1 < groups.length && grp.equals(groups[j + 1])) j++;
+
+                    Rectangle a = getHeaderRect(i);
+                    Rectangle b = getHeaderRect(j);
+                    int spanW = b.x + b.width - a.x;
+
+                    // group label (top row) with a line under it
+                    label(g, grp, a.x, 0, spanW, half, JLabel.CENTER);
+                    g.setColor(GRID);
+                    g.drawLine(a.x, half - 1, a.x + spanW - 1, half - 1);
+                    if (j != lastVisible) divider(g, b.x + b.width - 1, 0, half);
+
+                    // column names (bottom row)
+                    for (int k = i; k <= j; k++) {
+                        Rectangle r = getHeaderRect(k);
+                        if (r.width > 0) {
+                            label(g, title(k), r.x, half, r.width, h - half, align(k));
+                            if (k != lastVisible) divider(g, r.x + r.width - 1, half, h);
+                        }
+                    }
+                    i = j + 1;
+                }
+            }
+
+            // teal line under the whole header, same as the other pages
+            g.setColor(PRIMARY);
+            g.fillRect(0, h - 2, getWidth(), 2);
+            g.dispose();
+        }
+
+        private String title(int viewCol) {
+            return String.valueOf(columnModel.getColumn(viewCol).getHeaderValue());
+        }
+
+        private int align(int viewCol) {
+            return alignByModel[columnModel.getColumn(viewCol).getModelIndex()];
+        }
+
+        private void divider(Graphics2D g, int x, int y1, int y2) {
+            g.setColor(GRID);
+            g.drawLine(x, y1, x, y2);
+        }
+
+        private void label(Graphics2D g, String text, int x, int y, int w, int h, int alignment) {
+            g.setColor(HEADER_TEXT);
+            g.setFont(getFont());
+            FontMetrics fm = g.getFontMetrics();
+
+            // cut with "..." if the column is too narrow
+            int max = w - CELL_PAD * 2;
+            String shown = text;
+            if (fm.stringWidth(shown) > max) {
+                while (shown.length() > 1 && fm.stringWidth(shown + "...") > max) {
+                    shown = shown.substring(0, shown.length() - 1);
+                }
+                shown = shown.trim() + "...";
+            }
+
+            int textWidth = fm.stringWidth(shown);
+            int tx;
+            if (alignment == JLabel.CENTER) {
+                tx = x + (w - textWidth) / 2;
+            } else if (alignment == JLabel.RIGHT) {
+                tx = x + w - CELL_PAD - textWidth;
+            } else {
+                tx = x + CELL_PAD;
+            }
+            int ty = y + (h + fm.getAscent() - fm.getDescent()) / 2;
+            g.drawString(shown, tx, ty);
+        }
+    }
+
+    // ------------------------------------------------------------ slim scrollbar
+
+    /** Thin rounded scrollbar: no arrow buttons, no track, just a soft gray thumb. */
+    private static class SlimScrollBarUI extends BasicScrollBarUI {
+        private static final int SIZE = 12;
+        private static final Color THUMB = new Color(176, 184, 192);
+        private static final Color THUMB_HOVER = new Color(150, 159, 168);
+
+        @Override
+        protected void configureScrollBarColors() {
+            super.configureScrollBarColors();
+            thumbColor = THUMB;
+            trackColor = Color.WHITE;
+        }
+
+        @Override
+        public Dimension getPreferredSize(JComponent c) {
+            return new Dimension(SIZE, SIZE);
+        }
+
+        @Override
+        protected JButton createDecreaseButton(int orientation) {
+            return noButton();
+        }
+
+        @Override
+        protected JButton createIncreaseButton(int orientation) {
+            return noButton();
+        }
+
+        private JButton noButton() {
+            JButton b = new JButton();
+            Dimension zero = new Dimension(0, 0);
+            b.setPreferredSize(zero);
+            b.setMinimumSize(zero);
+            b.setMaximumSize(zero);
+            return b;
+        }
+
+        @Override
+        protected void paintTrack(Graphics g, JComponent c, Rectangle trackBounds) {
+            g.setColor(Color.WHITE);
+            g.fillRect(trackBounds.x, trackBounds.y, trackBounds.width, trackBounds.height);
+        }
+
+        @Override
+        protected void paintThumb(Graphics g, JComponent c, Rectangle r) {
+            if (r.isEmpty() || !scrollbar.isEnabled()) return;
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(isThumbRollover() || isDragging ? THUMB_HOVER : THUMB);
+            int pad = 2;
+            int arc = Math.min(r.width, r.height) - pad * 2;
+            g2.fillRoundRect(r.x + pad, r.y + pad, r.width - pad * 2, r.height - pad * 2, arc, arc);
+            g2.dispose();
+        }
+    }
+
+    // ------------------------------------------------------------ dialogs
 
     private static class CustomDialog {
 
@@ -1064,54 +1297,18 @@ public class POSFrame extends JPanel {
                 String title,
                 boolean isWarning) {
 
-            Window owner =
-                    SwingUtilities.getWindowAncestor(
-                            parent
-                    );
+            Window owner = SwingUtilities.getWindowAncestor(parent);
 
-            JDialog dialog =
-                    new JDialog(
-                            owner,
-                            title,
-                            Dialog.ModalityType.APPLICATION_MODAL
-                    );
-
+            JDialog dialog = new JDialog(owner, title, Dialog.ModalityType.APPLICATION_MODAL);
             dialog.setLayout(new BorderLayout());
             dialog.setResizable(false);
 
-            JPanel centerPanel =
-                    new JPanel(
-                            new FlowLayout(
-                                    FlowLayout.LEFT,
-                                    20,
-                                    20
-                            )
-                    );
+            JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 20));
+            centerPanel.setBackground(Color.WHITE);
 
-            centerPanel.setBackground(
-                    Color.WHITE
-            );
-
-            JLabel lblMsg =
-                    new JLabel(
-                            "<html>" + htmlMessage + "</html>"
-                    );
-
-            lblMsg.setFont(
-                    new Font(
-                            "Segoe UI",
-                            Font.PLAIN,
-                            13
-                    )
-            );
-
-            lblMsg.setForeground(
-                    new Color(
-                            70,
-                            75,
-                            80
-                    )
-            );
+            JLabel lblMsg = new JLabel("<html>" + htmlMessage + "</html>");
+            lblMsg.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+            lblMsg.setForeground(new Color(70, 75, 80));
 
             centerPanel.add(lblMsg);
 
@@ -1119,88 +1316,25 @@ public class POSFrame extends JPanel {
             scrollPane.setBorder(null);
             scrollPane.getViewport().setBackground(Color.WHITE);
 
-            dialog.add(
-                    scrollPane,
-                    BorderLayout.CENTER
-            );
+            dialog.add(scrollPane, BorderLayout.CENTER);
 
-            JPanel bottomPanel =
-                    new JPanel(
-                            new FlowLayout(
-                                    FlowLayout.RIGHT,
-                                    15,
-                                    10
-                            )
-                    );
+            JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
+            bottomPanel.setBackground(new Color(248, 249, 250));
+            bottomPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, BORDER));
 
-            bottomPanel.setBackground(
-                    new Color(
-                            248,
-                            249,
-                            250
-                    )
-            );
-
-            bottomPanel.setBorder(
-                    BorderFactory.createMatteBorder(
-                            1,
-                            0,
-                            0,
-                            0,
-                            new Color(
-                                    220,
-                                    225,
-                                    230
-                            )
-                    )
-            );
-
-            JButton btnOk =
-                    new JButton("OK");
-
-            btnOk.setFont(
-                    new Font(
-                            "Segoe UI",
-                            Font.BOLD,
-                            12
-                    )
-            );
-
-            btnOk.setBackground(
-                    new Color(
-                            41,
-                            128,
-                            185
-                    )
-            );
-
+            JButton btnOk = new JButton("OK");
+            btnOk.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            btnOk.setBackground(PRIMARY);
             btnOk.setForeground(Color.WHITE);
             btnOk.setFocusPainted(false);
-            btnOk.setBorder(
-                    BorderFactory.createEmptyBorder(
-                            6,
-                            20,
-                            6,
-                            20
-                    )
-            );
+            btnOk.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
+            btnOk.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-            btnOk.setCursor(
-                    new Cursor(
-                            Cursor.HAND_CURSOR
-                    )
-            );
-
-            btnOk.addActionListener(
-                    e -> dialog.dispose()
-            );
+            btnOk.addActionListener(e -> dialog.dispose());
 
             bottomPanel.add(btnOk);
 
-            dialog.add(
-                    bottomPanel,
-                    BorderLayout.SOUTH
-            );
+            dialog.add(bottomPanel, BorderLayout.SOUTH);
 
             dialog.pack();
             dialog.setSize(Math.max(dialog.getWidth() + 80, 480), Math.min(Math.max(dialog.getHeight() + 40, 180), 400));
@@ -1306,18 +1440,18 @@ public class POSFrame extends JPanel {
 
             JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 12));
             bottomPanel.setBackground(new Color(248, 249, 250));
-            bottomPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(220, 225, 230)));
+            bottomPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, BORDER));
 
             JButton btnOk = new JButton("OK");
             btnOk.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            btnOk.setBackground(new Color(41, 128, 185));
+            btnOk.setBackground(PRIMARY);
             btnOk.setForeground(Color.WHITE);
             btnOk.setFocusPainted(false);
             btnOk.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
 
             JButton btnCancel = new JButton("Cancel");
             btnCancel.setFont(new Font("Segoe UI", Font.BOLD, 12));
-            btnCancel.setBackground(new Color(192, 57, 43));
+            btnCancel.setBackground(DANGER);
             btnCancel.setForeground(Color.WHITE);
             btnCancel.setFocusPainted(false);
             btnCancel.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));

@@ -880,6 +880,54 @@ public class SalesDAO {
 
         return list;
     }
+    public static List<String[]> getTopSpendingCustomers(int limit) {
+
+    List<String[]> list = new ArrayList<>();
+
+    String sql =
+            "SELECT " +
+            "c.name AS customer_name, " +
+            "top_med.medicine_name, " +
+            "COALESCE(top_med.units_bought, 0) AS units_bought, " +
+            "SUM(s.amount) AS total_spent " +
+            "FROM sales s " +
+            "INNER JOIN customers c ON s.customer_id = c.id " +
+            "LEFT JOIN (" +
+            "    SELECT sale_cust.customer_id, m.name AS medicine_name, SUM(si.quantity) AS units_bought, " +
+            "           ROW_NUMBER() OVER (PARTITION BY sale_cust.customer_id ORDER BY SUM(si.quantity) DESC) as rn " +
+            "    FROM sale_items si " +
+            "    INNER JOIN sales sale_cust ON si.sale_id = sale_cust.id " +
+            "    INNER JOIN medicines m ON si.medicine_id = m.id " +
+            "    GROUP BY sale_cust.customer_id, m.id, m.name " +
+            ") top_med ON top_med.customer_id = c.id AND top_med.rn = 1 " +
+            "GROUP BY c.id, c.name, top_med.medicine_name, top_med.units_bought " +
+            "ORDER BY total_spent DESC " +
+            "LIMIT ?";
+
+    try (Connection conn = Database.getConnection();
+         PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+        pstmt.setInt(1, limit);
+
+        try (ResultSet rs = pstmt.executeQuery()) {
+            while (rs.next()) {
+                list.add(
+                        new String[]{
+                                rs.getString("customer_name"),
+                                rs.getString("medicine_name") != null ? rs.getString("medicine_name") : "N/A",
+                                String.valueOf(rs.getInt("units_bought")),
+                                String.format("%.2f", rs.getDouble("total_spent"))
+                        }
+                );
+            }
+        }
+
+    } catch (SQLException e) {
+        e.printStackTrace();
+    }
+
+    return list;
+}
 
     private static int getInt(
             String sql,

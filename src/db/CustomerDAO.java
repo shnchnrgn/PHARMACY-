@@ -289,35 +289,7 @@ public class CustomerDAO {
         }
 
         return customers;
-    } public static List<String[]> getPurchaseHistory(int customerId) {
-    List<String[]> history = new ArrayList<>();
-
-    String sql = "SELECT order_no, purchase_date, amount " +
-                 "FROM purchase_history " +
-                 "WHERE customer_id = ? " +
-                 "ORDER BY purchase_date DESC, id DESC";
-
-    try (Connection conn = Database.getConnection();
-         PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-        pstmt.setInt(1, customerId);
-
-        try (ResultSet rs = pstmt.executeQuery()) {
-            while (rs.next()) {
-                history.add(new String[]{
-                    rs.getString("order_no"),
-                    rs.getString("purchase_date"),
-                    String.format("₱ %.2f", rs.getDouble("amount"))
-                });
-            }
-        }
-
-    } catch (SQLException e) {
-        e.printStackTrace();
-    }
-
-       return history;
-    }
+    } 
 
     public static int getCustomerIdByName(String name) {
         String sql = "SELECT id FROM customers WHERE name = ? LIMIT 1";
@@ -338,42 +310,6 @@ public class CustomerDAO {
         }
 
         return -1;
-    }
-
-    public static void recordPurchase(int customerId, String orderNo, String purchaseDate, double amount) {
-        String sql = "INSERT INTO purchase_history " +
-                     "(customer_id, order_no, purchase_date, amount) " +
-                     "VALUES (?, ?, ?, ?)";
-
-        try (Connection conn = Database.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setInt(1, customerId);
-            pstmt.setString(2, orderNo);
-            pstmt.setString(3, purchaseDate);
-            pstmt.setDouble(4, amount);
-
-            pstmt.executeUpdate();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-    public static void updateLastPurchaseDate(int customerId, String purchaseDate) {
-        String sql = "UPDATE customers SET last_purchase_date = ? WHERE id = ?";
-
-        try (Connection conn = Database.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-
-            pstmt.setString(1, purchaseDate);
-            pstmt.setInt(2, customerId);
-
-            pstmt.executeUpdate();
-
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
     }
 
     public static List<String[]> getPurchaseHistory(int customerId) {

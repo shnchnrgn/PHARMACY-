@@ -1,7 +1,14 @@
 package ui;
 
 import db.Database;
+import db.MedicineDAO;
+import models.Medicine;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
@@ -15,15 +22,20 @@ public class App extends JFrame {
     private JPanel medicineSubMenu;
 
     private MostPurchasedPanel mostPurchasedPanel;
+    private TopCustomersPanel topCustomersPanel;
 
     private boolean isSalesMenuOpen = true;
     private boolean isMedicineMenuOpen = true;
     private JLabel lblSalesArrow;
     private JLabel lblMedicineArrow;
     private JLabel lblWelcome;
+    private JButton btnNotificationRef; // Para sa real-time badge count update
 
     private JButton selectedButton;
     private final List<JButton> navigationButtons = new ArrayList<>();
+    private int previousNotificationCount = -1; 
+
+    private Timer notificationTimer;
 
     private static final Color SIDEBAR_COLOR = new Color(7, 25, 29);
     private static final Color SELECTED_COLOR = new Color(20, 57, 61);
@@ -38,10 +50,21 @@ public class App extends JFrame {
         Database.createTables();
 
         setTitle("Pharmacy Management System");
-        setSize(1250, 720);
+        setSize(1600, 900);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         getContentPane().setBackground(new Color(240, 242, 245));
+
+        // Window listener to stop background timer and force process termination on close
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                if (notificationTimer != null && notificationTimer.isRunning()) {
+                    notificationTimer.stop();
+                }
+                System.exit(0);
+            }
+        });
 
         setLayout(new BorderLayout());
 
@@ -49,11 +72,13 @@ public class App extends JFrame {
         mainContentPanel = new JPanel(cardLayout);
 
         mostPurchasedPanel = new MostPurchasedPanel();
+        topCustomersPanel = new TopCustomersPanel();
 
         mainContentPanel.add(new DashboardPanel(), "DASHBOARD");
         mainContentPanel.add(new POSFrame(), "POS");
         mainContentPanel.add(new SalesPanel(), "SALES");
         mainContentPanel.add(mostPurchasedPanel, "MOST_PURCHASED");
+        mainContentPanel.add(topCustomersPanel, "TOP_CUSTOMERS");
         mainContentPanel.add(new MedicinePanel(), "MEDICINE_LIST");
         mainContentPanel.add(new AddMedicinePanel(), "ADD_MEDICINE");
         mainContentPanel.add(new MedicineCategoryPanel(), "MEDICINE_CATEGORY");
@@ -70,6 +95,35 @@ public class App extends JFrame {
 
         add(sidebar, BorderLayout.WEST);
         add(contentContainer, BorderLayout.CENTER);
+
+        // Auto-check timer kada 2 segundo para real-time ang alert at tunog
+        notificationTimer = new Timer(2000, e -> {
+            int currentCount = getNotificationCount();
+            
+            // Kung nadagdagan ang notifications (galing sa stock out o bago), tutunog ito nang automatic
+            if (previousNotificationCount != -1 && currentCount > previousNotificationCount) {
+                playAlertSound();
+            }
+            
+            previousNotificationCount = currentCount;
+            refreshNotificationBadge();
+        });
+        notificationTimer.start();
+
+        // Kunin ang initial count pagkabukas
+        previousNotificationCount = getNotificationCount();
+    }
+
+    private void playAlertSound() {
+        try {
+            // Unang subok: Standard Java Beep
+            Toolkit.getDefaultToolkit().beep();
+            
+            // Pangalawang paraan para sure na may marinig na tono (System Tone via Toolkit)
+            java.awt.Toolkit.getDefaultToolkit().sync();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 
     private JPanel createHeaderPanel() {
@@ -88,10 +142,12 @@ public class App extends JFrame {
         JPanel rightPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
         rightPanel.setOpaque(false);
 
-        int expiredCount = 0;
+        int notificationCount = getNotificationCount();
 
-        JButton btnNotification = new JButton("Notifications (" + expiredCount + ")");
-        if (expiredCount > 0) {
+        JButton btnNotification = new JButton("Notifications (" + notificationCount + ")");
+        btnNotificationRef = btnNotification; 
+        
+        if (notificationCount > 0) {
             btnNotification.setForeground(new Color(192, 57, 43));
         } else {
             btnNotification.setForeground(new Color(90, 100, 110));
@@ -103,20 +159,15 @@ public class App extends JFrame {
         btnNotification.setCursor(new Cursor(Cursor.HAND_CURSOR));
         
         try {
-            ImageIcon bellIcon = new ImageIcon(getClass().getResource("/ui/notification.png"));
+            ImageIcon bellIcon = new ImageIcon(getClass().getResource("/pngs/notification.png"));
             Image scaledBell = bellIcon.getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH);
             btnNotification.setIcon(new ImageIcon(scaledBell));
             btnNotification.setIconTextGap(8);
         } catch (Exception e) {
-            btnNotification.setText("🔔 Notifications (" + expiredCount + ")");
+            btnNotification.setText("🔔 Notifications (" + notificationCount + ")");
         }
-        btnNotification.addActionListener(e -> {
-            showCustomMessage(
-                    this,
-                    "<b>Expired Medicines Count:</b> " + expiredCount + "<br><br>Please check the Medicine List or Dashboard for full details.",
-                    "System Notifications"
-            );
-        });
+
+        btnNotification.addActionListener(e -> showSystemNotifications());
         
         JButton btnLogout = new JButton("Log out");
         btnLogout.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -127,7 +178,7 @@ public class App extends JFrame {
         btnLogout.setCursor(new Cursor(Cursor.HAND_CURSOR));
         
         try {
-            ImageIcon logoutIcon = new ImageIcon(getClass().getResource("/ui/logout.png"));
+            ImageIcon logoutIcon = new ImageIcon(getClass().getResource("/pngs/logout.png"));
             Image scaledLogout = logoutIcon.getImage().getScaledInstance(16, 16, Image.SCALE_SMOOTH);
             btnLogout.setIcon(new ImageIcon(scaledLogout));
             btnLogout.setIconTextGap(8);
@@ -143,6 +194,9 @@ public class App extends JFrame {
             );
             
             if (confirmed) {
+                if (notificationTimer != null && notificationTimer.isRunning()) {
+                    notificationTimer.stop();
+                }
                 dispose();
                 SwingUtilities.invokeLater(() -> {
                     LoginDialog loginDialog = new LoginDialog(null);
@@ -165,45 +219,614 @@ public class App extends JFrame {
         return header;
     }
 
-    private void showCustomMessage(Component parent, String htmlMessage, String title) {
-        Window owner = SwingUtilities.getWindowAncestor(parent);
-        JDialog dialog = new JDialog(owner, title, Dialog.ModalityType.APPLICATION_MODAL);
+    public void refreshNotificationBadge() {
+        int count = getNotificationCount();
+        if (btnNotificationRef != null) {
+            btnNotificationRef.setText("Notifications (" + count + ")");
+            if (count > 0) {
+                btnNotificationRef.setForeground(new Color(192, 57, 43));
+            } else {
+                btnNotificationRef.setForeground(new Color(90, 100, 110));
+            }
+        }
+    }
+
+    private int getNotificationCount() {
+        return MedicineDAO.getExpiredCount()
+                + getExpiringSoonMedicines().size()
+                + getLowStockMedicines().size();
+    }
+
+    private List<Medicine> getExpiringSoonMedicines() {
+        List<Medicine> result = new ArrayList<>();
+        LocalDate today = LocalDate.now();
+        DateTimeFormatter formatter =
+                DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+        for (Medicine medicine : MedicineDAO.getAllMedicines()) {
+            try {
+                if (medicine.getExpiryDate() == null
+                        || medicine.getExpiryDate().trim().isEmpty()) {
+                    continue;
+                }
+
+                LocalDate expiryDate = LocalDate.parse(
+                        medicine.getExpiryDate().trim(),
+                        formatter
+                );
+
+                long days = ChronoUnit.DAYS.between(
+                        today,
+                        expiryDate
+                );
+
+                if (days >= 0 && days <= 30) {
+                    result.add(medicine);
+                }
+            } catch (Exception ignored) {
+            }
+        }
+
+        return result;
+    }
+
+    private List<Medicine> getLowStockMedicines() {
+        List<Medicine> result = new ArrayList<>();
+
+        for (Medicine medicine : MedicineDAO.getAllMedicines()) {
+            if (medicine.getStock() < 5) {
+                result.add(medicine);
+            }
+        }
+
+        return result;
+    }
+
+    private void showSystemNotifications() {
+        playAlertSound();
+
+        List<Medicine> expired =
+                MedicineDAO.getExpiredMedicines();
+
+        List<Medicine> expiringSoon =
+                getExpiringSoonMedicines();
+
+        List<Medicine> lowStock =
+                getLowStockMedicines();
+
+        int total =
+                expired.size()
+                + expiringSoon.size()
+                + lowStock.size();
+
+        JPanel content = new JPanel();
+        content.setLayout(
+                new BoxLayout(content, BoxLayout.Y_AXIS)
+        );
+        content.setBackground(Color.WHITE);
+        content.setBorder(
+                BorderFactory.createEmptyBorder(
+                        18, 20, 18, 20
+                )
+        );
+        
+        if (!expired.isEmpty()) {
+            addNotificationSection(
+                    content,
+                    "Expired Medicines (" + expired.size() + ")",
+                    new Color(192, 57, 43),
+                    expired,
+                    "expired"
+            );
+        }
+
+        if (!expiringSoon.isEmpty()) {
+            addNotificationSection(
+                    content,
+                    "Expiring Soon (" + expiringSoon.size() + ")",
+                    new Color(230, 126, 34),
+                    expiringSoon,
+                    "soon"
+            );
+        }
+
+        if (!lowStock.isEmpty()) {
+            addNotificationSection(
+                    content,
+                    "Low Stock (" + lowStock.size() + ")",
+                    new Color(218, 165, 32),
+                    lowStock,
+                    "stock"
+            );
+        }
+
+        if (total == 0) {
+            JLabel empty = new JLabel(
+                    "No notifications at the moment."
+            );
+            empty.setFont(
+                    new Font("Segoe UI", Font.PLAIN, 13)
+            );
+            empty.setForeground(
+                    new Color(90, 100, 110)
+            );
+            empty.setAlignmentX(Component.LEFT_ALIGNMENT);
+            content.add(empty);
+        }
+
+        JScrollPane scrollPane = new JScrollPane(content);
+        scrollPane.setBorder(
+                BorderFactory.createLineBorder(
+                        new Color(225, 228, 230)
+                )
+        );
+        scrollPane.setHorizontalScrollBarPolicy(
+                ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER
+        );
+        scrollPane.setVerticalScrollBarPolicy(
+                ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED
+        );
+        scrollPane.getViewport().setBackground(Color.WHITE);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+
+        installNotificationScrollBar(
+                scrollPane.getVerticalScrollBar()
+        );
+
+        Window owner =
+                SwingUtilities.getWindowAncestor(this);
+
+        JDialog dialog = new JDialog(
+                owner,
+                "System Notifications",
+                Dialog.ModalityType.APPLICATION_MODAL
+        );
+
         dialog.setLayout(new BorderLayout());
         dialog.setResizable(false);
 
-        JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 20));
-        centerPanel.setBackground(Color.WHITE);
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(Color.WHITE);
+        header.setBorder(
+                BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(
+                                0, 0, 1, 0,
+                                new Color(225, 228, 230)
+                        ),
+                        BorderFactory.createEmptyBorder(
+                                12, 18, 12, 12
+                        )
+                )
+        );
 
-        JLabel lblMsg = new JLabel("<html>" + htmlMessage + "</html>");
-        lblMsg.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        lblMsg.setForeground(new Color(70, 75, 80));
-        centerPanel.add(lblMsg);
+        JLabel headerTitle =
+                new JLabel("System Notifications (" + total + ")");
 
-        JScrollPane scrollPane = new JScrollPane(centerPanel);
-        scrollPane.setBorder(null);
-        scrollPane.getViewport().setBackground(Color.WHITE);
+        headerTitle.setFont(
+                new Font("Segoe UI", Font.BOLD, 16)
+        );
+        headerTitle.setForeground(
+                new Color(50, 55, 60)
+        );
+
+        JButton close = new JButton("×");
+        close.setFont(
+                new Font("Segoe UI", Font.PLAIN, 23)
+        );
+        close.setForeground(
+                new Color(110, 115, 120)
+        );
+        close.setBorderPainted(false);
+        close.setFocusPainted(false);
+        close.setContentAreaFilled(false);
+        close.setCursor(
+                new Cursor(Cursor.HAND_CURSOR)
+        );
+        close.addActionListener(e -> {
+            refreshNotificationBadge();
+            dialog.dispose();
+        });
+
+        header.add(
+                headerTitle,
+                BorderLayout.WEST
+        );
+        header.add(
+                close,
+                BorderLayout.EAST
+        );
+
+        JPanel footer = new JPanel(
+                new FlowLayout(
+                        FlowLayout.RIGHT,
+                        15,
+                        10
+                )
+        );
+
+        footer.setBackground(
+                new Color(248, 249, 250)
+        );
+        footer.setBorder(
+                BorderFactory.createMatteBorder(
+                        1, 0, 0, 0,
+                        new Color(225, 228, 230)
+                )
+        );
+
+        JButton ok = new JButton("OK");
+        ok.setFont(
+                new Font("Segoe UI", Font.BOLD, 12)
+        );
+        ok.setForeground(Color.WHITE);
+        ok.setBackground(THEME_TEAL);
+        ok.setFocusPainted(false);
+        ok.setBorder(
+                BorderFactory.createEmptyBorder(
+                        8, 28, 8, 28
+                )
+        );
+        ok.setCursor(
+                new Cursor(Cursor.HAND_CURSOR)
+        );
+        ok.addActionListener(e -> {
+            refreshNotificationBadge();
+            dialog.dispose();
+        });
+
+        footer.add(ok);
+
+        dialog.add(header, BorderLayout.NORTH);
         dialog.add(scrollPane, BorderLayout.CENTER);
+        dialog.add(footer, BorderLayout.SOUTH);
 
-        JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
-        bottomPanel.setBackground(new Color(248, 249, 250));
-        bottomPanel.setBorder(BorderFactory.createMatteBorder(1, 0, 0, 0, new Color(220, 225, 230)));
-
-        JButton btnOk = new JButton("OK");
-        btnOk.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        btnOk.setBackground(THEME_TEAL);
-        btnOk.setForeground(Color.WHITE);
-        btnOk.setFocusPainted(false);
-        btnOk.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
-        btnOk.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnOk.addActionListener(ev -> dialog.dispose());
-
-        bottomPanel.add(btnOk);
-        dialog.add(bottomPanel, BorderLayout.SOUTH);
-
-        dialog.pack();
-        dialog.setSize(Math.max(dialog.getWidth() + 80, 480), Math.min(Math.max(dialog.getHeight() + 40, 160), 350));
-        dialog.setLocationRelativeTo(parent);
+        dialog.setSize(570, 620);
+        dialog.setLocationRelativeTo(this);
         dialog.setVisible(true);
+    }
+
+    private void addNotificationSection(
+            JPanel parent,
+            String title,
+            Color titleColor,
+            List<Medicine> medicines,
+            String type
+    ) {
+        JLabel section = new JLabel(title);
+        section.setFont(
+                new Font("Segoe UI", Font.BOLD, 14)
+        );
+        section.setForeground(titleColor);
+        section.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        parent.add(section);
+        parent.add(Box.createVerticalStrut(8));
+
+        for (Medicine medicine : medicines) {
+            JPanel card = createNotificationCard(
+                    medicine,
+                    titleColor,
+                    type
+            );
+
+            card.setAlignmentX(
+                    Component.LEFT_ALIGNMENT
+            );
+
+            parent.add(card);
+            parent.add(Box.createVerticalStrut(8));
+        }
+
+        parent.add(Box.createVerticalStrut(8));
+    }
+
+    private JPanel createNotificationCard(
+            Medicine medicine,
+            Color accentColor,
+            String type
+    ) {
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(
+                new Color(250, 251, 252)
+        );
+        card.setBorder(
+                BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(
+                                new Color(225, 228, 230)
+                        ),
+                        BorderFactory.createEmptyBorder(
+                                12, 14, 12, 14
+                        )
+                )
+        );
+
+        JPanel details = new JPanel();
+        details.setLayout(
+                new BoxLayout(
+                        details,
+                        BoxLayout.Y_AXIS
+                )
+        );
+        details.setOpaque(false);
+        details.setBorder(BorderFactory.createEmptyBorder(0, 10, 0, 0));
+
+        JPanel nameRow = new JPanel(new BorderLayout(8, 0));
+        nameRow.setOpaque(false);
+        nameRow.setMaximumSize(
+                new Dimension(
+                        Integer.MAX_VALUE,
+                        24
+                )
+        );
+
+        JLabel name = new JLabel(
+                medicine.getName() == null
+                        ? "-"
+                        : medicine.getName()
+        );
+        name.setFont(
+                new Font("Segoe UI", Font.BOLD, 14)
+        );
+        name.setForeground(
+                new Color(45, 50, 55)
+        );
+
+        nameRow.add(name, BorderLayout.WEST);
+        details.add(nameRow);
+        details.add(Box.createVerticalStrut(6));
+
+        addDetailRow(
+                details,
+                "Category",
+                medicine.getMedicineCategory()
+        );
+
+        addDetailRow(
+                details,
+                "Quantity",
+                String.valueOf(medicine.getStock())
+        );
+
+        if ("stock".equals(type)) {
+            addDetailRow(
+                    details,
+                    "Status",
+                    medicine.getStock() <= 0
+                            ? "Out of Stock"
+                            : "Low Stock"
+            );
+        } else {
+            addDetailRow(
+                    details,
+                    "Expiry Date",
+                    medicine.getExpiryDate()
+            );
+
+            if ("soon".equals(type)) {
+                try {
+                    LocalDate expiry =
+                            LocalDate.parse(
+                                    medicine.getExpiryDate(),
+                                    DateTimeFormatter.ofPattern(
+                                            "yyyy-MM-dd"
+                                    )
+                            );
+
+                    long days =
+                            ChronoUnit.DAYS.between(
+                                    LocalDate.now(),
+                                    expiry
+                            );
+
+                    addDetailRow(
+                            details,
+                            "Remaining",
+                            days == 0
+                                    ? "Expires today"
+                                    : days + " day(s)"
+                    );
+                } catch (Exception ignored) {
+                }
+            }
+        }
+
+        addDetailRow(
+                details,
+                "Company",
+                medicine.getCompanyName()
+        );
+
+        JPanel accent = new JPanel();
+        accent.setBackground(accentColor);
+        accent.setPreferredSize(
+                new Dimension(4, 1)
+        );
+
+        card.add(
+                accent,
+                BorderLayout.WEST
+        );
+        card.add(
+                details,
+                BorderLayout.CENTER
+        );
+
+        return card;
+    }
+
+    private void addDetailRow(
+            JPanel parent,
+            String label,
+            String value
+    ) {
+        JPanel row = new JPanel(
+                new BorderLayout(8, 0)
+        );
+
+        row.setOpaque(false);
+        row.setMaximumSize(
+                new Dimension(
+                        Integer.MAX_VALUE,
+                        22
+                )
+        );
+
+        JLabel labelText = new JLabel(label);
+        labelText.setFont(
+                new Font(
+                        "Segoe UI",
+                        Font.PLAIN,
+                        12
+                )
+        );
+        labelText.setForeground(
+                new Color(95, 100, 105)
+        );
+        labelText.setPreferredSize(
+                new Dimension(95, 22)
+        );
+
+        JLabel valueText = new JLabel(
+                value == null ||
+                        value.trim().isEmpty()
+                        ? "-"
+                        : value
+        );
+        valueText.setFont(
+                new Font(
+                        "Segoe UI",
+                        Font.PLAIN,
+                        12
+                )
+        );
+        valueText.setForeground(
+                new Color(55, 60, 65)
+        );
+
+        row.add(
+                labelText,
+                BorderLayout.WEST
+        );
+        row.add(
+                valueText,
+                BorderLayout.CENTER
+        );
+
+        parent.add(row);
+    }
+
+    private void installNotificationScrollBar(
+            JScrollBar scrollBar
+    ) {
+        scrollBar.setPreferredSize(
+                new Dimension(9, 0)
+        );
+        scrollBar.setOpaque(false);
+
+        scrollBar.setUI(
+                new javax.swing.plaf.basic.BasicScrollBarUI() {
+
+                    @Override
+                    protected void configureScrollBarColors() {
+                        thumbColor =
+                                new Color(185, 185, 185);
+                        trackColor =
+                                new Color(245, 246, 247);
+                    }
+
+                    @Override
+                    protected JButton createDecreaseButton(
+                            int orientation
+                    ) {
+                        return createBlankButton();
+                    }
+
+                    @Override
+                    protected JButton createIncreaseButton(
+                            int orientation
+                    ) {
+                        return createBlankButton();
+                    }
+
+                    private JButton createBlankButton() {
+                        JButton button = new JButton();
+                        button.setPreferredSize(
+                                new Dimension(0, 0)
+                        );
+                        button.setMinimumSize(
+                                new Dimension(0, 0)
+                        );
+                        button.setMaximumSize(
+                                new Dimension(0, 0)
+                        );
+                        button.setBorder(null);
+                        button.setBorderPainted(false);
+                        button.setContentAreaFilled(false);
+                        button.setFocusPainted(false);
+                        return button;
+                    }
+
+                    @Override
+                    protected void paintTrack(
+                            Graphics g,
+                            JComponent c,
+                            Rectangle bounds
+                    ) {
+                        Graphics2D g2 =
+                                (Graphics2D) g.create();
+
+                        g2.setColor(
+                                new Color(245, 246, 247)
+                        );
+
+                        g2.fillRect(
+                                bounds.x,
+                                bounds.y,
+                                bounds.width,
+                                bounds.height
+                        );
+
+                        g2.dispose();
+                    }
+
+                    @Override
+                    protected void paintThumb(
+                            Graphics g,
+                            JComponent c,
+                            Rectangle bounds
+                    ) {
+                        if (bounds.isEmpty()) {
+                            return;
+                        }
+
+                        Graphics2D g2 =
+                                (Graphics2D) g.create();
+
+                        g2.setRenderingHint(
+                                RenderingHints.KEY_ANTIALIASING,
+                                RenderingHints.VALUE_ANTIALIAS_ON
+                        );
+
+                        g2.setColor(
+                                new Color(180, 180, 180)
+                        );
+
+                        g2.fillRoundRect(
+                                bounds.x + 2,
+                                bounds.y,
+                                Math.max(
+                                        3,
+                                        bounds.width - 4
+                                ),
+                                bounds.height,
+                                7,
+                                7
+                        );
+
+                        g2.dispose();
+                    }
+                }
+        );
     }
 
     private final boolean[] logoutResult = {false};
@@ -278,7 +901,7 @@ public class App extends JFrame {
 
         JLabel lblLogo;
         try {
-            ImageIcon originalIcon = new ImageIcon(getClass().getResource("/ui/VANGUARD LOGO HEADER.png"));
+            ImageIcon originalIcon = new ImageIcon(getClass().getResource("/pngs/VANGUARD LOGO HEADER.png"));
             Image image = originalIcon.getImage();
             int targetWidth = 205;
             int targetHeight = (int) ((double) image.getHeight(null) / image.getWidth(null) * targetWidth);
@@ -299,7 +922,7 @@ public class App extends JFrame {
         sb.add(lblLogo);
         sb.add(Box.createVerticalStrut(4));
 
-        JButton dashboardButton = createStyledNavButton("Dashboard", "/ui/dashboard.png");
+        JButton dashboardButton = createStyledNavButton("Dashboard", "/pngs/dashboard.png");
         dashboardButton.addActionListener(e -> {
             selectButton((JButton) e.getSource());
             DashboardPanel.refreshDashboardData();
@@ -309,7 +932,7 @@ public class App extends JFrame {
         });
         sb.add(dashboardButton);
 
-        JButton posButton = createStyledNavButton("Point Of Sales", "/ui/pos.png");
+        JButton posButton = createStyledNavButton("Point Of Sales", "/pngs/pos.png");
         posButton.addActionListener(e -> {
             selectButton((JButton) e.getSource());
             cardLayout.show(mainContentPanel, "POS");
@@ -318,18 +941,17 @@ public class App extends JFrame {
         });
         sb.add(posButton);
 
-        // Sales Dropdown Menu
         JButton salesButton = createSalesDropdownButton();
         sb.add(salesButton);
 
         salesSubMenu = new JPanel();
         salesSubMenu.setLayout(new BoxLayout(salesSubMenu, BoxLayout.Y_AXIS));
         salesSubMenu.setBackground(SUBMENU_COLOR);
-        salesSubMenu.setMaximumSize(new Dimension(240, 92));
+        salesSubMenu.setMaximumSize(new Dimension(240, 138));
         salesSubMenu.setBorder(BorderFactory.createEmptyBorder(2, 7, 4, 7));
         salesSubMenu.setVisible(true);
 
-        JButton salesListButton = createSubNavButton("Sales List", "/ui/pos.png");
+        JButton salesListButton = createSubNavButton("Sales List", "/pngs/pos.png");
         salesListButton.addActionListener(e -> {
             selectButton((JButton) e.getSource());
             cardLayout.show(mainContentPanel, "SALES");
@@ -338,7 +960,7 @@ public class App extends JFrame {
         });
         salesSubMenu.add(salesListButton);
 
-        JButton mostPurchasedButton = createSubNavButton("Most Purchased", "/ui/medicine_list.png");
+        JButton mostPurchasedButton = createSubNavButton("Most Purchased", "/pngs/medicine_list.png");
         mostPurchasedButton.addActionListener(e -> {
             selectButton((JButton) e.getSource());
             if (mostPurchasedPanel != null) {
@@ -349,9 +971,21 @@ public class App extends JFrame {
             mainContentPanel.repaint();
         });
         salesSubMenu.add(mostPurchasedButton);
+
+        JButton topCustomersButton = createSubNavButton("Top Customers", "/pngs/customers.png");
+        topCustomersButton.addActionListener(e -> {
+            selectButton((JButton) e.getSource());
+            if (topCustomersPanel != null) {
+                topCustomersPanel.refreshData();
+            }
+            cardLayout.show(mainContentPanel, "TOP_CUSTOMERS");
+            mainContentPanel.revalidate();
+            mainContentPanel.repaint();
+        });
+        salesSubMenu.add(topCustomersButton);
+
         sb.add(salesSubMenu);
 
-        // Medicine Dropdown Menu
         JButton medicineButton = createMedicineDropdownButton();
         sb.add(medicineButton);
 
@@ -362,7 +996,7 @@ public class App extends JFrame {
         medicineSubMenu.setBorder(BorderFactory.createEmptyBorder(2, 7, 4, 7));
         medicineSubMenu.setVisible(true);
 
-        JButton addMedicineButton = createSubNavButton("Add Medicine", "/ui/add_medicine.png");
+        JButton addMedicineButton = createSubNavButton("Add Medicine", "/pngs/add_medicine.png");
         addMedicineButton.addActionListener(e -> {
             selectButton((JButton) e.getSource());
             cardLayout.show(mainContentPanel, "ADD_MEDICINE");
@@ -371,7 +1005,7 @@ public class App extends JFrame {
         });
         medicineSubMenu.add(addMedicineButton);
 
-        JButton medicineListButton = createSubNavButton("Medicine List", "/ui/medicine_list.png");
+        JButton medicineListButton = createSubNavButton("Medicine List", "/pngs/medicine_list.png");
         medicineListButton.addActionListener(e -> {
             selectButton((JButton) e.getSource());
             cardLayout.show(mainContentPanel, "MEDICINE_LIST");
@@ -380,7 +1014,7 @@ public class App extends JFrame {
         });
         medicineSubMenu.add(medicineListButton);
 
-        JButton medicineCategoryButton = createSubNavButton("Medicine Category", "/ui/medicine_category.png");
+        JButton medicineCategoryButton = createSubNavButton("Medicine Category", "/pngs/medicine_category.png");
         medicineCategoryButton.addActionListener(e -> {
             selectButton((JButton) e.getSource());
             cardLayout.show(mainContentPanel, "MEDICINE_CATEGORY");
@@ -390,7 +1024,7 @@ public class App extends JFrame {
         medicineSubMenu.add(medicineCategoryButton);
         sb.add(medicineSubMenu);
 
-        JButton customerButton = createStyledNavButton("Customers", "/ui/customers.png");
+        JButton customerButton = createStyledNavButton("Customers", "/pngs/customers.png");
         customerButton.addActionListener(e -> {
             selectButton((JButton) e.getSource());
             cardLayout.show(mainContentPanel, "CUSTOMERS");
@@ -399,7 +1033,7 @@ public class App extends JFrame {
         });
         sb.add(customerButton);
 
-        JButton expenseButton = createStyledNavButton("Expenses", "/ui/Expense.png");
+        JButton expenseButton = createStyledNavButton("Expenses", "/pngs/Expense.png");
         expenseButton.addActionListener(e -> {
             selectButton((JButton) e.getSource());
             cardLayout.show(mainContentPanel, "EXPENSES");
@@ -408,7 +1042,7 @@ public class App extends JFrame {
         });
         sb.add(expenseButton);
 
-        JButton settingsButton = createStyledNavButton("System Settings", "/ui/system_settings.png");
+        JButton settingsButton = createStyledNavButton("System Settings", "/pngs/system_settings.png");
         settingsButton.addActionListener(e -> {
             selectButton((JButton) e.getSource());
             cardLayout.show(mainContentPanel, "SYSTEM_SETTINGS");
@@ -508,7 +1142,7 @@ public class App extends JFrame {
         gbc.anchor = GridBagConstraints.CENTER;
 
         try {
-            ImageIcon originalIcon = new ImageIcon(getClass().getResource("/ui/pos.png"));
+            ImageIcon originalIcon = new ImageIcon(getClass().getResource("/pngs/pos.png"));
             Image scaledImg = originalIcon.getImage().getScaledInstance(17, 17, Image.SCALE_SMOOTH);
             JLabel lblIcon = new JLabel(new ImageIcon(scaledImg));
             gbc.gridx = 0;
@@ -705,7 +1339,9 @@ public class App extends JFrame {
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
             try {
-                UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+                UIManager.setLookAndFeel(
+                    UIManager.getCrossPlatformLookAndFeelClassName()
+                );
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -714,8 +1350,7 @@ public class App extends JFrame {
             loginDialog.setVisible(true);
 
             if (loginDialog.isLoggedIn()) {
-                App app = new App();
-                app.setVisible(true);
+                new App().setVisible(true);
             } else {
                 System.exit(0);
             }

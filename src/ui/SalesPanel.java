@@ -4,7 +4,14 @@ import db.SalesDAO;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.plaf.basic.BasicComboBoxUI;
+import javax.swing.plaf.basic.BasicComboPopup;
+import javax.swing.plaf.basic.BasicScrollBarUI;
+import javax.swing.plaf.basic.ComboPopup;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
+import javax.swing.table.TableColumn;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.Month;
@@ -13,6 +20,12 @@ import java.util.List;
 import java.util.Locale;
 
 public class SalesPanel extends JPanel {
+
+    private static final Color BORDER = new Color(220, 225, 230);
+    private static final Color TEXT = new Color(60, 65, 70);
+    private static final Color MUTED = new Color(108, 117, 125);
+    private static final Color PRIMARY_SOFT = new Color(224, 243, 241);
+    private static final int CELL_PAD = 10;
 
     private JTable salesTable;
     private DefaultTableModel tableModel;
@@ -30,7 +43,6 @@ public class SalesPanel extends JPanel {
         setBackground(new Color(240, 242, 245));
         setBorder(new EmptyBorder(20, 25, 20, 25));
 
-        // Header Panel with Title & Timeframe Selectors
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
 
@@ -38,33 +50,26 @@ public class SalesPanel extends JPanel {
         title.setFont(new Font("Segoe UI", Font.BOLD, 22));
         title.setForeground(new Color(60, 65, 70));
 
-        // Filter Controls Panel
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         filterPanel.setOpaque(false);
 
         cmbTimeframe = new JComboBox<>(new String[]{"This Month", "This Year"});
-        cmbTimeframe.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        cmbTimeframe.setBackground(Color.WHITE);
+        styleComboBox(cmbTimeframe);
 
-        // Month Selector
         cmbMonth = new JComboBox<>();
-        cmbMonth.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        cmbMonth.setBackground(Color.WHITE);
         for (int m = 1; m <= 12; m++) {
             cmbMonth.addItem(Month.of(m).getDisplayName(TextStyle.FULL, Locale.ENGLISH));
         }
         cmbMonth.setSelectedIndex(LocalDate.now().getMonthValue() - 1);
+        styleComboBox(cmbMonth);
 
-        // Year Selector (Current year and past 5 years)
         cmbYear = new JComboBox<>();
-        cmbYear.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        cmbYear.setBackground(Color.WHITE);
         int currentYear = LocalDate.now().getYear();
         for (int y = currentYear; y >= currentYear - 5; y--) {
             cmbYear.addItem(y);
         }
+        styleComboBox(cmbYear);
 
-        // Add Listeners
         cmbTimeframe.addActionListener(e -> {
             cmbMonth.setEnabled(!cmbTimeframe.getSelectedItem().toString().equalsIgnoreCase("This Year"));
             refreshSalesData();
@@ -88,7 +93,6 @@ public class SalesPanel extends JPanel {
         mainPanel.setOpaque(false);
         mainPanel.setBorder(new EmptyBorder(15, 0, 0, 0));
 
-        // Summary Cards Section (3 Metrics: Gross, Expense, Net Profit)
         JPanel summaryPanel = new JPanel(new GridLayout(1, 3, 15, 0));
         summaryPanel.setOpaque(false);
 
@@ -104,7 +108,6 @@ public class SalesPanel extends JPanel {
 
         mainPanel.add(summaryPanel, BorderLayout.NORTH);
 
-        // Table & Toolbar Section
         JPanel tablePanel = new JPanel(new BorderLayout());
         tablePanel.setBackground(Color.WHITE);
         tablePanel.setBorder(BorderFactory.createLineBorder(new Color(205, 210, 215)));
@@ -137,32 +140,74 @@ public class SalesPanel extends JPanel {
         };
 
         salesTable = new JTable(tableModel);
-        salesTable.setRowHeight(32);
+
+        salesTable.setRowHeight(33);
         salesTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        salesTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-        salesTable.getTableHeader().setBackground(new Color(248, 249, 250));
-        salesTable.getTableHeader().setForeground(new Color(80, 85, 90));
-        salesTable.setShowVerticalLines(false);
+        salesTable.setShowVerticalLines(true);
+        salesTable.setShowHorizontalLines(true);
         salesTable.setGridColor(new Color(235, 238, 242));
+        salesTable.setFillsViewportHeight(true);
+        salesTable.setSelectionBackground(PRIMARY_SOFT);
+        salesTable.setSelectionForeground(TEXT);
 
-        salesTable.setSelectionBackground(new Color(210, 215, 220));
-        salesTable.setSelectionForeground(Color.BLACK);
+        JTableHeader header = new StyledHeader(salesTable.getColumnModel(), 36);
+        header.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        salesTable.setTableHeader(header);
 
-        salesTable.getColumnModel().getColumn(0).setPreferredWidth(60);
-        salesTable.getColumnModel().getColumn(1).setPreferredWidth(120);
-        salesTable.getColumnModel().getColumn(2).setPreferredWidth(400);
-        salesTable.getColumnModel().getColumn(3).setPreferredWidth(150);
+        salesTable.getTableHeader().setResizingAllowed(false);
+        salesTable.getTableHeader().setReorderingAllowed(false);
+
+        DefaultTableCellRenderer cellRenderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
+                                                           boolean hasFocus, int row, int column) {
+                super.getTableCellRendererComponent(table, value, isSelected, false, row, column);
+                setBorder(new EmptyBorder(0, CELL_PAD, 0, CELL_PAD));
+                setHorizontalAlignment(JLabel.LEFT);
+                setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                setForeground(TEXT);
+                if (isSelected) {
+                    setBackground(table.getSelectionBackground());
+                    setForeground(table.getSelectionForeground());
+                } else {
+                    setBackground(Color.WHITE);
+                }
+                return this;
+            }
+        };
+        for (int i = 0; i < salesTable.getColumnModel().getColumnCount(); i++) {
+            salesTable.getColumnModel().getColumn(i).setCellRenderer(cellRenderer);
+        }
+
+        salesTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        int[] widths = {60, 120, 400, 150};
+        for (int i = 0; i < widths.length; i++) {
+            TableColumn col = salesTable.getColumnModel().getColumn(i);
+            col.setMinWidth(widths[i]);
+            col.setMaxWidth(widths[i]);
+            col.setPreferredWidth(widths[i]);
+            col.setResizable(false);
+        }
 
         JScrollPane scrollPane = new JScrollPane(salesTable);
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(Color.WHITE);
+
+        for (JScrollBar bar : new JScrollBar[]{scrollPane.getVerticalScrollBar(), scrollPane.getHorizontalScrollBar()}) {
+            bar.setUI(new SlimScrollBarUI());
+            bar.setOpaque(true);
+            bar.setBackground(Color.WHITE);
+            bar.setUnitIncrement(16);
+        }
+        JPanel corner = new JPanel();
+        corner.setBackground(Color.WHITE);
+        scrollPane.setCorner(JScrollPane.LOWER_RIGHT_CORNER, corner);
 
         tablePanel.add(scrollPane, BorderLayout.CENTER);
         mainPanel.add(tablePanel, BorderLayout.CENTER);
 
         add(mainPanel, BorderLayout.CENTER);
 
-        // Event Listeners
         btnAdd.addActionListener(e -> showAddSaleDialog());
         btnDelete.addActionListener(e -> deleteSelectedSale());
         btnRefresh.addActionListener(e -> refreshSalesData());
@@ -175,6 +220,73 @@ public class SalesPanel extends JPanel {
         });
 
         refreshSalesData();
+    }
+
+    private void styleComboBox(JComboBox<?> combo) {
+        combo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        combo.setBackground(Color.WHITE);
+        combo.setForeground(TEXT);
+        combo.setFocusable(false);
+        combo.setPreferredSize(new Dimension(130, 30));
+        combo.setBorder(BorderFactory.createLineBorder(BORDER));
+
+        combo.setUI(new BasicComboBoxUI() {
+            @Override
+            protected JButton createArrowButton() {
+                JButton b = new JButton() {
+                    @Override
+                    public void paint(Graphics g) {
+                        Graphics2D g2 = (Graphics2D) g.create();
+                        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                        g2.setColor(Color.WHITE);
+                        g2.fillRect(0, 0, getWidth(), getHeight());
+                        g2.setColor(BORDER);
+                        g2.drawLine(0, 0, 0, getHeight());
+
+                        int cx = getWidth() / 2 + 1;
+                        int cy = getHeight() / 2;
+                        g2.setColor(TEXT);
+                        g2.fillPolygon(new int[]{cx - 4, cx + 4, cx}, new int[]{cy - 2, cy - 2, cy + 3}, 3);
+                        g2.dispose();
+                    }
+                };
+                b.setPreferredSize(new Dimension(24, 0));
+                b.setBorder(BorderFactory.createEmptyBorder());
+                b.setFocusable(false);
+                b.setContentAreaFilled(false);
+                return b;
+            }
+
+            @Override
+            protected ComboPopup createPopup() {
+                BasicComboPopup popup = new BasicComboPopup(comboBox) {
+                    @Override
+                    protected JScrollPane createScroller() {
+                        JScrollPane scroller = super.createScroller();
+                        scroller.getVerticalScrollBar().setUI(new SlimScrollBarUI());
+                        scroller.getVerticalScrollBar().setOpaque(true);
+                        scroller.getVerticalScrollBar().setBackground(Color.WHITE);
+                        return scroller;
+                    }
+                };
+                popup.setBorder(BorderFactory.createLineBorder(BORDER));
+                return popup;
+            }
+        });
+
+        combo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                JLabel lbl = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                lbl.setForeground(TEXT);
+                lbl.setOpaque(true);
+                // Kulay gray kapag naka-select (e.g., Light Gray: new Color(230, 235, 240))
+                lbl.setBackground(isSelected ? new Color(230, 235, 240) : Color.WHITE);
+                lbl.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
+                return lbl;
+            }
+        });
     }
 
     private JPanel createSummaryCard(String title, JLabel value, Color highlightColor) {
@@ -313,10 +425,9 @@ public class SalesPanel extends JPanel {
         double filteredGross = 0;
         String sym = SharedData.currencySymbol + " ";
 
-        // Filter and Populate Table Records
         List<String[]> sales = SalesDAO.getAllSales();
         for (String[] sale : sales) {
-            String saleDate = sale[1]; // Format: YYYY-MM-DD
+            String saleDate = sale[1];
             boolean matches = isYearly ? saleDate.startsWith(selectedYearPrefix)
                     : saleDate.startsWith(selectedMonthPrefix);
 
@@ -334,7 +445,6 @@ public class SalesPanel extends JPanel {
             }
         }
 
-        // Calculate Totals based on Filter
         double grossSales = filteredGross;
         double expenses = isYearly ? SalesDAO.getThisYearExpenseTotal() : SalesDAO.getThisMonthExpenseTotal();
         double netProfit = grossSales - expenses;
@@ -343,7 +453,6 @@ public class SalesPanel extends JPanel {
         lblExpenses.setText(String.format("%s%.2f", sym, expenses));
         lblNetProfit.setText(String.format("%s%.2f", sym, netProfit));
 
-        // Adjust text color based on profit standing (red for loss, green for profit)
         if (netProfit < 0) {
             lblNetProfit.setForeground(new Color(220, 53, 69));
         } else {
@@ -504,5 +613,92 @@ public class SalesPanel extends JPanel {
         dialog.setVisible(true);
 
         return result[0];
+    }
+
+    private static class StyledHeader extends JTableHeader {
+        StyledHeader(javax.swing.table.TableColumnModel cm, int height) {
+            super(cm);
+            setPreferredSize(new Dimension(0, height));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g0) {
+            Graphics2D g = (Graphics2D) g0;
+            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g.setColor(new Color(248, 250, 252));
+            g.fillRect(0, 0, getWidth(), getHeight());
+
+            int h = getHeight();
+            for (int i = 0; i < columnModel.getColumnCount(); i++) {
+                Rectangle r = getHeaderRect(i);
+                if (r.width <= 0) continue;
+                String text = String.valueOf(columnModel.getColumn(i).getHeaderValue());
+
+                g.setColor(new Color(248, 250, 252));
+                g.fillRect(r.x, 0, r.width, h);
+                g.setColor(BORDER);
+                g.drawRect(r.x, 0, r.width - 1, h - 1);
+                g.setColor(MUTED);
+                g.setFont(getFont());
+                FontMetrics fm = g.getFontMetrics();
+                int ty = (h + fm.getAscent() - fm.getDescent()) / 2;
+                g.drawString(text, r.x + CELL_PAD, ty);
+            }
+        }
+    }
+
+    private static class SlimScrollBarUI extends BasicScrollBarUI {
+        private static final int SIZE = 12;
+        private static final Color THUMB = new Color(176, 184, 192);
+        private static final Color THUMB_HOVER = new Color(150, 159, 168);
+
+        @Override
+        protected void configureScrollBarColors() {
+            super.configureScrollBarColors();
+            thumbColor = THUMB;
+            trackColor = Color.WHITE;
+        }
+
+        @Override
+        public Dimension getPreferredSize(JComponent c) {
+            return new Dimension(SIZE, SIZE);
+        }
+
+        @Override
+        protected JButton createDecreaseButton(int orientation) {
+            return noButton();
+        }
+
+        @Override
+        protected JButton createIncreaseButton(int orientation) {
+            return noButton();
+        }
+
+        private JButton noButton() {
+            JButton b = new JButton();
+            Dimension zero = new Dimension(0, 0);
+            b.setPreferredSize(zero);
+            b.setMinimumSize(zero);
+            b.setMaximumSize(zero);
+            return b;
+        }
+
+        @Override
+        protected void paintTrack(Graphics g, JComponent c, Rectangle trackBounds) {
+            g.setColor(Color.WHITE);
+            g.fillRect(trackBounds.x, trackBounds.y, trackBounds.width, trackBounds.height);
+        }
+
+        @Override
+        protected void paintThumb(Graphics g, JComponent c, Rectangle r) {
+            if (r.isEmpty() || !scrollbar.isEnabled()) return;
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(isThumbRollover() || isDragging ? THUMB_HOVER : THUMB);
+            int pad = 2;
+            int arc = Math.min(r.width, r.height) - pad * 2;
+            g2.fillRoundRect(r.x + pad, r.y + pad, r.width - pad * 2, r.height - pad * 2, arc, arc);
+            g2.dispose();
+        }
     }
 }

@@ -6,13 +6,31 @@ import models.Medicine;
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
+import javax.swing.plaf.basic.BasicScrollBarUI;
+import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.JTableHeader;
 import javax.swing.table.TableCellRenderer;
+import javax.swing.table.TableColumn;
+import javax.swing.table.TableColumnModel;
 import javax.swing.table.TableRowSorter;
 import java.awt.*;
 import java.util.List;
+import java.util.regex.Pattern;
 
 public class MedicineCategoryPanel extends JPanel {
+
+    // same palette / spacing as MedicinePanel
+    private static final Color BORDER = new Color(220, 225, 230);
+    private static final Color TEXT = new Color(60, 65, 70);
+    private static final Color MUTED = new Color(108, 117, 125);
+    private static final Color PRIMARY_SOFT = new Color(224, 243, 241);
+    private static final int CELL_PAD = 10;
+
+    // model column indexes
+    private static final int COL_NAME = 0, COL_STATUS = 1, COL_ACTION = 2;
+    private static final int ACTION_WIDTH = 150;
+    private static final int BADGE_WIDTH = 75;
 
     private final Border grayBorder = BorderFactory.createLineBorder(new Color(200, 205, 210), 1);
 
@@ -88,6 +106,7 @@ public class MedicineCategoryPanel extends JPanel {
                 showCustomDialog("Please enter a category name.", "Error");
             } else {
                 categoryModel.addRow(new Object[]{catName, status, "Action"});
+                fitColumns();
                 txtCategoryName.setText("");
                 cmbStatus.setSelectedIndex(0);
                 showCustomDialog("Category added successfully!", "Information");
@@ -152,7 +171,8 @@ public class MedicineCategoryPanel extends JPanel {
                 if (text.isEmpty()) {
                     rowSorter.setRowFilter(null);
                 } else {
-                    rowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + text));
+                    // Pattern.quote so characters like ( or [ do not break the search
+                    rowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + Pattern.quote(text)));
                 }
             }
         });
@@ -167,33 +187,60 @@ public class MedicineCategoryPanel extends JPanel {
         categoryModel = new DefaultTableModel(columns, 0) {
             @Override
             public boolean isCellEditable(int row, int column) {
-                return column == 2;
+                return column == COL_ACTION;
             }
         };
 
         loadCategoriesWithDynamicStatus();
 
         categoryTable = new JTable(categoryModel);
-        
-        categoryTable.setSelectionBackground(new Color(210, 215, 220));
-        categoryTable.setSelectionForeground(Color.BLACK);
-        
+
+        // same look as the Medicine List table
+        categoryTable.setSelectionBackground(PRIMARY_SOFT);
+        categoryTable.setSelectionForeground(TEXT);
+
         rowSorter = new TableRowSorter<>(categoryModel);
         categoryTable.setRowSorter(rowSorter);
+        rowSorter.setSortable(COL_ACTION, false);
 
-        categoryTable.setRowHeight(38);
-        categoryTable.setShowVerticalLines(false);
+        categoryTable.setRowHeight(33);
+        categoryTable.setShowVerticalLines(true);
         categoryTable.setShowHorizontalLines(true);
         categoryTable.setGridColor(new Color(235, 238, 242));
         categoryTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        categoryTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
-        categoryTable.getTableHeader().setBackground(new Color(248, 249, 250));
-        categoryTable.getTableHeader().setForeground(new Color(80, 85, 90));
+        categoryTable.setFillsViewportHeight(true);
 
-        categoryTable.getColumnModel().getColumn(1).setCellRenderer(new TableCellRenderer() {
+        JTableHeader header = new GroupHeader(categoryTable.getColumnModel(), 36);
+        header.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        categoryTable.setTableHeader(header);
+
+        // fixed columns: can't be dragged to resize or reorder
+        categoryTable.getTableHeader().setResizingAllowed(false);
+        categoryTable.getTableHeader().setReorderingAllowed(false);
+
+        DefaultTableCellRenderer textRenderer = new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 6));
+                super.getTableCellRendererComponent(table, value, isSelected, false, row, column);
+                setBorder(new EmptyBorder(0, CELL_PAD, 0, CELL_PAD));
+                setHorizontalAlignment(JLabel.LEFT);
+                setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                setForeground(TEXT);
+                if (isSelected) {
+                    setBackground(table.getSelectionBackground());
+                    setForeground(table.getSelectionForeground());
+                } else {
+                    setBackground(Color.WHITE);
+                }
+                return this;
+            }
+        };
+        categoryTable.getColumnModel().getColumn(COL_NAME).setCellRenderer(textRenderer);
+
+        categoryTable.getColumnModel().getColumn(COL_STATUS).setCellRenderer(new TableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, CELL_PAD, 4));
                 panel.setOpaque(true);
                 panel.setBackground(isSelected ? table.getSelectionBackground() : Color.WHITE);
 
@@ -213,7 +260,7 @@ public class MedicineCategoryPanel extends JPanel {
                 
                 badge.setFont(new Font("Segoe UI", Font.BOLD, 11));
                 badge.setForeground(Color.WHITE);
-                badge.setPreferredSize(new Dimension(75, 24));
+                badge.setPreferredSize(new Dimension(BADGE_WIDTH, 24));
 
                 if ("Active".equalsIgnoreCase(status)) {
                     badge.setBackground(new Color(26, 143, 136));
@@ -227,17 +274,38 @@ public class MedicineCategoryPanel extends JPanel {
             }
         });
 
-        categoryTable.getColumnModel().getColumn(2).setCellRenderer(new ActionButtonRenderer());
-        categoryTable.getColumnModel().getColumn(2).setCellEditor(new ActionButtonEditor(new JCheckBox(), categoryTable));
+        categoryTable.getColumnModel().getColumn(COL_ACTION).setCellRenderer(new ActionButtonRenderer());
+        categoryTable.getColumnModel().getColumn(COL_ACTION).setCellEditor(new ActionButtonEditor(new JCheckBox(), categoryTable));
+
+        categoryTable.getColumnModel().getColumn(COL_NAME).setPreferredWidth(200);
+        categoryTable.getColumnModel().getColumn(COL_STATUS).setPreferredWidth(110);
+        categoryTable.getColumnModel().getColumn(COL_ACTION).setPreferredWidth(ACTION_WIDTH);
 
         JScrollPane scrollPane = new JScrollPane(categoryTable);
         scrollPane.getViewport().setBackground(Color.WHITE);
         scrollPane.setBorder(BorderFactory.createLineBorder(new Color(220, 224, 230)));
+        for (JScrollBar bar : new JScrollBar[]{scrollPane.getVerticalScrollBar(), scrollPane.getHorizontalScrollBar()}) {
+            bar.setUI(new SlimScrollBarUI());
+            bar.setOpaque(true);
+            bar.setBackground(Color.WHITE);
+            bar.setUnitIncrement(16);
+        }
+        JPanel corner = new JPanel();
+        corner.setBackground(Color.WHITE);
+        scrollPane.setCorner(JScrollPane.LOWER_RIGHT_CORNER, corner);
+        scrollPane.getViewport().addComponentListener(new java.awt.event.ComponentAdapter() {
+            @Override
+            public void componentResized(java.awt.event.ComponentEvent e) {
+                updateResizeMode();
+            }
+        });
 
         bottomTableContainer.add(scrollPane, BorderLayout.CENTER);
         mainContainer.add(bottomTableContainer, BorderLayout.CENTER);
 
         add(mainContainer, BorderLayout.CENTER);
+
+        fitColumns();
 
         addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override
@@ -245,6 +313,46 @@ public class MedicineCategoryPanel extends JPanel {
                 loadCategoriesWithDynamicStatus();
             }
         });
+    }
+
+    // ------------------------------------------------------------------ table helpers
+
+    /** Size the Name / Status columns to their longest value; Action stays a fixed width. */
+    private void fitColumns() {
+        if (categoryTable == null) return;
+        FontMetrics fm = categoryTable.getFontMetrics(new Font("Segoe UI", Font.BOLD, 12));
+        TableColumnModel cm = categoryTable.getColumnModel();
+        for (int v = 0; v < cm.getColumnCount(); v++) {
+            TableColumn col = cm.getColumn(v);
+            int mc = col.getModelIndex();
+
+            int w;
+            if (mc == COL_ACTION) {
+                w = ACTION_WIDTH;
+            } else {
+                w = fm.stringWidth(String.valueOf(col.getHeaderValue()));
+                for (int r = 0; r < categoryModel.getRowCount(); r++) {
+                    Object val = categoryModel.getValueAt(r, mc);
+                    if (val != null) w = Math.max(w, fm.stringWidth(val.toString()));
+                }
+                w += CELL_PAD * 2 + 6;
+                if (mc == COL_STATUS) w = Math.max(w, BADGE_WIDTH + CELL_PAD * 2);
+            }
+            col.setMinWidth(w);
+            col.setPreferredWidth(w);
+        }
+        updateResizeMode();
+    }
+
+    /** Fill the width when there is room, scroll sideways when the columns do not fit. */
+    private void updateResizeMode() {
+        if (categoryTable == null) return;
+        int total = 0;
+        TableColumnModel cm = categoryTable.getColumnModel();
+        for (int i = 0; i < cm.getColumnCount(); i++) total += cm.getColumn(i).getPreferredWidth();
+        Container vp = SwingUtilities.getAncestorOfClass(JViewport.class, categoryTable);
+        int avail = vp == null ? 0 : vp.getWidth();
+        categoryTable.setAutoResizeMode(avail > 0 && total > avail ? JTable.AUTO_RESIZE_OFF : JTable.AUTO_RESIZE_ALL_COLUMNS);
     }
 
     private void loadCategoriesWithDynamicStatus() {
@@ -283,6 +391,8 @@ public class MedicineCategoryPanel extends JPanel {
             String status = hasMedicine ? "Active" : "Inactive";
             categoryModel.addRow(new Object[]{catName, status, "Action"});
         }
+
+        fitColumns();
     }
 
     private JTextField createStyledTextField() {
@@ -451,12 +561,109 @@ public class MedicineCategoryPanel extends JPanel {
         return result[0];
     }
 
+    // ------------------------------------------------------------ header
+
+    /** Table header with the same look as the Medicine List page (single row here, no groups). */
+    private static class GroupHeader extends JTableHeader {
+
+        GroupHeader(TableColumnModel cm, int height) {
+            super(cm);
+            setPreferredSize(new Dimension(0, height));
+        }
+
+        @Override
+        protected void paintComponent(Graphics g0) {
+            Graphics2D g = (Graphics2D) g0;
+            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+            g.setColor(new Color(248, 250, 252));
+            g.fillRect(0, 0, getWidth(), getHeight());
+
+            int h = getHeight();
+            for (int i = 0; i < columnModel.getColumnCount(); i++) {
+                Rectangle r = getHeaderRect(i);
+                if (r.width <= 0) continue;
+                String text = String.valueOf(columnModel.getColumn(i).getHeaderValue());
+
+                g.setColor(new Color(248, 250, 252));
+                g.fillRect(r.x, 0, r.width, h);
+                g.setColor(BORDER);
+                g.drawRect(r.x, 0, r.width - 1, h - 1);
+                g.setColor(MUTED);
+                g.setFont(getFont());
+                FontMetrics fm = g.getFontMetrics();
+                int ty = (h + fm.getAscent() - fm.getDescent()) / 2;
+                g.drawString(text, r.x + CELL_PAD, ty);
+            }
+        }
+    }
+
+    // ------------------------------------------------------------ slim scrollbar
+
+    /** Thin rounded scrollbar: no arrow buttons, no track, just a soft gray thumb. */
+    private static class SlimScrollBarUI extends BasicScrollBarUI {
+        private static final int SIZE = 12;
+        private static final Color THUMB = new Color(176, 184, 192);
+        private static final Color THUMB_HOVER = new Color(150, 159, 168);
+
+        @Override
+        protected void configureScrollBarColors() {
+            super.configureScrollBarColors();
+            thumbColor = THUMB;
+            trackColor = Color.WHITE;
+        }
+
+        @Override
+        public Dimension getPreferredSize(JComponent c) {
+            return new Dimension(SIZE, SIZE);
+        }
+
+        @Override
+        protected JButton createDecreaseButton(int orientation) {
+            return noButton();
+        }
+
+        @Override
+        protected JButton createIncreaseButton(int orientation) {
+            return noButton();
+        }
+
+        private JButton noButton() {
+            JButton b = new JButton();
+            Dimension zero = new Dimension(0, 0);
+            b.setPreferredSize(zero);
+            b.setMinimumSize(zero);
+            b.setMaximumSize(zero);
+            return b;
+        }
+
+        @Override
+        protected void paintTrack(Graphics g, JComponent c, Rectangle trackBounds) {
+            g.setColor(Color.WHITE);
+            g.fillRect(trackBounds.x, trackBounds.y, trackBounds.width, trackBounds.height);
+        }
+
+        @Override
+        protected void paintThumb(Graphics g, JComponent c, Rectangle r) {
+            if (r.isEmpty() || !scrollbar.isEnabled()) return;
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(isThumbRollover() || isDragging ? THUMB_HOVER : THUMB);
+            int pad = 2;
+            int arc = Math.min(r.width, r.height) - pad * 2;
+            g2.fillRoundRect(r.x + pad, r.y + pad, r.width - pad * 2, r.height - pad * 2, arc, arc);
+            g2.dispose();
+        }
+    }
+
+    // ------------------------------------------------------------ action buttons
+
     static class ActionButtonRenderer extends JPanel implements TableCellRenderer {
         private final JButton btnEdit = new JButton("Edit");
         private final JButton btnDelete = new JButton("Delete");
 
         public ActionButtonRenderer() {
             setLayout(new FlowLayout(FlowLayout.LEFT, 5, 4));
+            setBorder(new EmptyBorder(0, CELL_PAD - 5, 0, 0)); // line up with the header text
             setOpaque(true);
             
             btnEdit.setFont(new Font("Segoe UI", Font.BOLD, 11));
@@ -492,6 +699,7 @@ public class MedicineCategoryPanel extends JPanel {
         public ActionButtonEditor(JCheckBox checkBox, JTable table) {
             super(checkBox);
             this.table = table;
+            panel.setBorder(new EmptyBorder(0, CELL_PAD - 5, 0, 0));
             panel.setOpaque(true);
 
             btnEdit.setFont(new Font("Segoe UI", Font.BOLD, 11));
@@ -520,6 +728,7 @@ public class MedicineCategoryPanel extends JPanel {
                 if (editDialog.isUpdated()) {
                     table.getModel().setValueAt(editDialog.getCategoryName(), modelRow, 0);
                     table.getModel().setValueAt(editDialog.getStatus(), modelRow, 1);
+                    fitColumns();
                 }
             });
 
@@ -530,6 +739,7 @@ public class MedicineCategoryPanel extends JPanel {
                 boolean confirm = showCustomConfirmDialog("Are you sure you want to delete " + categoryName + "?", "Warning");
                 if (confirm) {
                     ((DefaultTableModel) table.getModel()).removeRow(modelRow);
+                    fitColumns();
                 }
             });
 
