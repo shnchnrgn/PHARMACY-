@@ -27,9 +27,11 @@ public class App extends JFrame {
     private JLabel lblSalesArrow;
     private JLabel lblMedicineArrow;
     private JLabel lblWelcome;
+    private JButton btnNotificationRef; // Para sa real-time badge count update
 
     private JButton selectedButton;
     private final List<JButton> navigationButtons = new ArrayList<>();
+    private int previousNotificationCount = -1; 
 
     private static final Color SIDEBAR_COLOR = new Color(7, 25, 29);
     private static final Color SELECTED_COLOR = new Color(20, 57, 61);
@@ -78,6 +80,35 @@ public class App extends JFrame {
 
         add(sidebar, BorderLayout.WEST);
         add(contentContainer, BorderLayout.CENTER);
+
+        // Auto-check timer kada 2 segundo para real-time ang alert at tunog
+        Timer notificationTimer = new Timer(2000, e -> {
+            int currentCount = getNotificationCount();
+            
+            // Kung nadagdagan ang notifications (galing sa stock out o bago), tutunog ito nang automatic
+            if (previousNotificationCount != -1 && currentCount > previousNotificationCount) {
+                playAlertSound();
+            }
+            
+            previousNotificationCount = currentCount;
+            refreshNotificationBadge();
+        });
+        notificationTimer.start();
+
+        // Kunin ang initial count pagkabukas
+        previousNotificationCount = getNotificationCount();
+    }
+
+    private void playAlertSound() {
+        try {
+            // Unang subok: Standard Java Beep
+            Toolkit.getDefaultToolkit().beep();
+            
+            // Pangalawang paraan para sure na may marinig na tono (System Tone via Toolkit)
+            java.awt.Toolkit.getDefaultToolkit().sync();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
     }
 
     private JPanel createHeaderPanel() {
@@ -99,6 +130,8 @@ public class App extends JFrame {
         int notificationCount = getNotificationCount();
 
         JButton btnNotification = new JButton("Notifications (" + notificationCount + ")");
+        btnNotificationRef = btnNotification; 
+        
         if (notificationCount > 0) {
             btnNotification.setForeground(new Color(192, 57, 43));
         } else {
@@ -168,10 +201,22 @@ public class App extends JFrame {
         return header;
     }
 
+    public void refreshNotificationBadge() {
+        int count = getNotificationCount();
+        if (btnNotificationRef != null) {
+            btnNotificationRef.setText("Notifications (" + count + ")");
+            if (count > 0) {
+                btnNotificationRef.setForeground(new Color(192, 57, 43));
+            } else {
+                btnNotificationRef.setForeground(new Color(90, 100, 110));
+            }
+        }
+    }
+
     private int getNotificationCount() {
         return MedicineDAO.getExpiredCount()
-                + MedicineDAO.getLowStockCount()
-                + getExpiringSoonMedicines().size();
+                + getExpiringSoonMedicines().size()
+                + getLowStockMedicines().size();
     }
 
     private List<Medicine> getExpiringSoonMedicines() {
@@ -220,6 +265,8 @@ public class App extends JFrame {
     }
 
     private void showSystemNotifications() {
+        playAlertSound();
+
         List<Medicine> expired =
                 MedicineDAO.getExpiredMedicines();
 
@@ -357,9 +404,10 @@ public class App extends JFrame {
         close.setCursor(
                 new Cursor(Cursor.HAND_CURSOR)
         );
-        close.addActionListener(
-                e -> dialog.dispose()
-        );
+        close.addActionListener(e -> {
+            refreshNotificationBadge();
+            dialog.dispose();
+        });
 
         header.add(
                 headerTitle,
@@ -403,9 +451,10 @@ public class App extends JFrame {
         ok.setCursor(
                 new Cursor(Cursor.HAND_CURSOR)
         );
-        ok.addActionListener(
-                e -> dialog.dispose()
-        );
+        ok.addActionListener(e -> {
+            refreshNotificationBadge();
+            dialog.dispose();
+        });
 
         footer.add(ok);
 

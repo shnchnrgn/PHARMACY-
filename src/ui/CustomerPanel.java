@@ -220,7 +220,6 @@ public class CustomerPanel extends JPanel {
         formScroll.setWheelScrollingEnabled(true);
         formScroll.getViewport().setBackground(Color.WHITE);
 
-        // Clean, thin form scrollbars (same style for vertical + horizontal)
         JScrollBar verticalBar = formScroll.getVerticalScrollBar();
         verticalBar.setPreferredSize(new Dimension(7, 0));
         verticalBar.setUnitIncrement(16);
@@ -235,7 +234,6 @@ public class CustomerPanel extends JPanel {
 
         container.add(formScroll, BorderLayout.CENTER);
 
-        // Start with no discount selected.
         cmbDiscountType.setSelectedItem("No Discount");
         txtDiscountPercent.setEnabled(false);
         txtPwdId.setEnabled(false);
@@ -443,12 +441,13 @@ public class CustomerPanel extends JPanel {
         toolbar.add(filterRow);
         container.add(toolbar, BorderLayout.NORTH);
 
-        // Table
+        // Table (Idinagdag ang "ID Number" column)
         String[] columns = {
                 "ID",
                 "First Name",
                 "Last Name",
                 "Contact Number",
+                "ID Number",
                 "Discount",
                 "Last Purchase",
                 "Status"
@@ -483,11 +482,12 @@ public class CustomerPanel extends JPanel {
 
         int[] widths = {
                 40,
-                100,
-                100,
-                110,
+                90,
                 90,
                 100,
+                100,
+                80,
+                90,
                 80
         };
 
@@ -497,8 +497,8 @@ public class CustomerPanel extends JPanel {
                     .setPreferredWidth(widths[i]);
         }
 
-        // Status column is drawn as a rounded badge
-        customerTable.getColumnModel().getColumn(6)
+        // Status column is drawn as a rounded badge (Index ay 7 dahil nagdagdag ng ID Number column)
+        customerTable.getColumnModel().getColumn(7)
                 .setCellRenderer(new DefaultTableCellRenderer() {
 
                     private Color badgeColor;
@@ -560,7 +560,6 @@ public class CustomerPanel extends JPanel {
                                 RenderingHints.VALUE_ANTIALIAS_ON
                         );
 
-                        // Row background
                         g2.setColor(rowColor);
                         g2.fillRect(
                                 0,
@@ -569,7 +568,6 @@ public class CustomerPanel extends JPanel {
                                 getHeight()
                         );
 
-                        // Badge
                         if (badgeColor != null) {
                             int w = Math.min(getWidth() - 16, 76);
                             int h = 24;
@@ -601,7 +599,6 @@ public class CustomerPanel extends JPanel {
                 )
         );
 
-        // Smoother mouse-wheel scrolling
         JScrollBar tableScrollBar = scrollPane.getVerticalScrollBar();
         tableScrollBar.setUnitIncrement(16);
         tableScrollBar.setBlockIncrement(80);
@@ -610,7 +607,6 @@ public class CustomerPanel extends JPanel {
 
         container.add(scrollPane, BorderLayout.CENTER);
 
-        // Listeners
         customerTable.getSelectionModel().addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 loadSelectedCustomer();
@@ -670,6 +666,18 @@ public class CustomerPanel extends JPanel {
         }
     }
 
+    private String getCustomerIdNumber(Customer c) {
+        String pwd = c.getPwdId();
+        String sc = c.getSeniorCitizenId();
+        if (pwd != null && !pwd.trim().isEmpty()) {
+            return pwd;
+        }
+        if (sc != null && !sc.trim().isEmpty()) {
+            return sc;
+        }
+        return "-";
+    }
+
     private void refreshTable() {
         customerModel.setRowCount(0);
 
@@ -697,13 +705,6 @@ public class CustomerPanel extends JPanel {
                 continue;
             }
 
-            String address = (
-                    c.getAddress() == null ||
-                    c.getAddress().isEmpty()
-            )
-                    ? "-"
-                    : c.getAddress();
-
             String discount = c.getDiscountType();
 
             if (discount == null ||
@@ -720,11 +721,14 @@ public class CustomerPanel extends JPanel {
                         );
             }
 
+            String idNumber = getCustomerIdNumber(c);
+
             customerModel.addRow(new Object[]{
                     c.getId(),
                     c.getFirstName(),
                     c.getLastName(),
                     c.getContact(),
+                    idNumber,
                     discount,
                     formatLastPurchase(
                             c.getLastPurchaseDate()
@@ -740,6 +744,7 @@ public class CustomerPanel extends JPanel {
                     new Object[]{
                             "",
                             "No customers found.",
+                            "",
                             "",
                             "",
                             "",
@@ -944,7 +949,6 @@ public class CustomerPanel extends JPanel {
                 )
         );
 
-        // Smoother scrolling for purchase history
         scroll.getVerticalScrollBar()
                 .setUnitIncrement(16);
 

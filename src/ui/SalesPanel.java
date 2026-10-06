@@ -4,12 +4,14 @@ import db.SalesDAO;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.plaf.basic.BasicComboBoxUI;
+import javax.swing.plaf.basic.BasicComboPopup;
 import javax.swing.plaf.basic.BasicScrollBarUI;
+import javax.swing.plaf.basic.ComboPopup;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableColumn;
-import javax.swing.table.TableColumnModel;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.Month;
@@ -19,7 +21,6 @@ import java.util.Locale;
 
 public class SalesPanel extends JPanel {
 
-    // same palette / spacing as MedicinePanel
     private static final Color BORDER = new Color(220, 225, 230);
     private static final Color TEXT = new Color(60, 65, 70);
     private static final Color MUTED = new Color(108, 117, 125);
@@ -42,7 +43,6 @@ public class SalesPanel extends JPanel {
         setBackground(new Color(240, 242, 245));
         setBorder(new EmptyBorder(20, 25, 20, 25));
 
-        // Header Panel with Title & Timeframe Selectors
         JPanel headerPanel = new JPanel(new BorderLayout());
         headerPanel.setOpaque(false);
 
@@ -50,33 +50,26 @@ public class SalesPanel extends JPanel {
         title.setFont(new Font("Segoe UI", Font.BOLD, 22));
         title.setForeground(new Color(60, 65, 70));
 
-        // Filter Controls Panel
         JPanel filterPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         filterPanel.setOpaque(false);
 
         cmbTimeframe = new JComboBox<>(new String[]{"This Month", "This Year"});
-        cmbTimeframe.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        cmbTimeframe.setBackground(Color.WHITE);
+        styleComboBox(cmbTimeframe);
 
-        // Month Selector
         cmbMonth = new JComboBox<>();
-        cmbMonth.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        cmbMonth.setBackground(Color.WHITE);
         for (int m = 1; m <= 12; m++) {
             cmbMonth.addItem(Month.of(m).getDisplayName(TextStyle.FULL, Locale.ENGLISH));
         }
         cmbMonth.setSelectedIndex(LocalDate.now().getMonthValue() - 1);
+        styleComboBox(cmbMonth);
 
-        // Year Selector (Current year and past 5 years)
         cmbYear = new JComboBox<>();
-        cmbYear.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        cmbYear.setBackground(Color.WHITE);
         int currentYear = LocalDate.now().getYear();
         for (int y = currentYear; y >= currentYear - 5; y--) {
             cmbYear.addItem(y);
         }
+        styleComboBox(cmbYear);
 
-        // Add Listeners
         cmbTimeframe.addActionListener(e -> {
             cmbMonth.setEnabled(!cmbTimeframe.getSelectedItem().toString().equalsIgnoreCase("This Year"));
             refreshSalesData();
@@ -100,7 +93,6 @@ public class SalesPanel extends JPanel {
         mainPanel.setOpaque(false);
         mainPanel.setBorder(new EmptyBorder(15, 0, 0, 0));
 
-        // Summary Cards Section (3 Metrics: Gross, Expense, Net Profit)
         JPanel summaryPanel = new JPanel(new GridLayout(1, 3, 15, 0));
         summaryPanel.setOpaque(false);
 
@@ -116,7 +108,6 @@ public class SalesPanel extends JPanel {
 
         mainPanel.add(summaryPanel, BorderLayout.NORTH);
 
-        // Table & Toolbar Section
         JPanel tablePanel = new JPanel(new BorderLayout());
         tablePanel.setBackground(Color.WHITE);
         tablePanel.setBorder(BorderFactory.createLineBorder(new Color(205, 210, 215)));
@@ -150,7 +141,6 @@ public class SalesPanel extends JPanel {
 
         salesTable = new JTable(tableModel);
 
-        // same look as the Medicine List table
         salesTable.setRowHeight(33);
         salesTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         salesTable.setShowVerticalLines(true);
@@ -164,7 +154,6 @@ public class SalesPanel extends JPanel {
         header.setFont(new Font("Segoe UI", Font.BOLD, 11));
         salesTable.setTableHeader(header);
 
-        // fixed columns: can't be dragged to resize or reorder
         salesTable.getTableHeader().setResizingAllowed(false);
         salesTable.getTableHeader().setReorderingAllowed(false);
 
@@ -190,7 +179,6 @@ public class SalesPanel extends JPanel {
             salesTable.getColumnModel().getColumn(i).setCellRenderer(cellRenderer);
         }
 
-        // fixed column widths (not resizable, not auto-fitted)
         salesTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         int[] widths = {60, 120, 400, 150};
         for (int i = 0; i < widths.length; i++) {
@@ -205,7 +193,6 @@ public class SalesPanel extends JPanel {
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(Color.WHITE);
 
-        // same thin scrollbars as the Medicine List page
         for (JScrollBar bar : new JScrollBar[]{scrollPane.getVerticalScrollBar(), scrollPane.getHorizontalScrollBar()}) {
             bar.setUI(new SlimScrollBarUI());
             bar.setOpaque(true);
@@ -221,7 +208,6 @@ public class SalesPanel extends JPanel {
 
         add(mainPanel, BorderLayout.CENTER);
 
-        // Event Listeners
         btnAdd.addActionListener(e -> showAddSaleDialog());
         btnDelete.addActionListener(e -> deleteSelectedSale());
         btnRefresh.addActionListener(e -> refreshSalesData());
@@ -236,7 +222,72 @@ public class SalesPanel extends JPanel {
         refreshSalesData();
     }
 
-    // ------------------------------------------------------------------ helpers
+    private void styleComboBox(JComboBox<?> combo) {
+        combo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        combo.setBackground(Color.WHITE);
+        combo.setForeground(TEXT);
+        combo.setFocusable(false);
+        combo.setPreferredSize(new Dimension(130, 30));
+        combo.setBorder(BorderFactory.createLineBorder(BORDER));
+
+        combo.setUI(new BasicComboBoxUI() {
+            @Override
+            protected JButton createArrowButton() {
+                JButton b = new JButton() {
+                    @Override
+                    public void paint(Graphics g) {
+                        Graphics2D g2 = (Graphics2D) g.create();
+                        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                        g2.setColor(Color.WHITE);
+                        g2.fillRect(0, 0, getWidth(), getHeight());
+                        g2.setColor(BORDER);
+                        g2.drawLine(0, 0, 0, getHeight());
+
+                        int cx = getWidth() / 2 + 1;
+                        int cy = getHeight() / 2;
+                        g2.setColor(TEXT);
+                        g2.fillPolygon(new int[]{cx - 4, cx + 4, cx}, new int[]{cy - 2, cy - 2, cy + 3}, 3);
+                        g2.dispose();
+                    }
+                };
+                b.setPreferredSize(new Dimension(24, 0));
+                b.setBorder(BorderFactory.createEmptyBorder());
+                b.setFocusable(false);
+                b.setContentAreaFilled(false);
+                return b;
+            }
+
+            @Override
+            protected ComboPopup createPopup() {
+                BasicComboPopup popup = new BasicComboPopup(comboBox) {
+                    @Override
+                    protected JScrollPane createScroller() {
+                        JScrollPane scroller = super.createScroller();
+                        scroller.getVerticalScrollBar().setUI(new SlimScrollBarUI());
+                        scroller.getVerticalScrollBar().setOpaque(true);
+                        scroller.getVerticalScrollBar().setBackground(Color.WHITE);
+                        return scroller;
+                    }
+                };
+                popup.setBorder(BorderFactory.createLineBorder(BORDER));
+                return popup;
+            }
+        });
+
+        combo.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                JLabel lbl = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                lbl.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                lbl.setForeground(TEXT);
+                lbl.setOpaque(true);
+                // Kulay gray kapag naka-select (e.g., Light Gray: new Color(230, 235, 240))
+                lbl.setBackground(isSelected ? new Color(230, 235, 240) : Color.WHITE);
+                lbl.setBorder(BorderFactory.createEmptyBorder(4, 8, 4, 8));
+                return lbl;
+            }
+        });
+    }
 
     private JPanel createSummaryCard(String title, JLabel value, Color highlightColor) {
         JPanel panel = new JPanel(new BorderLayout());
@@ -374,10 +425,9 @@ public class SalesPanel extends JPanel {
         double filteredGross = 0;
         String sym = SharedData.currencySymbol + " ";
 
-        // Filter and Populate Table Records
         List<String[]> sales = SalesDAO.getAllSales();
         for (String[] sale : sales) {
-            String saleDate = sale[1]; // Format: YYYY-MM-DD
+            String saleDate = sale[1];
             boolean matches = isYearly ? saleDate.startsWith(selectedYearPrefix)
                     : saleDate.startsWith(selectedMonthPrefix);
 
@@ -395,7 +445,6 @@ public class SalesPanel extends JPanel {
             }
         }
 
-        // Calculate Totals based on Filter
         double grossSales = filteredGross;
         double expenses = isYearly ? SalesDAO.getThisYearExpenseTotal() : SalesDAO.getThisMonthExpenseTotal();
         double netProfit = grossSales - expenses;
@@ -404,7 +453,6 @@ public class SalesPanel extends JPanel {
         lblExpenses.setText(String.format("%s%.2f", sym, expenses));
         lblNetProfit.setText(String.format("%s%.2f", sym, netProfit));
 
-        // Adjust text color based on profit standing (red for loss, green for profit)
         if (netProfit < 0) {
             lblNetProfit.setForeground(new Color(220, 53, 69));
         } else {
@@ -567,12 +615,8 @@ public class SalesPanel extends JPanel {
         return result[0];
     }
 
-    // ------------------------------------------------------------ header
-
-    /** Table header with the same look as the Medicine List page (single row, no groups). */
     private static class StyledHeader extends JTableHeader {
-
-        StyledHeader(TableColumnModel cm, int height) {
+        StyledHeader(javax.swing.table.TableColumnModel cm, int height) {
             super(cm);
             setPreferredSize(new Dimension(0, height));
         }
@@ -603,9 +647,6 @@ public class SalesPanel extends JPanel {
         }
     }
 
-    // ------------------------------------------------------------ slim scrollbar
-
-    /** Thin rounded scrollbar: no arrow buttons, no track, just a soft gray thumb. */
     private static class SlimScrollBarUI extends BasicScrollBarUI {
         private static final int SIZE = 12;
         private static final Color THUMB = new Color(176, 184, 192);

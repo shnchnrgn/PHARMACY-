@@ -2,9 +2,9 @@ package ui;
 
 import facade.MostPurchasedFacade;
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
-import javax.swing.table.TableColumn;
 import java.awt.*;
 import java.util.List;
 
@@ -53,7 +53,7 @@ public class TopCustomersPanel extends JPanel {
         table = new JTable(tableModel);
         table.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         table.setRowHeight(35);
-        table.setFillsViewportHeight(true);
+        table.setFillsViewportHeight(false); // Gitangtang ang pagpuno sa tibuok vertical space
         table.setShowGrid(true);
         table.setGridColor(new Color(230, 235, 240));
         table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
@@ -61,9 +61,9 @@ public class TopCustomersPanel extends JPanel {
         table.getTableHeader().setForeground(new Color(70, 80, 90));
         table.getTableHeader().setPreferredSize(new Dimension(0, 38));
 
-        // fixed columns: can't be dragged to resize or reorder
-        table.getTableHeader().setResizingAllowed(false);
+        table.getTableHeader().setResizingAllowed(true);
         table.getTableHeader().setReorderingAllowed(false);
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 
         DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
         centerRenderer.setHorizontalAlignment(JLabel.CENTER);
@@ -72,20 +72,21 @@ public class TopCustomersPanel extends JPanel {
             table.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
         }
 
-        // fixed column widths (not resizable, not auto-fitted)
-        table.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
-        int[] widths = {220, 220, 130, 150};
-        for (int i = 0; i < widths.length; i++) {
-            TableColumn col = table.getColumnModel().getColumn(i);
-            col.setMinWidth(widths[i]);
-            col.setMaxWidth(widths[i]);
-            col.setPreferredWidth(widths[i]);
-            col.setResizable(false);
-        }
+        JPanel tablePanel = new JPanel(new BorderLayout());
+        tablePanel.setBackground(Color.WHITE);
+        tablePanel.setBorder(BorderFactory.createLineBorder(new Color(220, 225, 230)));
 
         JScrollPane scrollPane = new JScrollPane(table);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(220, 225, 230)));
-        add(scrollPane, BorderLayout.CENTER);
+        scrollPane.setBorder(BorderFactory.createEmptyBorder());
+        scrollPane.getViewport().setBackground(Color.WHITE);
+        tablePanel.add(scrollPane, BorderLayout.CENTER);
+
+        // Wrapper aron mapuno ang tibuok lapad apan dili mo-stretch paubos ang gitas-on sa puting box
+        JPanel fullWidthWrapper = new JPanel(new BorderLayout());
+        fullWidthWrapper.setOpaque(false);
+        fullWidthWrapper.add(tablePanel, BorderLayout.NORTH);
+
+        add(fullWidthWrapper, BorderLayout.CENTER);
 
         refreshData();
     }
