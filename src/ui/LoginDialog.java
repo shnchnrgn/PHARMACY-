@@ -11,6 +11,8 @@ import javax.swing.plaf.basic.BasicComboPopup;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Random;
@@ -79,6 +81,16 @@ public class LoginDialog extends JDialog {
         setLocationRelativeTo(parent);
         setResizable(false);
         getContentPane().setBackground(WINDOW_BG);
+
+        // Terminate application if dialog is closed without logging in
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                if (!isLoggedIn) {
+                    System.exit(0);
+                }
+            }
+        });
 
         JPanel mainPanel = new JPanel(new GridLayout(1, 2));
         mainPanel.setBackground(WINDOW_BG);
@@ -476,18 +488,22 @@ public class LoginDialog extends JDialog {
         }
 
         @Override
+
         protected void paintComponent(Graphics g) {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-
+            
             g2.setColor(getBackground());
             g2.fillRect(0, 0, getWidth(), getHeight());
-
+            
             FontMetrics fm = g2.getFontMetrics(getFont());
             String value = getText();
+            
             int x = (getWidth() - fm.stringWidth(value)) / 2;
-            int y = (getHeight() - fm.getHeight()) / 2 + fm.getAscent();
-
+            
+            int textHeight = fm.getAscent() - fm.getDescent();
+            int y = (getHeight() + textHeight) / 2;
+            
             g2.setFont(getFont());
             g2.setColor(getForeground());
             g2.drawString(value, x, y);
@@ -507,8 +523,6 @@ public class LoginDialog extends JDialog {
         // Custom Theme OTP Input Dialog
         JDialog otpDialog = new JDialog(this, "OTP Verification", true);
         otpDialog.setLayout(new BorderLayout());
-        otpDialog.setSize(380, 220);
-        otpDialog.setLocationRelativeTo(this);
         otpDialog.setResizable(false);
         otpDialog.getContentPane().setBackground(Color.WHITE);
 
@@ -553,13 +567,10 @@ public class LoginDialog extends JDialog {
         btnVerify.setFocusPainted(false);
         btnVerify.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        final boolean[] verifiedStatus = {false};
-
         btnVerify.addActionListener(e -> {
             String entered = otpField.getText().trim();
             if (entered.equals(generatedOTP)) {
                 isOtpVerified = true;
-                verifiedStatus[0] = true;
                 otpDialog.dispose();
                 showCustomMessage("Success", "OTP Verified", "Mobile number successfully verified via OTP!", false);
             } else {
@@ -573,6 +584,10 @@ public class LoginDialog extends JDialog {
         otpDialog.add(bodyPanel, BorderLayout.CENTER);
         otpDialog.add(footerPanel, BorderLayout.SOUTH);
         otpDialog.getRootPane().setDefaultButton(btnVerify);
+
+        otpDialog.pack();
+        otpDialog.setSize(Math.max(otpDialog.getWidth() + 40, 400), otpDialog.getHeight() + 10);
+        otpDialog.setLocationRelativeTo(this);
         otpDialog.setVisible(true);
     }
 
@@ -794,8 +809,9 @@ public class LoginDialog extends JDialog {
         inputDialog.add(footerPanel, BorderLayout.SOUTH);
 
         inputDialog.getRootPane().setDefaultButton(btnOk);
+        
         inputDialog.pack();
-        inputDialog.setSize(Math.max(inputDialog.getWidth() + 80, 420), 180);
+        inputDialog.setSize(Math.max(inputDialog.getWidth() + 40, 440), inputDialog.getHeight() + 10);
         inputDialog.setLocationRelativeTo(this);
         inputDialog.setVisible(true);
 
@@ -803,8 +819,6 @@ public class LoginDialog extends JDialog {
         if (username == null || username.isEmpty()) {
             return;
         }
-
-        username = username.trim();
 
         try {
             if (!userDAO.doesUsernameExist(username)) {
@@ -907,7 +921,7 @@ public class LoginDialog extends JDialog {
             recoveryDialog.add(step2FooterPanel, BorderLayout.SOUTH);
 
             recoveryDialog.pack();
-            recoveryDialog.setSize(Math.max(recoveryDialog.getWidth() + 80, 450), recoveryDialog.getHeight() + 40);
+            recoveryDialog.setSize(Math.max(recoveryDialog.getWidth() + 40, 480), recoveryDialog.getHeight() + 10);
             recoveryDialog.setLocationRelativeTo(this);
             recoveryDialog.setVisible(true);
 

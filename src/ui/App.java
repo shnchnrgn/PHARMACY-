@@ -4,6 +4,8 @@ import db.Database;
 import db.MedicineDAO;
 import models.Medicine;
 import java.awt.*;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -33,6 +35,8 @@ public class App extends JFrame {
     private final List<JButton> navigationButtons = new ArrayList<>();
     private int previousNotificationCount = -1; 
 
+    private Timer notificationTimer;
+
     private static final Color SIDEBAR_COLOR = new Color(7, 25, 29);
     private static final Color SELECTED_COLOR = new Color(20, 57, 61);
     private static final Color HOVER_COLOR = new Color(24, 64, 68);
@@ -46,10 +50,21 @@ public class App extends JFrame {
         Database.createTables();
 
         setTitle("Pharmacy Management System");
-        setSize(1250, 720);
+        setSize(1600, 900);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         getContentPane().setBackground(new Color(240, 242, 245));
+
+        // Window listener to stop background timer and force process termination on close
+        addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                if (notificationTimer != null && notificationTimer.isRunning()) {
+                    notificationTimer.stop();
+                }
+                System.exit(0);
+            }
+        });
 
         setLayout(new BorderLayout());
 
@@ -82,7 +97,7 @@ public class App extends JFrame {
         add(contentContainer, BorderLayout.CENTER);
 
         // Auto-check timer kada 2 segundo para real-time ang alert at tunog
-        Timer notificationTimer = new Timer(2000, e -> {
+        notificationTimer = new Timer(2000, e -> {
             int currentCount = getNotificationCount();
             
             // Kung nadagdagan ang notifications (galing sa stock out o bago), tutunog ito nang automatic
@@ -179,6 +194,9 @@ public class App extends JFrame {
             );
             
             if (confirmed) {
+                if (notificationTimer != null && notificationTimer.isRunning()) {
+                    notificationTimer.stop();
+                }
                 dispose();
                 SwingUtilities.invokeLater(() -> {
                     LoginDialog loginDialog = new LoginDialog(null);
