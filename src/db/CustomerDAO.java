@@ -1,11 +1,10 @@
 package db;
 
-import models.Customer;
-
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import models.Customer;
 
 public class CustomerDAO {
 
@@ -503,7 +502,6 @@ public class CustomerDAO {
         String firstName = safeGetString(rs, "first_name");
         String lastName = safeGetString(rs, "last_name");
 
-        // Old records may only have the original name field.
         if (firstName.isEmpty() && lastName.isEmpty()) {
             customer.setName(safeGetString(rs, "name"));
         } else {

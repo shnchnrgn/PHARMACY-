@@ -1,17 +1,20 @@
 package ui;
 
 import db.MedicineDAO;
-import models.Medicine;
-
-import javax.swing.*;
-import javax.swing.border.Border;
 import java.awt.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
+import javax.swing.*;
+import javax.swing.border.Border;
+import models.Medicine;
 
 public class EditMedicineDialog extends JDialog {
 
-    private final Border grayBorder = BorderFactory.createLineBorder(new Color(200, 205, 210), 1);
+    private static final Border grayBorder = BorderFactory.createLineBorder(new Color(200, 205, 210), 1);
+
+    private static final Color HOVER_BG = new Color(230, 244, 243);   
+    private static final Color HOVER_FG = new Color(15, 118, 110);    
+    private static final Color ITEM_FG  = new Color(45, 55, 60);
 
     private JTextField txtName;
     private JComboBox<String> cmbCategory;
@@ -20,7 +23,6 @@ public class EditMedicineDialog extends JDialog {
     private JTextField txtQuantity;
     private JTextField txtCompany;
     private JTextField txtExpireDate;
-
     private boolean updated = false;
     private Medicine medicine;
 
@@ -68,8 +70,20 @@ public class EditMedicineDialog extends JDialog {
 
         String[] categories = {"-- Select Category --", "Tablet", "Capsule", "Syrup", "Injection", "Ointment", "Drops", "Supplements / Vitamins"};
         cmbCategory = createStyledDropdown(categories, 350);
-        if (med != null && med.getMedicineCategory() != null) {
-            cmbCategory.setSelectedItem(med.getMedicineCategory());
+        if (med != null && med.getMedicineCategory() != null && !med.getMedicineCategory().trim().isEmpty()) {
+            String current = med.getMedicineCategory().trim();
+            boolean found = false;
+            for (String c : categories) {
+                if (c.equalsIgnoreCase(current)) {
+                    cmbCategory.setSelectedItem(c);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {  
+                cmbCategory.addItem(current);
+                cmbCategory.setSelectedItem(current);
+            }
         }
         addDropdownRow(fieldsPanel, gbc, "Medicine Category", true, cmbCategory);
 
@@ -89,7 +103,6 @@ public class EditMedicineDialog extends JDialog {
         txtCompany = createStyledTextField(companyStr);
         addFieldRow(fieldsPanel, gbc, "Company Name", true, txtCompany);
 
-        // --- EXPIRATION DATE SELECTOR (THEME-MATCHED) ---
         JPanel datePanel = new JPanel(new BorderLayout(5, 0));
         datePanel.setOpaque(false);
         datePanel.setPreferredSize(new Dimension(350, 30));
@@ -110,7 +123,6 @@ public class EditMedicineDialog extends JDialog {
         btnCalendar.setPreferredSize(new Dimension(40, 30));
 
         btnCalendar.addActionListener(e -> {
-            // Ipinasa ang 'this' dialog bilang parent para lumitaw nang sigurado ang dialog
             CustomDropdownDateDialog dateDialog = new CustomDropdownDateDialog(this, txtExpireDate.getText().trim());
             dateDialog.setVisible(true);
             if (dateDialog.getSelectedDate() != null) {
@@ -155,11 +167,11 @@ public class EditMedicineDialog extends JDialog {
 
         formCard.add(fieldsPanel, BorderLayout.CENTER);
         container.add(formCard);
-        
+
         JScrollPane mainScroll = new JScrollPane(container);
         mainScroll.setBorder(null);
         mainScroll.setBackground(new Color(240, 242, 245));
-        
+
         add(mainScroll, BorderLayout.CENTER);
 
         btnUpdate.addActionListener(e -> {
@@ -237,21 +249,26 @@ public class EditMedicineDialog extends JDialog {
         return tf;
     }
 
-    private <T> JComboBox<T> createStyledDropdown(T[] items, int width) {
+    private static <T> JComboBox<T> createStyledDropdown(T[] items, int width) {
         JComboBox<T> comboBox = new JComboBox<>(items);
-        comboBox.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        comboBox.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         comboBox.setPreferredSize(new Dimension(width, 30));
         comboBox.setMaximumSize(new Dimension(Integer.MAX_VALUE, 30));
         comboBox.setBackground(Color.WHITE);
-        comboBox.setForeground(new Color(70, 75, 80));
+        comboBox.setForeground(ITEM_FG);
         comboBox.setBorder(grayBorder);
+        comboBox.setMaximumRowCount(8);
 
         comboBox.setUI(new javax.swing.plaf.basic.BasicComboBoxUI() {
             @Override
-            protected javax.swing.plaf.basic.BasicComboPopup createPopup() {
-                javax.swing.plaf.basic.BasicComboPopup popup = new javax.swing.plaf.basic.BasicComboPopup(comboBox);
-                popup.setBorder(grayBorder);
+            protected javax.swing.plaf.basic.ComboPopup createPopup() {
+                javax.swing.plaf.basic.BasicComboPopup popup =
+                        new javax.swing.plaf.basic.BasicComboPopup(comboBox);
+                popup.setBorder(BorderFactory.createLineBorder(Color.BLACK, 1));
                 popup.setBackground(Color.WHITE);
+                popup.getList().setBackground(Color.WHITE);
+                popup.getList().setSelectionBackground(HOVER_BG);
+                popup.getList().setSelectionForeground(HOVER_FG);
 
                 for (Component c : popup.getComponents()) {
                     if (c instanceof JScrollPane) {
@@ -264,7 +281,7 @@ public class EditMedicineDialog extends JDialog {
                         verticalBar.setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
                             @Override
                             protected void configureScrollBarColors() {
-                                this.thumbColor = new Color(200, 205, 210);
+                                this.thumbColor = new Color(160, 200, 196);
                                 this.trackColor = Color.WHITE;
                             }
 
@@ -302,10 +319,10 @@ public class EditMedicineDialog extends JDialog {
                         g2d.fillRect(0, 0, getWidth(), getHeight());
                         g2d.setColor(new Color(200, 205, 210));
                         g2d.drawLine(0, 0, 0, getHeight());
-                        g2d.setColor(new Color(80, 80, 80));
-                        int[] xPoints = {getWidth() / 2 - 4, getWidth() / 2 + 4, getWidth() / 2};
-                        int[] yPoints = {getHeight() / 2 - 2, getHeight() / 2 - 2, getHeight() / 2 + 3};
-                        g2d.fillPolygon(xPoints, yPoints, 3);
+                        g2d.setColor(new Color(40, 40, 40));
+                        int cx = getWidth() / 2, cy = getHeight() / 2;
+                        g2d.fillPolygon(new int[]{cx - 4, cx + 4, cx},
+                                        new int[]{cy - 2, cy - 2, cy + 3}, 3);
                         g2d.dispose();
                     }
                 };
@@ -314,30 +331,40 @@ public class EditMedicineDialog extends JDialog {
                 btn.setFocusable(false);
                 return btn;
             }
+
+            @Override
+            public void paintCurrentValueBackground(Graphics g, Rectangle bounds, boolean hasFocus) {
+                g.setColor(Color.WHITE);
+                g.fillRect(bounds.x, bounds.y, bounds.width, bounds.height);
+            }
         });
 
         comboBox.setRenderer(new DefaultListCellRenderer() {
             @Override
-            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
-                JLabel renderer = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                if (isSelected) {
-                    renderer.setBackground(new Color(210, 215, 220));
-                    renderer.setForeground(Color.BLACK);
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+                                                          boolean isSelected, boolean cellHasFocus) {
+                JLabel r = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                r.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+                r.setBorder(BorderFactory.createEmptyBorder(7, 10, 7, 10));
+
+                if (index == -1) {
+                    r.setBackground(Color.WHITE);
+                    r.setForeground(ITEM_FG);
+                } else if (isSelected) {
+                    r.setBackground(HOVER_BG);
+                    r.setForeground(HOVER_FG);
                 } else {
-                    renderer.setBackground(Color.WHITE);
-                    renderer.setForeground(Color.BLACK);
+                    r.setBackground(Color.WHITE);
+                    r.setForeground(ITEM_FG);
                 }
-                renderer.setBorder(BorderFactory.createEmptyBorder(6, 10, 6, 10));
-                return renderer;
+                return r;
             }
         });
 
         return comboBox;
     }
 
-    // =====================================================================
-    // CUSTOM DROPDOWN DATE DIALOG (THEME-MATCHED)
-    // =====================================================================
+
     private static class CustomDropdownDateDialog extends JDialog {
         private LocalDate selectedDate = null;
         private JComboBox<String> cmbMonth;
@@ -368,20 +395,18 @@ public class EditMedicineDialog extends JDialog {
                 "January", "February", "March", "April", "May", "June",
                 "July", "August", "September", "October", "November", "December"
             };
-            
-            EditMedicineDialog dummyPanel = new EditMedicineDialog(null, null);
-            cmbMonth = dummyPanel.createStyledDropdown(months, 110);
-            
+
+            cmbMonth = createStyledDropdown(months, 110);
+
             Integer[] days = new Integer[31];
             for (int i = 1; i <= 31; i++) days[i - 1] = i;
-            cmbDay = dummyPanel.createStyledDropdown(days, 70);
+            cmbDay = createStyledDropdown(days, 70);
 
             int currentYear = LocalDate.now().getYear();
             Integer[] years = new Integer[20];
             for (int i = 0; i < 20; i++) years[i] = currentYear + i;
-            cmbYear = dummyPanel.createStyledDropdown(years, 90);
+            cmbYear = createStyledDropdown(years, 90);
 
-            // Parse initial date kung mayroon man, kung wala gagamitin ang ngayon
             LocalDate targetDate = LocalDate.now();
             try {
                 if (initialDateStr != null && !initialDateStr.isEmpty()) {

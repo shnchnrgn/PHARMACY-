@@ -6,7 +6,6 @@ import java.util.List;
 public class SharedData {
     public static double totalSalesToday = 0.0;
 
-    // System Settings variables
     public static String storeTitle = "Pharmacy Management System";
     public static String storeName = "Vanguard Pharmacy";
     public static String storeEmail = "Vanguard.p.m.s@gmail.com";

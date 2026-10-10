@@ -1,13 +1,10 @@
 package db;
 
-import models.User;
-
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
+import models.User;
 
 public class UserDAO {
 
@@ -44,7 +41,6 @@ public class UserDAO {
         return null;
     }
 
-    // Register user with security questions and answers
     public boolean registerUser(String lastName, String firstName, String username, 
                                 String password, String role, 
                                 String q1, String a1, String q2, String a2) throws SQLException {
@@ -60,7 +56,7 @@ public class UserDAO {
             stmt.setString(4, password);
             stmt.setString(5, role);
             stmt.setString(6, q1);
-            stmt.setString(7, a1.toLowerCase().trim()); // Normalized for case-insensitive matching
+            stmt.setString(7, a1.toLowerCase().trim()); 
             stmt.setString(8, q2);
             stmt.setString(9, a2.toLowerCase().trim());
 
@@ -68,7 +64,6 @@ public class UserDAO {
         }
     }
 
-    // Get security questions for password recovery
     public String[] getSecurityQuestions(String username) throws SQLException {
         String query = "SELECT security_question_1, security_question_2 FROM login WHERE LOWER(username) = LOWER(?)";
         try (Connection conn = getConnection();
@@ -86,7 +81,6 @@ public class UserDAO {
         return null;
     }
 
-    // Verify security answers for password recovery
     public boolean verifySecurityAnswers(String username, String ans1, String ans2) throws SQLException {
         String query = "SELECT security_answer_1, security_answer_2 FROM login WHERE LOWER(username) = LOWER(?)";
         try (Connection conn = getConnection();
@@ -106,7 +100,6 @@ public class UserDAO {
         return false;
     }
 
-    // Retrieve password after security verification
     public String getPasswordByUsername(String username) throws SQLException {
         String query = "SELECT password FROM login WHERE LOWER(username) = LOWER(?)";
         try (Connection conn = getConnection();
@@ -121,7 +114,6 @@ public class UserDAO {
         return null;
     }
 
-    // Helper method to map ResultSet to User object
     private User extractUserFromResultSet(ResultSet rs) throws SQLException {
         User user = new User();
         user.setId(rs.getInt("id"));

@@ -1,26 +1,28 @@
 package ui;
 
 import db.CustomerDAO;
-import models.Customer;
-
-import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import javax.swing.plaf.basic.BasicComboBoxUI;
-import javax.swing.plaf.basic.BasicScrollBarUI;
-import javax.swing.plaf.basic.BasicComboPopup;
-import javax.swing.plaf.basic.ComboPopup;
-import javax.swing.table.DefaultTableCellRenderer;
-import javax.swing.table.DefaultTableModel;
 import java.awt.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.List;
+import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.border.EmptyBorder;
+import javax.swing.plaf.basic.BasicComboBoxUI;
+import javax.swing.plaf.basic.BasicComboPopup;
+import javax.swing.plaf.basic.BasicScrollBarUI;
+import javax.swing.plaf.basic.BasicSpinnerUI;
+import javax.swing.plaf.basic.ComboPopup;
+import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
+import models.Customer;
 
 public class CustomerPanel extends JPanel {
 
-    private static final Color COLOR_GREEN = new Color(13, 148, 136);
     private static final Color COLOR_RED = new Color(220, 53, 69);
     private static final Color COLOR_GRAY = new Color(108, 117, 125);
     private static final Color COLOR_BORDER = new Color(200, 205, 210);
@@ -30,6 +32,9 @@ public class CustomerPanel extends JPanel {
 
     private static final Color COLOR_TEAL = new Color(13, 148, 136);
     private static final Color COLOR_TEAL_HOVER = new Color(15, 118, 110);
+    private static final Color COLOR_TEAL_LIGHT = new Color(204, 235, 231);
+    private static final Color COLOR_TEAL_BG = new Color(240, 250, 249);
+    private static final Color COLOR_ZEBRA = new Color(247, 250, 250);
     private static final Color COLOR_DIALOG_BG = new Color(248, 249, 251);
     private static final Color COLOR_DIALOG_LINE = new Color(225, 228, 232);
 
@@ -94,9 +99,7 @@ public class CustomerPanel extends JPanel {
         loadCustomers();
     }
 
-    // =====================================================================
-    // FORM PANEL
-    // =====================================================================
+
 
     private JPanel buildFormPanel() {
         JPanel container = new JPanel(new BorderLayout());
@@ -104,6 +107,8 @@ public class CustomerPanel extends JPanel {
         container.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(210, 215, 220)),
                 new EmptyBorder(20, 20, 20, 20)));
+
+        container.add(createSectionTitle("Customer Details"), BorderLayout.NORTH);
 
         JPanel fieldsPanel = new JPanel(new GridBagLayout());
         fieldsPanel.setOpaque(false);
@@ -187,13 +192,9 @@ public class CustomerPanel extends JPanel {
         buttonPanel.setOpaque(false);
         buttonPanel.setBorder(new EmptyBorder(15, LABEL_WIDTH + 10, 0, 0));
 
-        btnSave = createStyledButton("Save Customer", COLOR_GREEN);
-        JButton btnDelete = createStyledButton("Delete Customer", COLOR_GRAY);
+        btnSave = createStyledButton("Save Customer", COLOR_TEAL);
+        JButton btnDelete = createStyledButton("Delete Customer", COLOR_RED);
         JButton btnClear = createStyledButton("Clear Form", Color.WHITE);
-        btnClear.setForeground(COLOR_TEXT);
-        btnClear.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(COLOR_BORDER),
-                new EmptyBorder(7, 14, 7, 14)));
 
         btnSave.addActionListener(e -> saveCustomer());
         btnDelete.addActionListener(e -> deleteCustomer());
@@ -211,12 +212,8 @@ public class CustomerPanel extends JPanel {
         JScrollPane formScroll = new JScrollPane(formContent);
 
         formScroll.setBorder(null);
-        formScroll.setHorizontalScrollBarPolicy(
-                JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED
-        );
-        formScroll.setVerticalScrollBarPolicy(
-                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED
-        );
+        formScroll.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        formScroll.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         formScroll.setWheelScrollingEnabled(true);
         formScroll.getViewport().setBackground(Color.WHITE);
 
@@ -240,6 +237,24 @@ public class CustomerPanel extends JPanel {
         txtSeniorCitizenId.setEnabled(false);
 
         return container;
+    }
+
+    private JPanel createSectionTitle(String text) {
+        JPanel p = new JPanel(new BorderLayout(10, 0));
+        p.setOpaque(false);
+        p.setBorder(new EmptyBorder(0, 0, 12, 0));
+
+        JPanel bar = new JPanel();
+        bar.setBackground(COLOR_TEAL);
+        bar.setPreferredSize(new Dimension(4, 18));
+
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lbl.setForeground(COLOR_TEXT);
+
+        p.add(bar, BorderLayout.WEST);
+        p.add(lbl, BorderLayout.CENTER);
+        return p;
     }
 
     private BasicScrollBarUI createCleanScrollBarUI() {
@@ -267,37 +282,22 @@ public class CustomerPanel extends JPanel {
             }
 
             @Override
-            protected void paintTrack(
-                    Graphics g,
-                    JComponent c,
-                    Rectangle trackBounds) {
-
+            protected void paintTrack(Graphics g, JComponent c, Rectangle trackBounds) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setColor(new Color(248, 249, 250));
-                g2.fillRect(
-                        trackBounds.x,
-                        trackBounds.y,
-                        trackBounds.width,
-                        trackBounds.height
-                );
+                g2.fillRect(trackBounds.x, trackBounds.y, trackBounds.width, trackBounds.height);
                 g2.dispose();
             }
 
             @Override
-            protected void paintThumb(
-                    Graphics g,
-                    JComponent c,
-                    Rectangle thumbBounds) {
-
+            protected void paintThumb(Graphics g, JComponent c, Rectangle thumbBounds) {
                 if (thumbBounds.isEmpty()) {
                     return;
                 }
 
                 Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(
-                        RenderingHints.KEY_ANTIALIASING,
-                        RenderingHints.VALUE_ANTIALIAS_ON
-                );
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
 
                 g2.setColor(new Color(185, 190, 195));
 
@@ -306,15 +306,7 @@ public class CustomerPanel extends JPanel {
                 int width = Math.max(1, thumbBounds.width - 2);
                 int height = Math.max(1, thumbBounds.height - 2);
 
-                g2.fillRoundRect(
-                        x,
-                        y,
-                        width,
-                        height,
-                        6,
-                        6
-                );
-
+                g2.fillRoundRect(x, y, width, height, 6, 6);
                 g2.dispose();
             }
         };
@@ -366,9 +358,7 @@ public class CustomerPanel extends JPanel {
         return lbl;
     }
 
-    // =====================================================================
-    // TABLE PANEL
-    // =====================================================================
+
 
     private JPanel buildTablePanel() {
         JPanel container = new JPanel(new BorderLayout(0, 10));
@@ -381,7 +371,6 @@ public class CustomerPanel extends JPanel {
         toolbar.setLayout(new BoxLayout(toolbar, BoxLayout.Y_AXIS));
         toolbar.setOpaque(false);
 
-        // Search row
         JPanel searchRow = new JPanel(new BorderLayout(8, 0));
         searchRow.setOpaque(false);
 
@@ -391,9 +380,9 @@ public class CustomerPanel extends JPanel {
 
         txtSearch = createStyledTextField();
 
-        JButton btnSearch = createStyledButton("Search", COLOR_GRAY);
-        JButton btnShowAll = createStyledButton("Show All", COLOR_GRAY);
-        JButton btnHistory = createStyledButton("Purchase History", COLOR_TEAL);
+        JButton btnSearch = createStyledButton("Search", COLOR_TEAL);
+        JButton btnShowAll = createStyledButton("Show All", Color.WHITE);
+        JButton btnHistory = createStyledButton("Purchase History", COLOR_TEAL_HOVER);
 
         JPanel searchButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
         searchButtons.setOpaque(false);
@@ -405,9 +394,12 @@ public class CustomerPanel extends JPanel {
         searchRow.add(txtSearch, BorderLayout.CENTER);
         searchRow.add(searchButtons, BorderLayout.EAST);
 
-        // Filter row
         JPanel filterRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
-        filterRow.setOpaque(false);
+        filterRow.setOpaque(true);
+        filterRow.setBackground(COLOR_TEAL_BG);
+        filterRow.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(COLOR_TEAL_LIGHT),
+                new EmptyBorder(2, 6, 2, 6)));
 
         JLabel lblFilter = new JLabel("Show:");
         lblFilter.setFont(new Font("Segoe UI", Font.BOLD, 12));
@@ -426,22 +418,17 @@ public class CustomerPanel extends JPanel {
         lblDays.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         lblDays.setForeground(COLOR_TEXT);
 
-        spinnerDays = new JSpinner(
-                new SpinnerNumberModel(DEFAULT_INACTIVE_DAYS, 1, 3650, 1)
-        );
-
-        spinnerDays.setPreferredSize(new Dimension(70, 26));
-
         filterRow.add(lblFilter);
         filterRow.add(cmbFilter);
         filterRow.add(lblDays);
-        filterRow.add(spinnerDays);
+        filterRow.add(buildDaysStepper());
 
+        toolbar.add(createSectionTitle("Customer List"));
         toolbar.add(searchRow);
+        toolbar.add(Box.createVerticalStrut(8));
         toolbar.add(filterRow);
         container.add(toolbar, BorderLayout.NORTH);
 
-        // Table (Idinagdag ang "ID Number" column)
         String[] columns = {
                 "ID",
                 "First Name",
@@ -467,37 +454,74 @@ public class CustomerPanel extends JPanel {
         customerTable.setShowHorizontalLines(true);
         customerTable.setGridColor(new Color(235, 238, 242));
         customerTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        customerTable.setSelectionBackground(COLOR_TEAL_LIGHT);
+        customerTable.setSelectionForeground(COLOR_TEXT);
 
-        customerTable.getTableHeader().setFont(
-                new Font("Segoe UI", Font.BOLD, 12)
-        );
-
-        customerTable.getTableHeader().setBackground(
-                new Color(248, 249, 250)
-        );
-
-        customerTable.getTableHeader().setForeground(
-                new Color(80, 85, 90)
-        );
+        customerTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        customerTable.getTableHeader().setPreferredSize(new Dimension(0, 34));
 
         int[] widths = {
-                40,
-                90,
-                90,
-                100,
-                100,
-                80,
-                90,
-                80
+                50,   
+                100,  
+                100,  
+                110,  
+                130,  
+                100,  
+                120,  
+                90    
         };
 
         for (int i = 0; i < widths.length; i++) {
-            customerTable.getColumnModel()
-                    .getColumn(i)
-                    .setPreferredWidth(widths[i]);
+            customerTable.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
         }
 
-        // Status column is drawn as a rounded badge (Index ay 7 dahil nagdagdag ng ID Number column)
+        customerTable.getTableHeader().setResizingAllowed(false);
+        customerTable.getTableHeader().setReorderingAllowed(false);
+        customerTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+
+        DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(
+                    JTable table, Object value, boolean isSelected,
+                    boolean hasFocus, int row, int col) {
+
+                super.getTableCellRendererComponent(
+                        table, value, isSelected, hasFocus, row, col);
+
+                if (!isSelected) {
+                    setBackground(row % 2 == 0 ? Color.WHITE : COLOR_ZEBRA);
+                }
+
+                setHorizontalAlignment(CENTER);
+                setBorder(new EmptyBorder(0, 6, 0, 6));
+                setToolTipText(value == null ? null : value.toString());
+                return this;
+            }
+        };
+
+        for (int i = 0; i <= 6; i++) {
+            customerTable.getColumnModel().getColumn(i).setCellRenderer(centerRenderer);
+        }
+
+        final javax.swing.table.TableCellRenderer baseHeader =
+                customerTable.getTableHeader().getDefaultRenderer();
+
+        customerTable.getTableHeader().setDefaultRenderer(
+                (table, value, isSelected, hasFocus, row, col) -> {
+                    Component c = baseHeader.getTableCellRendererComponent(
+                            table, value, isSelected, hasFocus, row, col);
+                    if (c instanceof JLabel) {
+                        JLabel h = (JLabel) c;
+                        h.setHorizontalAlignment(SwingConstants.CENTER);
+                        h.setOpaque(true);
+                        h.setBackground(COLOR_TEAL_BG);
+                        h.setForeground(COLOR_TEAL_HOVER);
+                        h.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                        h.setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, COLOR_TEAL));
+                    }
+                    return c;
+                });
+
         customerTable.getColumnModel().getColumn(7)
                 .setCellRenderer(new DefaultTableCellRenderer() {
 
@@ -506,21 +530,11 @@ public class CustomerPanel extends JPanel {
 
                     @Override
                     public Component getTableCellRendererComponent(
-                            JTable table,
-                            Object value,
-                            boolean isSelected,
-                            boolean hasFocus,
-                            int rowIdx,
-                            int col) {
+                            JTable table, Object value, boolean isSelected,
+                            boolean hasFocus, int rowIdx, int col) {
 
                         super.getTableCellRendererComponent(
-                                table,
-                                value,
-                                isSelected,
-                                hasFocus,
-                                rowIdx,
-                                col
-                        );
+                                table, value, isSelected, hasFocus, rowIdx, col);
 
                         setOpaque(false);
                         setBorder(BorderFactory.createEmptyBorder());
@@ -529,7 +543,7 @@ public class CustomerPanel extends JPanel {
 
                         rowColor = isSelected
                                 ? table.getSelectionBackground()
-                                : Color.WHITE;
+                                : (rowIdx % 2 == 0 ? Color.WHITE : COLOR_ZEBRA);
 
                         if ("Active".equals(value)) {
                             badgeColor = COLOR_TEAL;
@@ -541,11 +555,9 @@ public class CustomerPanel extends JPanel {
 
                         } else {
                             badgeColor = null;
-                            setForeground(
-                                    isSelected
-                                            ? table.getSelectionForeground()
-                                            : COLOR_TEXT
-                            );
+                            setForeground(isSelected
+                                    ? table.getSelectionForeground()
+                                    : COLOR_TEXT);
                         }
 
                         return this;
@@ -555,34 +567,21 @@ public class CustomerPanel extends JPanel {
                     protected void paintComponent(Graphics g) {
                         Graphics2D g2 = (Graphics2D) g.create();
 
-                        g2.setRenderingHint(
-                                RenderingHints.KEY_ANTIALIASING,
-                                RenderingHints.VALUE_ANTIALIAS_ON
-                        );
+                        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                                RenderingHints.VALUE_ANTIALIAS_ON);
 
                         g2.setColor(rowColor);
-                        g2.fillRect(
-                                0,
-                                0,
-                                getWidth(),
-                                getHeight()
-                        );
+                        g2.fillRect(0, 0, getWidth(), getHeight());
 
                         if (badgeColor != null) {
-                            int w = Math.min(getWidth() - 16, 76);
-                            int h = 24;
-                            int x = (getWidth() - w) / 2;
-                            int y = (getHeight() - h) / 2;
+                        int w = Math.min(getWidth() - 16, 75);  
+                        int h = 24;
+                        int x = (getWidth() - w) / 2;
+                        int y = (getHeight() - h) / 2;
 
-                            g2.setColor(badgeColor);
-                            g2.fillRoundRect(
-                                    x,
-                                    y,
-                                    w,
-                                    h,
-                                    10,
-                                    10
-                            );
+                        g2.setColor(badgeColor);
+                        g2.fillRoundRect(x, y, w, h, h, h);       
+
                         }
 
                         g2.dispose();
@@ -593,11 +592,7 @@ public class CustomerPanel extends JPanel {
 
         JScrollPane scrollPane = new JScrollPane(customerTable);
         scrollPane.getViewport().setBackground(Color.WHITE);
-        scrollPane.setBorder(
-                BorderFactory.createLineBorder(
-                        new Color(220, 224, 230)
-                )
-        );
+        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(220, 224, 230)));
 
         JScrollBar tableScrollBar = scrollPane.getVerticalScrollBar();
         tableScrollBar.setUnitIncrement(16);
@@ -619,21 +614,96 @@ public class CustomerPanel extends JPanel {
         });
 
         btnSearch.addActionListener(e -> searchCustomers());
-
         txtSearch.addActionListener(e -> searchCustomers());
-
         btnHistory.addActionListener(e -> showPurchaseHistory());
-
         cmbFilter.addActionListener(e -> refreshTable());
-
         spinnerDays.addChangeListener(e -> refreshTable());
 
         return container;
     }
 
-    // =====================================================================
-    // DATA
-    // =====================================================================
+
+
+    private JPanel buildDaysStepper() {
+        spinnerDays = new JSpinner(
+                new SpinnerNumberModel(DEFAULT_INACTIVE_DAYS, 1, 3650, 1));
+
+        spinnerDays.setUI(new BasicSpinnerUI() {
+            @Override
+            protected Component createNextButton() {
+                return hiddenArrow();
+            }
+
+            @Override
+            protected Component createPreviousButton() {
+                return hiddenArrow();
+            }
+
+            private JButton hiddenArrow() {
+                JButton b = new JButton();
+                b.setPreferredSize(new Dimension(0, 0));
+                b.setFocusable(false);
+                return b;
+            }
+        });
+        spinnerDays.setBorder(BorderFactory.createEmptyBorder());
+
+        JSpinner.DefaultEditor ed = (JSpinner.DefaultEditor) spinnerDays.getEditor();
+        ed.setBorder(BorderFactory.createEmptyBorder());
+
+        JFormattedTextField tf = ed.getTextField();
+        tf.setHorizontalAlignment(SwingConstants.CENTER);
+        tf.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        tf.setForeground(COLOR_TEXT);
+        tf.setBackground(Color.WHITE);
+        tf.setBorder(new EmptyBorder(0, 4, 0, 4));
+
+        spinnerDays.setPreferredSize(new Dimension(56, 30));
+
+        JButton minus = createStepButton("\u2212");
+        JButton plus = createStepButton("+");
+        minus.addActionListener(e -> stepDays(-1));
+        plus.addActionListener(e -> stepDays(1));
+
+        JPanel box = new JPanel(new BorderLayout());
+        box.setBackground(Color.WHITE);
+        box.setBorder(BorderFactory.createLineBorder(COLOR_TEAL));
+        box.add(minus, BorderLayout.WEST);
+        box.add(spinnerDays, BorderLayout.CENTER);
+        box.add(plus, BorderLayout.EAST);
+        return box;
+    }
+
+    private void stepDays(int delta) {
+        int v = (Integer) spinnerDays.getValue() + delta;
+        spinnerDays.setValue(Math.max(1, Math.min(3650, v)));
+    }
+
+    private JButton createStepButton(String text) {
+        JButton b = new JButton(text);
+        b.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        b.setForeground(Color.WHITE);
+        b.setBackground(COLOR_TEAL);
+        b.setOpaque(true);
+        b.setContentAreaFilled(true);
+        b.setBorder(BorderFactory.createEmptyBorder());
+        b.setFocusPainted(false);
+        b.setPreferredSize(new Dimension(30, 30));
+        b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        b.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                b.setBackground(COLOR_TEAL_HOVER);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                b.setBackground(COLOR_TEAL);
+            }
+        });
+        return b;
+    }
+
 
     private void loadCustomers() {
         try {
@@ -641,9 +711,7 @@ public class CustomerPanel extends JPanel {
             refreshTable();
 
         } catch (Exception e) {
-            showError(
-                    "Unable to load customers.\n" + e.getMessage()
-            );
+            showError("Unable to load customers.\n" + e.getMessage());
         }
     }
 
@@ -660,9 +728,7 @@ public class CustomerPanel extends JPanel {
             refreshTable();
 
         } catch (Exception e) {
-            showError(
-                    "Search failed.\n" + e.getMessage()
-            );
+            showError("Search failed.\n" + e.getMessage());
         }
     }
 
@@ -692,10 +758,7 @@ public class CustomerPanel extends JPanel {
 
         for (Customer c : displayedCustomers) {
 
-            boolean inactive = isInactive(
-                    c.getLastPurchaseDate(),
-                    thresholdDays
-            );
+            boolean inactive = isInactive(c.getLastPurchaseDate(), thresholdDays);
 
             if ("Active Only".equals(filter) && inactive) {
                 continue;
@@ -707,18 +770,14 @@ public class CustomerPanel extends JPanel {
 
             String discount = c.getDiscountType();
 
-            if (discount == null ||
-                    discount.trim().isEmpty() ||
-                    discount.equalsIgnoreCase("No Discount")) {
+            if (discount == null
+                    || discount.trim().isEmpty()
+                    || discount.equalsIgnoreCase("No Discount")) {
 
                 discount = "None";
 
             } else {
-                discount = discount +
-                        " " +
-                        formatDiscountPercent(
-                                c.getDiscountPercent()
-                        );
+                discount = discount + " " + formatDiscountPercent(c.getDiscountPercent());
             }
 
             String idNumber = getCustomerIdNumber(c);
@@ -730,9 +789,7 @@ public class CustomerPanel extends JPanel {
                     c.getContact(),
                     idNumber,
                     discount,
-                    formatLastPurchase(
-                            c.getLastPurchaseDate()
-                    ),
+                    formatLastPurchase(c.getLastPurchaseDate()),
                     inactive ? "Inactive" : "Active"
             });
 
@@ -740,18 +797,9 @@ public class CustomerPanel extends JPanel {
         }
 
         if (shown == 0) {
-            customerModel.addRow(
-                    new Object[]{
-                            "",
-                            "No customers found.",
-                            "",
-                            "",
-                            "",
-                            "",
-                            "",
-                            ""
-                    }
-            );
+            customerModel.addRow(new Object[]{
+                    "", "No customers found.", "", "", "", "", "", ""
+            });
         }
     }
 
@@ -761,37 +809,24 @@ public class CustomerPanel extends JPanel {
         }
 
         if (percent == Math.rint(percent)) {
-            return String.format(
-                    "(%d%%)",
-                    (int) percent
-            );
+            return String.format("(%d%%)", (int) percent);
         }
 
-        return String.format(
-                "(%.1f%%)",
-                percent
-        );
+        return String.format("(%.1f%%)", percent);
     }
 
-    private boolean isInactive(
-            String lastPurchaseDate,
-            int thresholdDays) {
+    private boolean isInactive(String lastPurchaseDate, int thresholdDays) {
 
-        if (lastPurchaseDate == null ||
-                lastPurchaseDate.trim().isEmpty() ||
-                lastPurchaseDate.equalsIgnoreCase("N/A")) {
+        if (lastPurchaseDate == null
+                || lastPurchaseDate.trim().isEmpty()
+                || lastPurchaseDate.equalsIgnoreCase("N/A")) {
 
             return true;
         }
 
         try {
-            LocalDate last = LocalDate.parse(
-                    lastPurchaseDate.trim()
-            );
-
-            return last.isBefore(
-                    LocalDate.now().minusDays(thresholdDays)
-            );
+            LocalDate last = LocalDate.parse(lastPurchaseDate.trim());
+            return last.isBefore(LocalDate.now().minusDays(thresholdDays));
 
         } catch (DateTimeParseException e) {
             return true;
@@ -799,9 +834,9 @@ public class CustomerPanel extends JPanel {
     }
 
     private String formatLastPurchase(String date) {
-        if (date == null ||
-                date.trim().isEmpty() ||
-                date.equalsIgnoreCase("N/A")) {
+        if (date == null
+                || date.trim().isEmpty()
+                || date.equalsIgnoreCase("N/A")) {
 
             return "No purchase yet";
         }
@@ -809,589 +844,253 @@ public class CustomerPanel extends JPanel {
         return date;
     }
 
-    // =====================================================================
-    // PURCHASE HISTORY
-    // =====================================================================
+
 
     private void showPurchaseHistory() {
 
         int selectedRow = customerTable.getSelectedRow();
 
         if (selectedRow == -1) {
-            showMessage(
-                    "Purchase History",
-                    "Purchase History",
-                    "Please select a customer first."
-            );
+            showMessage("Purchase History", "Purchase History",
+                    "Please select a customer first.");
             return;
         }
 
-        Object idValue =
-                customerModel.getValueAt(
-                        selectedRow,
-                        0
-                );
+        Object idValue = customerModel.getValueAt(selectedRow, 0);
 
         if (!(idValue instanceof Integer)) {
-            showMessage(
-                    "Purchase History",
-                    "Purchase History",
-                    "Please select a valid customer."
-            );
+            showMessage("Purchase History", "Purchase History",
+                    "Please select a valid customer.");
             return;
         }
 
         int customerId = (Integer) idValue;
 
-        String customerName =
-                customerModel
-                        .getValueAt(selectedRow, 1)
-                        .toString();
+        String customerName = customerModel.getValueAt(selectedRow, 1).toString();
 
-        List<String[]> history =
-                CustomerDAO.getPurchaseHistory(customerId);
+        List<String[]> history = CustomerDAO.getPurchaseHistory(customerId);
 
         if (history.isEmpty()) {
-            showMessage(
-                    "Purchase History",
-                    customerName + " - Orders",
-                    "No purchase history found for "
-                            + customerName
-                            + "."
-            );
+            showMessage("Purchase History", customerName + " - Orders",
+                    "No purchase history found for " + customerName + ".");
             return;
         }
 
-        DefaultTableModel historyModel =
-                new DefaultTableModel(
-                        new String[]{
-                                "Order No.",
-                                "Purchase Date",
-                                "Amount"
-                        },
-                        0
-                ) {
-                    @Override
-                    public boolean isCellEditable(
-                            int row,
-                            int column) {
-
-                        return false;
-                    }
-                };
+        DefaultTableModel historyModel = new DefaultTableModel(
+                new String[]{"Order No.", "Purchase Date", "Amount"}, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
 
         for (String[] purchase : history) {
             historyModel.addRow(purchase);
         }
 
-        JTable historyTable =
-                new JTable(historyModel);
+        JTable historyTable = new JTable(historyModel);
 
         historyTable.setRowHeight(28);
-        historyTable.setFont(
-                new Font(
-                        "Segoe UI",
-                        Font.PLAIN,
-                        12
-                )
-        );
-
+        historyTable.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         historyTable.setShowVerticalLines(false);
+        historyTable.setGridColor(new Color(235, 238, 242));
+        historyTable.setSelectionBackground(COLOR_TEAL_LIGHT);
+        historyTable.setSelectionForeground(COLOR_TEXT);
+        historyTable.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 12));
+        historyTable.getTableHeader().setBackground(COLOR_DIALOG_BG);
+        historyTable.getTableHeader().setForeground(COLOR_TEXT);
+        historyTable.getTableHeader().setReorderingAllowed(false);
+        historyTable.getTableHeader().setResizingAllowed(false);
 
-        historyTable.setGridColor(
-                new Color(235, 238, 242)
-        );
+        JScrollPane scroll = new JScrollPane(historyTable);
 
-        historyTable.setSelectionBackground(
-                new Color(204, 235, 231)
-        );
-
-        historyTable.setSelectionForeground(
-                COLOR_TEXT
-        );
-
-        historyTable.getTableHeader().setFont(
-                new Font(
-                        "Segoe UI",
-                        Font.BOLD,
-                        12
-                )
-        );
-
-        historyTable.getTableHeader().setBackground(
-                COLOR_DIALOG_BG
-        );
-
-        historyTable.getTableHeader().setForeground(
-                COLOR_TEXT
-        );
-
-        JScrollPane scroll =
-                new JScrollPane(historyTable);
-
-        scroll.setBorder(
-                BorderFactory.createLineBorder(
-                        COLOR_DIALOG_LINE
-                )
-        );
-
-        scroll.getViewport().setBackground(
-                Color.WHITE
-        );
-
-        scroll.setPreferredSize(
-                new Dimension(
-                        500,
-                        Math.min(
-                                history.size() * 28 + 30,
-                                220
-                        )
-                )
-        );
-
-        scroll.getVerticalScrollBar()
-                .setUnitIncrement(16);
-
-        scroll.getVerticalScrollBar()
-                .setBlockIncrement(80);
-
+        scroll.setBorder(BorderFactory.createLineBorder(COLOR_DIALOG_LINE));
+        scroll.getViewport().setBackground(Color.WHITE);
+        scroll.setPreferredSize(new Dimension(500,
+        Math.min(history.size() * 28 + 30, 220)));
         scroll.setWheelScrollingEnabled(true);
 
-        JPanel body =
-                new JPanel(new BorderLayout());
+        applyModernScrollBar(scroll);                     
+        scroll.getVerticalScrollBar().setBlockIncrement(80);
 
+        JPanel body = new JPanel(new BorderLayout());
         body.setBackground(Color.WHITE);
+        body.setBorder(new EmptyBorder(16, 16, 16, 16));
+        body.add(scroll, BorderLayout.CENTER);
 
-        body.setBorder(
-                new EmptyBorder(
-                        16,
-                        16,
-                        16,
-                        16
-                )
-        );
+        JDialog dialog = createDialog("Purchase History");
 
-        body.add(
-                scroll,
-                BorderLayout.CENTER
-        );
+        JButton btnOk = createTealButton("OK");
+        btnOk.addActionListener(e -> dialog.dispose());
 
-        JDialog dialog =
-                createDialog("Purchase History");
-
-        JButton btnOk =
-                createTealButton("OK");
-
-        btnOk.addActionListener(
-                e -> dialog.dispose()
-        );
-
-        showDialog(
-                dialog,
-                buildDialogHeader(
-                        customerName + " - Orders"
-                ),
+        showDialog(dialog,
+                buildDialogHeader(customerName + " - Orders"),
                 body,
                 buildDialogFooter(btnOk),
-                btnOk
-        );
+                btnOk);
     }
 
-    // =====================================================================
-    // STYLED DIALOGS
-    // =====================================================================
 
-    private void showMessage(
-            String title,
-            String header,
-            String message) {
-
-        openMessageDialog(
-                title,
-                header,
-                message,
-                false
-        );
+    private void showMessage(String title, String header, String message) {
+        openMessageDialog(title, header, message, false);
     }
 
     private void showSuccess(String message) {
-        openMessageDialog(
-                "Success",
-                "Customer Management",
-                message,
-                true
-        );
+        openMessageDialog("Success", "Customer Management", message, true);
     }
 
-    private void openMessageDialog(
-            String title,
-            String header,
-            String message,
-            boolean success) {
+    private void openMessageDialog(String title, String header,
+                                   String message, boolean success) {
 
-        JDialog dialog =
-                createDialog(title);
+        JDialog dialog = createDialog(title);
 
-        JButton btnOk =
-                createTealButton("OK");
+        JButton btnOk = createTealButton("OK");
+        btnOk.addActionListener(e -> dialog.dispose());
 
-        btnOk.addActionListener(
-                e -> dialog.dispose()
-        );
-
-        showDialog(
-                dialog,
+        showDialog(dialog,
                 buildDialogHeader(header),
-                buildMessageBody(
-                        message,
-                        success
-                ),
+                buildMessageBody(message, success),
                 buildDialogFooter(btnOk),
-                btnOk
-        );
+                btnOk);
     }
 
-    private boolean showConfirm(
-            String title,
-            String header,
-            String message,
-            String confirmText) {
+    private boolean showConfirm(String title, String header,
+                                String message, String confirmText) {
 
-        JDialog dialog =
-                createDialog(title);
+        JDialog dialog = createDialog(title);
 
         boolean[] result = {false};
 
-        JButton btnConfirm =
-                createTealButton(confirmText);
-
+        JButton btnConfirm = createTealButton(confirmText);
         btnConfirm.addActionListener(e -> {
             result[0] = true;
             dialog.dispose();
         });
 
-        JButton btnCancel =
-                createGrayOutlineButton("Cancel");
+        JButton btnCancel = createGrayOutlineButton("Cancel");
+        btnCancel.addActionListener(e -> dialog.dispose());
 
-        btnCancel.addActionListener(
-                e -> dialog.dispose()
-        );
-
-        showDialog(
-                dialog,
+        showDialog(dialog,
                 buildDialogHeader(header),
-                buildMessageBody(
-                        message,
-                        false
-                ),
-                buildDialogFooter(
-                        btnCancel,
-                        btnConfirm
-                ),
-                btnConfirm
-        );
+                buildMessageBody(message, false),
+                buildDialogFooter(btnCancel, btnConfirm),
+                btnConfirm);
 
         return result[0];
     }
 
     private JDialog createDialog(String title) {
-        Window owner =
-                SwingUtilities.getWindowAncestor(this);
-
-        return new JDialog(
-                owner,
-                title,
-                Dialog.ModalityType.APPLICATION_MODAL
-        );
+        Window owner = SwingUtilities.getWindowAncestor(this);
+        return new JDialog(owner, title, Dialog.ModalityType.APPLICATION_MODAL);
     }
 
-    private void showDialog(
-            JDialog dialog,
-            JPanel header,
-            JPanel body,
-            JPanel footer,
-            JButton defaultButton) {
+    private void showDialog(JDialog dialog, JPanel header, JPanel body,
+                            JPanel footer, JButton defaultButton) {
 
-        dialog.setLayout(
-                new BorderLayout()
-        );
-
-        dialog.add(
-                header,
-                BorderLayout.NORTH
-        );
-
-        dialog.add(
-                body,
-                BorderLayout.CENTER
-        );
-
-        dialog.add(
-                footer,
-                BorderLayout.SOUTH
-        );
-
-        dialog.getRootPane()
-                .setDefaultButton(defaultButton);
-
+        dialog.setLayout(new BorderLayout());
+        dialog.add(header, BorderLayout.NORTH);
+        dialog.add(body, BorderLayout.CENTER);
+        dialog.add(footer, BorderLayout.SOUTH);
+        dialog.getRootPane().setDefaultButton(defaultButton);
         dialog.pack();
-
-        dialog.setMinimumSize(
-                new Dimension(420, 0)
-        );
-
+        dialog.setMinimumSize(new Dimension(420, 0));
         dialog.setResizable(false);
-
         dialog.setLocationRelativeTo(this);
-
         dialog.setVisible(true);
     }
 
     private JPanel buildDialogHeader(String text) {
 
-        JLabel lbl =
-                new JLabel(text);
-
-        lbl.setFont(
-                new Font(
-                        "Segoe UI",
-                        Font.BOLD,
-                        13
-                )
-        );
-
+        JLabel lbl = new JLabel(text);
+        lbl.setFont(new Font("Segoe UI", Font.BOLD, 13));
         lbl.setForeground(COLOR_TEXT);
 
-        JPanel header =
-                new JPanel(new BorderLayout());
+        JPanel header = new JPanel(new BorderLayout());
+        header.setBackground(COLOR_DIALOG_BG);
+        header.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, COLOR_DIALOG_LINE),
+                new EmptyBorder(12, 16, 12, 16)));
 
-        header.setBackground(
-                COLOR_DIALOG_BG
-        );
-
-        header.setBorder(
-                BorderFactory.createCompoundBorder(
-                        BorderFactory.createMatteBorder(
-                                0,
-                                0,
-                                1,
-                                0,
-                                COLOR_DIALOG_LINE
-                        ),
-                        new EmptyBorder(
-                                12,
-                                16,
-                                12,
-                                16
-                        )
-                )
-        );
-
-        header.add(
-                lbl,
-                BorderLayout.WEST
-        );
-
+        header.add(lbl, BorderLayout.WEST);
         return header;
     }
 
-    private JPanel buildMessageBody(
-            String message,
-            boolean success) {
+    private JPanel buildMessageBody(String message, boolean success) {
 
-        String html =
-                "<html><div style='width:280px;'>"
-                        + message.replace(
-                                "\n",
-                                "<br>"
-                        )
-                        + "</div></html>";
+        String html = "<html><div style='width:280px;'>"
+                + message.replace("\n", "<br>")
+                + "</div></html>";
 
-        JLabel lblMessage =
-                new JLabel(html);
+        JLabel lblMessage = new JLabel(html);
+        lblMessage.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        lblMessage.setForeground(COLOR_TEXT);
 
-        lblMessage.setFont(
-                new Font(
-                        "Segoe UI",
-                        Font.PLAIN,
-                        13
-                )
-        );
+        JComponent icon = new JComponent() {
 
-        lblMessage.setForeground(
-                COLOR_TEXT
-        );
+            @Override
+            protected void paintComponent(Graphics g) {
 
-        JComponent icon =
-                new JComponent() {
+                Graphics2D g2 = (Graphics2D) g.create();
 
-                    @Override
-                    protected void paintComponent(
-                            Graphics g) {
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                        RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING,
+                        RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
 
-                        Graphics2D g2 =
-                                (Graphics2D) g.create();
+                g2.setColor(COLOR_TEAL);
+                g2.fillOval(0, 0, getWidth() - 1, getHeight() - 1);
 
-                        g2.setRenderingHint(
-                                RenderingHints.KEY_ANTIALIASING,
-                                RenderingHints.VALUE_ANTIALIAS_ON
-                        );
+                g2.setColor(Color.WHITE);
 
-                        g2.setRenderingHint(
-                                RenderingHints.KEY_TEXT_ANTIALIASING,
-                                RenderingHints.VALUE_TEXT_ANTIALIAS_ON
-                        );
+                if (success) {
 
-                        g2.setColor(
-                                COLOR_TEAL
-                        );
+                    g2.setStroke(new BasicStroke(2.6f,
+                            BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 
-                        g2.fillOval(
-                                0,
-                                0,
-                                getWidth() - 1,
-                                getHeight() - 1
-                        );
+                    g2.drawPolyline(
+                            new int[]{9, 14, 23},
+                            new int[]{17, 22, 11},
+                            3);
 
-                        g2.setColor(Color.WHITE);
+                } else {
 
-                        if (success) {
+                    g2.setFont(new Font("Segoe UI", Font.BOLD, 18));
 
-                            g2.setStroke(
-                                    new BasicStroke(
-                                            2.6f,
-                                            BasicStroke.CAP_ROUND,
-                                            BasicStroke.JOIN_ROUND
-                                    )
-                            );
+                    FontMetrics fm = g2.getFontMetrics();
 
-                            g2.drawPolyline(
-                                    new int[]{
-                                            9,
-                                            14,
-                                            23
-                                    },
-                                    new int[]{
-                                            17,
-                                            22,
-                                            11
-                                    },
-                                    3
-                            );
+                    int x = (getWidth() - fm.stringWidth("!")) / 2;
+                    int y = (getHeight() - fm.getHeight()) / 2 + fm.getAscent();
 
-                        } else {
+                    g2.drawString("!", x, y);
+                }
 
-                            g2.setFont(
-                                    new Font(
-                                            "Segoe UI",
-                                            Font.BOLD,
-                                            18
-                                    )
-                            );
+                g2.dispose();
+            }
+        };
 
-                            FontMetrics fm =
-                                    g2.getFontMetrics();
+        icon.setPreferredSize(new Dimension(32, 32));
 
-                            int x =
-                                    (getWidth()
-                                            - fm.stringWidth("!"))
-                                            / 2;
-
-                            int y =
-                                    (getHeight()
-                                            - fm.getHeight())
-                                            / 2
-                                            + fm.getAscent();
-
-                            g2.drawString(
-                                    "!",
-                                    x,
-                                    y
-                            );
-                        }
-
-                        g2.dispose();
-                    }
-                };
-
-        icon.setPreferredSize(
-                new Dimension(32, 32)
-        );
-
-        JPanel iconWrap =
-                new JPanel(new BorderLayout());
-
+        JPanel iconWrap = new JPanel(new BorderLayout());
         iconWrap.setOpaque(false);
+        iconWrap.add(icon, BorderLayout.NORTH);
 
-        iconWrap.add(
-                icon,
-                BorderLayout.NORTH
-        );
+        JPanel body = new JPanel(new BorderLayout(14, 0));
+        body.setBackground(Color.WHITE);
+        body.setBorder(new EmptyBorder(24, 20, 24, 20));
 
-        JPanel body =
-                new JPanel(
-                        new BorderLayout(14, 0)
-                );
-
-        body.setBackground(
-                Color.WHITE
-        );
-
-        body.setBorder(
-                new EmptyBorder(
-                        24,
-                        20,
-                        24,
-                        20
-                )
-        );
-
-        body.add(
-                iconWrap,
-                BorderLayout.WEST
-        );
-
-        body.add(
-                lblMessage,
-                BorderLayout.CENTER
-        );
+        body.add(iconWrap, BorderLayout.WEST);
+        body.add(lblMessage, BorderLayout.CENTER);
 
         return body;
     }
 
-    private JPanel buildDialogFooter(
-            JButton... buttons) {
+    private JPanel buildDialogFooter(JButton... buttons) {
 
-        JPanel footer =
-                new JPanel(
-                        new FlowLayout(
-                                FlowLayout.RIGHT,
-                                8,
-                                0
-                        )
-                );
-
-        footer.setBackground(
-                COLOR_DIALOG_BG
-        );
-
-        footer.setBorder(
-                BorderFactory.createCompoundBorder(
-                        BorderFactory.createMatteBorder(
-                                1,
-                                0,
-                                0,
-                                0,
-                                COLOR_DIALOG_LINE
-                        ),
-                        new EmptyBorder(
-                                10,
-                                16,
-                                10,
-                                8
-                        )
-                )
-        );
+        JPanel footer = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        footer.setBackground(COLOR_DIALOG_BG);
+        footer.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(1, 0, 0, 0, COLOR_DIALOG_LINE),
+                new EmptyBorder(10, 16, 10, 8)));
 
         for (JButton b : buttons) {
             footer.add(b);
@@ -1402,409 +1101,176 @@ public class CustomerPanel extends JPanel {
 
     private JButton createTealButton(String text) {
 
-        JButton btn =
-                new JButton(text);
+        JButton btn = new JButton(text);
 
-        btn.setFont(
-                new Font(
-                        "Segoe UI",
-                        Font.BOLD,
-                        12
-                )
-        );
-
-        btn.setBackground(
-                COLOR_TEAL
-        );
-
-        btn.setForeground(
-                Color.WHITE
-        );
-
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btn.setBackground(COLOR_TEAL);
+        btn.setForeground(Color.WHITE);
         btn.setFocusPainted(false);
+        btn.setBorder(new EmptyBorder(8, 26, 8, 26));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        btn.setBorder(
-                new EmptyBorder(
-                        8,
-                        26,
-                        8,
-                        26
-                )
-        );
+        btn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                btn.setBackground(COLOR_TEAL_HOVER);
+            }
 
-        btn.setCursor(
-                new Cursor(
-                        Cursor.HAND_CURSOR
-                )
-        );
-
-        btn.addMouseListener(
-                new MouseAdapter() {
-
-                    @Override
-                    public void mouseEntered(
-                            MouseEvent e) {
-
-                        btn.setBackground(
-                                COLOR_TEAL_HOVER
-                        );
-                    }
-
-                    @Override
-                    public void mouseExited(
-                            MouseEvent e) {
-
-                        btn.setBackground(
-                                COLOR_TEAL
-                        );
-                    }
-                }
-        );
+            @Override
+            public void mouseExited(MouseEvent e) {
+                btn.setBackground(COLOR_TEAL);
+            }
+        });
 
         return btn;
     }
 
-    private JButton createGrayOutlineButton(
-            String text) {
+    private JButton createGrayOutlineButton(String text) {
 
-        JButton btn =
-                new JButton(text);
+        JButton btn = new JButton(text);
 
-        btn.setFont(
-                new Font(
-                        "Segoe UI",
-                        Font.BOLD,
-                        12
-                )
-        );
-
-        btn.setBackground(
-                Color.WHITE
-        );
-
-        btn.setForeground(
-                COLOR_TEXT
-        );
-
+        btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btn.setBackground(Color.WHITE);
+        btn.setForeground(COLOR_TEXT);
         btn.setFocusPainted(false);
+        btn.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(COLOR_BORDER),
+                new EmptyBorder(7, 25, 7, 25)));
+        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        btn.setBorder(
-                BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(
-                                COLOR_BORDER
-                        ),
-                        new EmptyBorder(
-                                7,
-                                25,
-                                7,
-                                25
-                        )
-                )
-        );
+        btn.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                btn.setBackground(new Color(240, 242, 245));
+            }
 
-        btn.setCursor(
-                new Cursor(
-                        Cursor.HAND_CURSOR
-                )
-        );
-
-        btn.addMouseListener(
-                new MouseAdapter() {
-
-                    @Override
-                    public void mouseEntered(
-                            MouseEvent e) {
-
-                        btn.setBackground(
-                                new Color(
-                                        240,
-                                        242,
-                                        245
-                                )
-                        );
-                    }
-
-                    @Override
-                    public void mouseExited(
-                            MouseEvent e) {
-
-                        btn.setBackground(
-                                Color.WHITE
-                        );
-                    }
-                }
-        );
+            @Override
+            public void mouseExited(MouseEvent e) {
+                btn.setBackground(Color.WHITE);
+            }
+        });
 
         return btn;
     }
 
     private void showError(String message) {
-        showMessage(
-                "Error",
-                "Error",
-                message
-        );
+        showMessage("Error", "Error", message);
     }
 
-    // =====================================================================
-    // VALIDATION
-    // =====================================================================
+
 
     private boolean validateForm() {
 
         boolean valid = true;
 
-        String firstName =
-                txtFirstName.getText().trim();
+        String firstName = txtFirstName.getText().trim();
 
         if (firstName.isEmpty()) {
-
-            setFieldError(
-                    txtFirstName,
-                    lblFirstNameError,
-                    "First Name is required."
-            );
-
+            setFieldError(txtFirstName, lblFirstNameError, "First Name is required.");
             valid = false;
 
-        } else if (!firstName.matches(
-                "[a-zA-Z .'-]+")) {
-
-            setFieldError(
-                    txtFirstName,
-                    lblFirstNameError,
-                    "Letters only."
-            );
-
+        } else if (!firstName.matches("[a-zA-Z .'-]+")) {
+            setFieldError(txtFirstName, lblFirstNameError, "Letters only.");
             valid = false;
 
         } else {
-            clearFieldError(
-                    txtFirstName,
-                    lblFirstNameError
-            );
+            clearFieldError(txtFirstName, lblFirstNameError);
         }
 
-        String lastName =
-                txtLastName.getText().trim();
+        String lastName = txtLastName.getText().trim();
 
         if (lastName.isEmpty()) {
-
-            setFieldError(
-                    txtLastName,
-                    lblLastNameError,
-                    "Last Name is required."
-            );
-
+            setFieldError(txtLastName, lblLastNameError, "Last Name is required.");
             valid = false;
 
-        } else if (!lastName.matches(
-                "[a-zA-Z .'-]+")) {
-
-            setFieldError(
-                    txtLastName,
-                    lblLastNameError,
-                    "Letters only."
-            );
-
+        } else if (!lastName.matches("[a-zA-Z .'-]+")) {
+            setFieldError(txtLastName, lblLastNameError, "Letters only.");
             valid = false;
 
         } else {
-            clearFieldError(
-                    txtLastName,
-                    lblLastNameError
-            );
+            clearFieldError(txtLastName, lblLastNameError);
         }
 
-        String contact =
-                txtContactNumber.getText().trim();
+        String contact = txtContactNumber.getText().trim();
 
         if (contact.isEmpty()) {
-
-            setFieldError(
-                    txtContactNumber,
-                    lblContactError,
-                    "Contact Number is required."
-            );
-
+            setFieldError(txtContactNumber, lblContactError, "Contact Number is required.");
             valid = false;
 
-        } else if (!contact.matches(
-                "\\d{11}")) {
-
-            setFieldError(
-                    txtContactNumber,
-                    lblContactError,
-                    "Must be exactly 11 digits."
-            );
-
+        } else if (!contact.matches("\\d{11}")) {
+            setFieldError(txtContactNumber, lblContactError, "Must be exactly 11 digits.");
             valid = false;
 
         } else {
-            clearFieldError(
-                    txtContactNumber,
-                    lblContactError
-            );
+            clearFieldError(txtContactNumber, lblContactError);
         }
 
-        String address =
-                txtAddress.getText().trim();
+        String address = txtAddress.getText().trim();
 
         if (address.isEmpty()) {
-
-            setFieldError(
-                    txtAddress,
-                    lblAddressError,
-                    "Address is required."
-            );
-
+            setFieldError(txtAddress, lblAddressError, "Address is required.");
             valid = false;
 
         } else {
-            clearFieldError(
-                    txtAddress,
-                    lblAddressError
-            );
+            clearFieldError(txtAddress, lblAddressError);
         }
 
-        String discountType =
-                String.valueOf(
-                        cmbDiscountType.getSelectedItem()
-                );
+        String discountType = String.valueOf(cmbDiscountType.getSelectedItem());
+        String discountText = txtDiscountPercent.getText().trim();
 
-        String discountText =
-                txtDiscountPercent.getText().trim();
-
-        if ("PWD".equals(discountType) &&
-                txtPwdId.getText().trim().isEmpty()) {
-
-            showMessage(
-                    "Discount Details",
-                    "PWD Discount",
-                    "Please enter the PWD ID Number."
-            );
-
+        if ("PWD".equals(discountType) && txtPwdId.getText().trim().isEmpty()) {
+            showMessage("Discount Details", "PWD Discount",
+                    "Please enter the PWD ID Number.");
             valid = false;
         }
 
-        if ("Senior Citizen".equals(discountType) &&
-                txtSeniorCitizenId.getText().trim().isEmpty()) {
-
-            showMessage(
-                    "Discount Details",
-                    "Senior Citizen Discount",
-                    "Please enter the Senior Citizen ID."
-            );
-
+        if ("Senior Citizen".equals(discountType)
+                && txtSeniorCitizenId.getText().trim().isEmpty()) {
+            showMessage("Discount Details", "Senior Citizen Discount",
+                    "Please enter the Senior Citizen ID.");
             valid = false;
         }
 
         try {
+            double discount = discountText.isEmpty()
+                    ? 0
+                    : Double.parseDouble(discountText);
 
-            double discount =
-                    discountText.isEmpty()
-                            ? 0
-                            : Double.parseDouble(
-                                    discountText
-                            );
-
-            if (discount < 0 ||
-                    discount > 100) {
-
-                showMessage(
-                        "Discount Details",
-                        "Invalid Discount",
-                        "Discount must be between 0 and 100."
-                );
-
+            if (discount < 0 || discount > 100) {
+                showMessage("Discount Details", "Invalid Discount",
+                        "Discount must be between 0 and 100.");
                 valid = false;
             }
 
         } catch (NumberFormatException e) {
-
-            showMessage(
-                    "Discount Details",
-                    "Invalid Discount",
-                    "Please enter a valid discount percentage."
-            );
-
+            showMessage("Discount Details", "Invalid Discount",
+                    "Please enter a valid discount percentage.");
             valid = false;
         }
 
         return valid;
     }
 
-    private void setFieldError(
-            JTextField field,
-            JLabel errorLabel,
-            String message) {
-
-        field.setBorder(
-                BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(
-                                COLOR_BORDER_ERROR,
-                                1
-                        ),
-                        BorderFactory.createEmptyBorder(
-                                6,
-                                8,
-                                6,
-                                8
-                        )
-                )
-        );
-
+    private void setFieldError(JTextField field, JLabel errorLabel, String message) {
+        field.putClientProperty("hasError", true);
+        field.setBorder(fieldBorder(COLOR_BORDER_ERROR));
         errorLabel.setText(message);
     }
 
-    private void clearFieldError(
-            JTextField field,
-            JLabel errorLabel) {
-
-        field.setBorder(
-                BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(
-                                COLOR_BORDER,
-                                1
-                        ),
-                        BorderFactory.createEmptyBorder(
-                                6,
-                                8,
-                                6,
-                                8
-                        )
-                )
-        );
-
+    private void clearFieldError(JTextField field, JLabel errorLabel) {
+        field.putClientProperty("hasError", false);
+        field.setBorder(fieldBorder(COLOR_BORDER));
         errorLabel.setText(" ");
     }
 
     private void clearAllFieldErrors() {
-
-        clearFieldError(
-                txtFirstName,
-                lblFirstNameError
-        );
-
-        clearFieldError(
-                txtLastName,
-                lblLastNameError
-        );
-
-        clearFieldError(
-                txtContactNumber,
-                lblContactError
-        );
-
-        clearFieldError(
-                txtAddress,
-                lblAddressError
-        );
+        clearFieldError(txtFirstName, lblFirstNameError);
+        clearFieldError(txtLastName, lblLastNameError);
+        clearFieldError(txtContactNumber, lblContactError);
+        clearFieldError(txtAddress, lblAddressError);
     }
 
-    // =====================================================================
-    // SAVE / DELETE / LOAD / CLEAR
-    // =====================================================================
+
 
     private void saveCustomer() {
 
@@ -1812,117 +1278,54 @@ public class CustomerPanel extends JPanel {
             return;
         }
 
-        String firstName =
-                txtFirstName.getText().trim();
+        String firstName = txtFirstName.getText().trim();
+        String lastName = txtLastName.getText().trim();
+        String contact = txtContactNumber.getText().trim();
+        String address = txtAddress.getText().trim();
+        String pwdId = txtPwdId.getText().trim();
+        String seniorCitizenId = txtSeniorCitizenId.getText().trim();
+        String discountType = String.valueOf(cmbDiscountType.getSelectedItem());
 
-        String lastName =
-                txtLastName.getText().trim();
+        String percentText = txtDiscountPercent.getText().trim();
+        double discountPercent = Double.parseDouble(percentText.isEmpty() ? "0" : percentText);
 
-        String contact =
-                txtContactNumber.getText().trim();
-
-        String address =
-                txtAddress.getText().trim();
-
-        String pwdId =
-                txtPwdId.getText().trim();
-
-        String seniorCitizenId =
-                txtSeniorCitizenId.getText().trim();
-
-        String discountType =
-                String.valueOf(
-                        cmbDiscountType.getSelectedItem()
-                );
-
-        double discountPercent =
-                Double.parseDouble(
-                        txtDiscountPercent
-                                .getText()
-                                .trim()
-                                .isEmpty()
-                                ? "0"
-                                : txtDiscountPercent
-                                        .getText()
-                                        .trim()
-                );
-
-        boolean isEdit =
-                !txtCustomerId
-                        .getText()
-                        .trim()
-                        .isEmpty();
+        boolean isEdit = !txtCustomerId.getText().trim().isEmpty();
 
         try {
 
             if (isEdit) {
 
-                int id =
-                        Integer.parseInt(
-                                txtCustomerId
-                                        .getText()
-                                        .trim()
-                        );
+                int id = Integer.parseInt(txtCustomerId.getText().trim());
 
-                String dateRegistered =
-                        txtDateRegistered
-                                .getText()
-                                .trim();
+                String dateRegistered = txtDateRegistered.getText().trim();
 
-                if (dateRegistered.isEmpty() ||
-                        dateRegistered.equalsIgnoreCase(
-                                "Not available")) {
+                if (dateRegistered.isEmpty()
+                        || dateRegistered.equalsIgnoreCase("Not available")) {
 
-                    dateRegistered =
-                            LocalDate.now().toString();
+                    dateRegistered = LocalDate.now().toString();
                 }
 
-                Customer customer =
-                        new Customer(
-                                id,
-                                lastName,
-                                firstName,
-                                contact,
-                                address,
-                                null,
-                                dateRegistered,
-                                pwdId,
-                                seniorCitizenId,
-                                discountType,
-                                discountPercent
-                        );
+                Customer customer = new Customer(
+                        id, lastName, firstName, contact, address,
+                        null, dateRegistered, pwdId, seniorCitizenId,
+                        discountType, discountPercent);
 
                 CustomerDAO.updateCustomer(customer);
 
-                showSuccess(
-                        "Customer updated successfully."
-                );
+                showSuccess("Customer updated successfully.");
 
             } else {
 
-                String today =
-                        LocalDate.now().toString();
+                String today = LocalDate.now().toString();
 
-                Customer customer =
-                        new Customer(
-                                0,
-                                lastName,
-                                firstName,
-                                contact,
-                                address,
-                                "N/A",
-                                today,
-                                pwdId,
-                                seniorCitizenId,
-                                discountType,
-                                discountPercent
-                        );
+                Customer customer = new Customer(
+                        0, lastName, firstName, contact, address,
+                        "N/A", today, pwdId, seniorCitizenId,
+                        discountType, discountPercent);
 
                 CustomerDAO.addCustomer(customer);
 
-                showSuccess(
-                        "Customer added successfully."
-                );
+                showSuccess("Customer added successfully.");
             }
 
             clearForm();
@@ -1932,46 +1335,31 @@ public class CustomerPanel extends JPanel {
 
             e.printStackTrace();
 
-            showError(
-                    "Unable to save customer.\n"
-                            + e.getMessage()
-            );
+            showError("Unable to save customer.\n" + e.getMessage());
         }
     }
 
     private void deleteCustomer() {
 
-        int selectedRow =
-                customerTable.getSelectedRow();
+        int selectedRow = customerTable.getSelectedRow();
 
         if (selectedRow == -1) {
-
-            showMessage(
-                    "No Customer Selected",
-                    "Customer Management",
-                    "Please select a customer to delete."
-            );
-
+            showMessage("No Customer Selected", "Customer Management",
+                    "Please select a customer to delete.");
             return;
         }
 
-        Object idValue =
-                customerModel.getValueAt(
-                        selectedRow,
-                        0
-                );
+        Object idValue = customerModel.getValueAt(selectedRow, 0);
 
         if (!(idValue instanceof Integer)) {
             return;
         }
 
-        boolean confirmed =
-                showConfirm(
-                        "Confirm Delete",
-                        "Delete Customer",
-                        "Are you sure you want to delete this customer?",
-                        "Delete"
-                );
+        boolean confirmed = showConfirm(
+                "Confirm Delete",
+                "Delete Customer",
+                "Are you sure you want to delete this customer?",
+                "Delete");
 
         if (!confirmed) {
             return;
@@ -1979,42 +1367,27 @@ public class CustomerPanel extends JPanel {
 
         try {
 
-            CustomerDAO.deleteCustomer(
-                    (Integer) idValue
-            );
+            CustomerDAO.deleteCustomer((Integer) idValue);
 
-            showSuccess(
-                    "Customer deleted successfully."
-            );
+            showSuccess("Customer deleted successfully.");
 
             clearForm();
             loadCustomers();
 
         } catch (Exception e) {
-
-            showError(
-                    "Unable to delete customer.\n"
-                            + e.getMessage()
-            );
+            showError("Unable to delete customer.\n" + e.getMessage());
         }
     }
 
     private void loadSelectedCustomer() {
 
-        int row =
-                customerTable.getSelectedRow();
+        int row = customerTable.getSelectedRow();
 
-        if (row == -1 ||
-                displayedCustomers == null) {
-
+        if (row == -1 || displayedCustomers == null) {
             return;
         }
 
-        Object idValue =
-                customerModel.getValueAt(
-                        row,
-                        0
-                );
+        Object idValue = customerModel.getValueAt(row, 0);
 
         if (!(idValue instanceof Integer)) {
             return;
@@ -2025,7 +1398,6 @@ public class CustomerPanel extends JPanel {
         Customer match = null;
 
         for (Customer c : displayedCustomers) {
-
             if (c.getId() == id) {
                 match = c;
                 break;
@@ -2036,72 +1408,32 @@ public class CustomerPanel extends JPanel {
             return;
         }
 
-        txtCustomerId.setText(
-                String.valueOf(match.getId())
-        );
+        txtCustomerId.setText(String.valueOf(match.getId()));
 
-        txtFirstName.setText(
-                match.getFirstName() == null
-                        ? ""
-                        : match.getFirstName()
-        );
-
-        txtLastName.setText(
-                match.getLastName() == null
-                        ? ""
-                        : match.getLastName()
-        );
-
-        txtContactNumber.setText(
-                match.getContact()
-        );
-
-        txtAddress.setText(
-                match.getAddress() == null
-                        ? ""
-                        : match.getAddress()
-        );
-
-        txtPwdId.setText(
-                match.getPwdId() == null
-                        ? ""
-                        : match.getPwdId()
-        );
-
+        txtFirstName.setText(match.getFirstName() == null ? "" : match.getFirstName());
+        txtLastName.setText(match.getLastName() == null ? "" : match.getLastName());
+        txtContactNumber.setText(match.getContact());
+        txtAddress.setText(match.getAddress() == null ? "" : match.getAddress());
+        txtPwdId.setText(match.getPwdId() == null ? "" : match.getPwdId());
         txtSeniorCitizenId.setText(
-                match.getSeniorCitizenId() == null
-                        ? ""
-                        : match.getSeniorCitizenId()
-        );
+                match.getSeniorCitizenId() == null ? "" : match.getSeniorCitizenId());
 
         cmbDiscountType.setSelectedItem(
-                match.getDiscountType() == null ||
-                        match.getDiscountType()
-                                .trim()
-                                .isEmpty()
+                match.getDiscountType() == null
+                        || match.getDiscountType().trim().isEmpty()
                         ? "No Discount"
-                        : match.getDiscountType()
-        );
+                        : match.getDiscountType());
 
-        txtDiscountPercent.setText(
-                String.valueOf(
-                        match.getDiscountPercent()
-                )
-        );
+        txtDiscountPercent.setText(String.valueOf(match.getDiscountPercent()));
 
-        String registered =
-                match.getDateRegistered();
+        String registered = match.getDateRegistered();
 
         txtDateRegistered.setText(
-                registered == null ||
-                        registered.isEmpty()
+                registered == null || registered.isEmpty()
                         ? "Not available"
-                        : registered
-        );
+                        : registered);
 
-        btnSave.setText(
-                "Update Customer"
-        );
+        btnSave.setText("Update Customer");
 
         clearAllFieldErrors();
     }
@@ -2116,337 +1448,302 @@ public class CustomerPanel extends JPanel {
         txtPwdId.setText("");
         txtSeniorCitizenId.setText("");
 
-        cmbDiscountType.setSelectedItem(
-                "No Discount"
-        );
+        cmbDiscountType.setSelectedItem("No Discount");
 
         txtDiscountPercent.setText("0");
         txtDateRegistered.setText("");
 
-        btnSave.setText(
-                "Save Customer"
-        );
+        btnSave.setText("Save Customer");
 
         clearAllFieldErrors();
 
         customerTable.clearSelection();
     }
 
-    // =====================================================================
-    // STYLING HELPERS
-    // =====================================================================
+
+
+    private static Border fieldBorder(Color line) {
+        return BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(line, 1),
+                BorderFactory.createEmptyBorder(6, 8, 6, 8));
+    }
 
     private JTextField createStyledTextField() {
 
-        JTextField tf =
-                new JTextField();
+        JTextField tf = new JTextField();
 
-        tf.setFont(
-                new Font(
-                        "Segoe UI",
-                        Font.PLAIN,
-                        12
-                )
-        );
+        tf.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        tf.setForeground(new Color(70, 75, 80));
+        tf.setBorder(fieldBorder(COLOR_BORDER));
 
-        tf.setForeground(
-                new Color(70, 75, 80)
-        );
+        tf.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (!Boolean.TRUE.equals(tf.getClientProperty("hasError"))) {
+                    tf.setBorder(fieldBorder(COLOR_TEAL));
+                }
+            }
 
-        tf.setBorder(
-                BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(
-                                COLOR_BORDER
-                        ),
-                        BorderFactory.createEmptyBorder(
-                                6,
-                                8,
-                                6,
-                                8
-                        )
-                )
-        );
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (!Boolean.TRUE.equals(tf.getClientProperty("hasError"))) {
+                    tf.setBorder(fieldBorder(COLOR_BORDER));
+                }
+            }
+        });
 
         return tf;
     }
 
-    private JButton createStyledButton(
-            String text,
-            Color bgCol) {
-
-        JButton btn =
-                new JButton(text);
-
-        btn.setFont(
-                new Font(
-                        "Segoe UI",
-                        Font.BOLD,
-                        12
-                )
-        );
-
-        btn.setBackground(bgCol);
-        btn.setForeground(Color.WHITE);
-
-        btn.setFocusPainted(false);
-
-        btn.setBorder(
-                BorderFactory.createEmptyBorder(
-                        8,
-                        14,
-                        8,
-                        14
-                )
-        );
-
-        btn.setCursor(
-                new Cursor(
-                        Cursor.HAND_CURSOR
-                )
-        );
-
-        return btn;
+    private JButton createStyledButton(String text, Color bgCol) {
+        return new RoundedButton(text, bgCol);
     }
 
-    private void styleComboBox(
-            JComboBox<String> combo) {
+    private static class RoundedButton extends JButton {
 
-        final Color textColor =
-                new Color(51, 51, 51);
+        private final Color base;
+        private final boolean outline;
+        private boolean hovered;
 
-        final Color lineColor =
-                new Color(220, 220, 220);
+        RoundedButton(String text, Color base) {
+            super(text);
+            this.base = base;
+            this.outline = Color.WHITE.equals(base);
 
-        final Color selColor =
-                new Color(207, 212, 216);
+            setFont(new Font("Segoe UI", Font.BOLD, 12));
+            setForeground(outline ? COLOR_TEXT : Color.WHITE);
+            setContentAreaFilled(false);
+            setBorderPainted(false);
+            setFocusPainted(false);
+            setOpaque(false);
+            setBorder(new EmptyBorder(8, 16, 8, 16));
+            setCursor(new Cursor(Cursor.HAND_CURSOR));
 
-        combo.setFont(
-                new Font(
-                        "Segoe UI",
-                        Font.PLAIN,
-                        13
-                )
-        );
+            addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    hovered = true;
+                    repaint();
+                }
 
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    hovered = false;
+                    repaint();
+                }
+            });
+        }
+
+        @Override
+        protected void paintComponent(Graphics g) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                    RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int w = getWidth();
+            int h = getHeight();
+
+            if (outline) {
+                g2.setColor(hovered ? COLOR_TEAL_BG : Color.WHITE);
+                g2.fillRoundRect(0, 0, w - 1, h - 1, 10, 10);
+                g2.setColor(hovered ? COLOR_TEAL : COLOR_BORDER);
+                g2.drawRoundRect(0, 0, w - 1, h - 1, 10, 10);
+            } else {
+                g2.setColor(hovered ? base.darker() : base);
+                g2.fillRoundRect(0, 0, w, h, 10, 10);
+            }
+
+            g2.dispose();
+            super.paintComponent(g);
+        }
+    }
+
+    private void styleComboBox(JComboBox<String> combo) {
+
+        final Color textColor = new Color(51, 51, 51);
+        final Color lineColor = new Color(225, 238, 236);
+        final Color selColor = COLOR_TEAL_LIGHT;
+
+        combo.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         combo.setBackground(Color.WHITE);
         combo.setForeground(textColor);
         combo.setFocusable(false);
-
-        combo.setPreferredSize(
-                new Dimension(200, 32)
-        );
-
+        combo.setPreferredSize(new Dimension(190, 32));
         combo.setMaximumRowCount(10);
+        combo.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        combo.setBorder(BorderFactory.createLineBorder(COLOR_TEAL));
 
-        combo.setBorder(
-                BorderFactory.createLineBorder(
-                        COLOR_BORDER
-                )
-        );
+        combo.setUI(new BasicComboBoxUI() {
 
-        combo.setUI(
-                new BasicComboBoxUI() {
+            @Override
+            protected JButton createArrowButton() {
 
+                JButton b = new JButton() {
                     @Override
-                    protected JButton createArrowButton() {
+                    public void paint(Graphics g) {
+                        Graphics2D g2 = (Graphics2D) g.create();
 
-                        JButton b =
-                                new JButton() {
+                        g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING,
+                                RenderingHints.VALUE_ANTIALIAS_ON);
 
-                                    @Override
-                                    public void paint(
-                                            Graphics g) {
+                        g2.setColor(COLOR_TEAL);
+                        g2.fillRect(0, 0, getWidth(), getHeight());
 
-                                        Graphics2D g2 =
-                                                (Graphics2D) g.create();
+                        int cx = getWidth() / 2;
+                        int cy = getHeight() / 2;
 
-                                        g2.setRenderingHint(
-                                                RenderingHints.KEY_ANTIALIASING,
-                                                RenderingHints.VALUE_ANTIALIAS_ON
-                                        );
+                        g2.setColor(Color.WHITE);
+                        g2.fillPolygon(
+                                new int[]{cx - 4, cx + 4, cx},
+                                new int[]{cy - 2, cy - 2, cy + 3},
+                                3);
 
-                                        g2.setColor(
-                                                Color.WHITE
-                                        );
-
-                                        g2.fillRect(
-                                                0,
-                                                0,
-                                                getWidth(),
-                                                getHeight()
-                                        );
-
-                                        g2.setColor(
-                                                lineColor
-                                        );
-
-                                        g2.drawLine(
-                                                0,
-                                                0,
-                                                0,
-                                                getHeight()
-                                        );
-
-                                        int cx =
-                                                getWidth() / 2 + 1;
-
-                                        int cy =
-                                                getHeight() / 2;
-
-                                        g2.setColor(
-                                                textColor
-                                        );
-
-                                        g2.fillPolygon(
-                                                new int[]{
-                                                        cx - 4,
-                                                        cx + 4,
-                                                        cx
-                                                },
-                                                new int[]{
-                                                        cy - 2,
-                                                        cy - 2,
-                                                        cy + 3
-                                                },
-                                                3
-                                        );
-
-                                        g2.dispose();
-                                    }
-                                };
-
-                        b.setPreferredSize(
-                                new Dimension(26, 0)
-                        );
-
-                        b.setBorder(
-                                BorderFactory.createEmptyBorder()
-                        );
-
-                        b.setFocusable(false);
-                        b.setContentAreaFilled(false);
-
-                        return b;
+                        g2.dispose();
                     }
+                };
 
+                b.setPreferredSize(new Dimension(28, 0));
+                b.setBorder(BorderFactory.createEmptyBorder());
+                b.setFocusable(false);
+                b.setContentAreaFilled(false);
+
+                return b;
+            }
+
+            @Override
+            protected ComboPopup createPopup() {
+                return new BasicComboPopup(comboBox) {
                     @Override
-                    protected ComboPopup createPopup() {
-
-                        return new BasicComboPopup(
-                                comboBox
-                        ) {
-
-                            @Override
-                            protected void configurePopup() {
-
-                                super.configurePopup();
-
-                                setBorder(
-                                        BorderFactory.createLineBorder(
-                                                COLOR_BORDER
-                                        )
-                                );
-                            }
-                        };
+                    protected void configurePopup() {
+                        super.configurePopup();
+                        setBorder(BorderFactory.createLineBorder(COLOR_TEAL));
                     }
+                };
+            }
+        });
+
+        combo.setRenderer(new DefaultListCellRenderer() {
+
+            @Override
+            public Component getListCellRendererComponent(
+                    JList<?> list, Object value, int index,
+                    boolean isSelected, boolean cellHasFocus) {
+
+                JLabel lbl = (JLabel) super.getListCellRendererComponent(
+                        list, value, index, isSelected, cellHasFocus);
+
+                lbl.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+                lbl.setForeground(textColor);
+                lbl.setOpaque(true);
+
+                if (index < 0) {
+
+                    lbl.setBackground(Color.WHITE);
+                    lbl.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 6));
+
+                } else {
+
+                    lbl.setBackground(isSelected ? selColor : Color.WHITE);
+
+                    lbl.setBorder(BorderFactory.createCompoundBorder(
+                            index > 0
+                                    ? BorderFactory.createMatteBorder(1, 0, 0, 0, lineColor)
+                                    : BorderFactory.createEmptyBorder(),
+                            BorderFactory.createEmptyBorder(0, 8, 0, 6)));
+
+                    lbl.setPreferredSize(new Dimension(lbl.getPreferredSize().width, 31));
                 }
-        );
 
-        combo.setRenderer(
-                new DefaultListCellRenderer() {
+                return lbl;
+            }
+        });
+    }
 
-                    @Override
-                    public Component
-                    getListCellRendererComponent(
-                            JList<?> list,
-                            Object value,
-                            int index,
-                            boolean isSelected,
-                            boolean cellHasFocus) {
 
-                        JLabel lbl =
-                                (JLabel) super
-                                        .getListCellRendererComponent(
-                                                list,
-                                                value,
-                                                index,
-                                                isSelected,
-                                                cellHasFocus
-                                        );
+    private static void applyModernScrollBar(JScrollPane sp) {
+        JScrollBar v = sp.getVerticalScrollBar();
+        v.setUI(new ModernScrollBarUI());
+        v.setPreferredSize(new Dimension(14, 0));
+        v.setUnitIncrement(16);
+        v.setOpaque(false);
 
-                        lbl.setFont(
-                                new Font(
-                                        "Segoe UI",
-                                        Font.PLAIN,
-                                        13
-                                )
-                        );
+        JScrollBar h = sp.getHorizontalScrollBar();
+        h.setUI(new ModernScrollBarUI());
+        h.setPreferredSize(new Dimension(0, 14));
+        h.setUnitIncrement(16);
+        h.setOpaque(false);
+    }
 
-                        lbl.setForeground(
-                                textColor
-                        );
+    private static class ModernScrollBarUI extends BasicScrollBarUI {
 
-                        lbl.setOpaque(true);
+        private static final Color TRACK = new Color(243, 245, 247);
+        private static final Color THUMB = new Color(190, 198, 206);
+        private static final Color THUMB_DRAG = new Color(10, 118, 108);
 
-                        if (index < 0) {
+        @Override
+        protected void configureScrollBarColors() {
+            thumbColor = THUMB;
+            trackColor = TRACK;
+        }
 
-                            lbl.setBackground(
-                                    Color.WHITE
-                            );
+        @Override
+        protected JButton createDecreaseButton(int orientation) {
+            return noButton();
+        }
 
-                            lbl.setBorder(
-                                    BorderFactory.createEmptyBorder(
-                                            0,
-                                            6,
-                                            0,
-                                            6
-                                    )
-                            );
+        @Override
+        protected JButton createIncreaseButton(int orientation) {
+            return noButton();
+        }
 
-                        } else {
+        private JButton noButton() {
+            JButton b = new JButton();
+            Dimension zero = new Dimension(0, 0);
+            b.setPreferredSize(zero);
+            b.setMinimumSize(zero);
+            b.setMaximumSize(zero);
+            b.setBorder(null);
+            b.setContentAreaFilled(false);
+            b.setFocusable(false);
+            return b;
+        }
 
-                            lbl.setBackground(
-                                    isSelected
-                                            ? selColor
-                                            : Color.WHITE
-                            );
+        @Override
+        protected void paintTrack(Graphics g, JComponent c, Rectangle r) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(TRACK);
+            int pad = 2;
+            if (scrollbar.getOrientation() == Adjustable.VERTICAL) {
+                g2.fillRoundRect(r.x + pad, r.y, r.width - pad * 2, r.height, r.width, r.width);
+            } else {
+                g2.fillRoundRect(r.x, r.y + pad, r.width, r.height - pad * 2, r.height, r.height);
+            }
+            g2.dispose();
+        }
 
-                            lbl.setBorder(
-                                    BorderFactory.createCompoundBorder(
-                                            index > 0
-                                                    ? BorderFactory
-                                                            .createMatteBorder(
-                                                                    1,
-                                                                    0,
-                                                                    0,
-                                                                    0,
-                                                                    lineColor
-                                                            )
-                                                    : BorderFactory
-                                                            .createEmptyBorder(),
+        @Override
+        protected void paintThumb(Graphics g, JComponent c, Rectangle r) {
+            if (r.isEmpty() || !scrollbar.isEnabled()) return;
 
-                                            BorderFactory
-                                                    .createEmptyBorder(
-                                                            0,
-                                                            6,
-                                                            0,
-                                                            6
-                                                    )
-                                    )
-                            );
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(isDragging ? THUMB_DRAG : (isThumbRollover() ? COLOR_TEAL : THUMB));
 
-                            lbl.setPreferredSize(
-                                    new Dimension(
-                                            lbl.getPreferredSize()
-                                                    .width,
-                                            31
-                                    )
-                            );
-                        }
+            int pad = 2;
+            if (scrollbar.getOrientation() == Adjustable.VERTICAL) {
+                int w = r.width - pad * 2;
+                g2.fillRoundRect(r.x + pad, r.y, w, r.height, w, w);
+            } else {
+                int hh = r.height - pad * 2;
+                g2.fillRoundRect(r.x, r.y + pad, r.width, hh, hh, hh);
+            }
+            g2.dispose();
+        }
 
-                        return lbl;
-                    }
-                }
-        );
+        @Override
+        protected Dimension getMinimumThumbSize() {
+            return new Dimension(10, 36);
+        }
     }
 }

@@ -1,13 +1,6 @@
 package ui;
 
 import db.UserDAO;
-import models.User;
-
-import javax.swing.*;
-import javax.swing.border.Border;
-import javax.swing.border.EmptyBorder;
-import javax.swing.plaf.basic.BasicComboBoxUI;
-import javax.swing.plaf.basic.BasicComboPopup;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -16,17 +9,20 @@ import java.awt.event.WindowEvent;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.Random;
+import javax.swing.*;
+import javax.swing.border.Border;
+import javax.swing.border.EmptyBorder;
+import javax.swing.plaf.basic.BasicComboBoxUI;
+import javax.swing.plaf.basic.BasicComboPopup;
+import models.User;
 
 public class LoginDialog extends JDialog {
 
     private final UserDAO userDAO = new UserDAO();
-
     private boolean isLoggedIn = false;
     private User loggedInUser = null;
-
     private JTextField loginUsernameField;
     private JPasswordField loginPasswordField;
-
     private JTextField regLastNameField;
     private JTextField regFirstNameField;
     private JTextField regUsernameField;
@@ -34,15 +30,12 @@ public class LoginDialog extends JDialog {
     private JPasswordField regPasswordField;
     private JPasswordField regConfirmPasswordField;
     private JComboBox<String> regRoleComboBox;
-    
     private JComboBox<String> regSecurityQuestion1Combo;
     private JTextField regSecurityAnswer1Field;
     private JComboBox<String> regSecurityQuestion2Combo;
     private JTextField regSecurityAnswer2Field;
-
     private boolean isOtpVerified = false;
     private String generatedOTP = "";
-
     private final Border cardBorder =
         BorderFactory.createLineBorder(new Color(210, 215, 220), 1);
 
@@ -54,7 +47,6 @@ public class LoginDialog extends JDialog {
 
     private JPanel rightCardContainer;
     private CardLayout cardLayout;
-    
     private JLabel leftTitleLabel;
     private JLabel leftDescLabel;
     private JButton leftSwitchBtn;
@@ -82,7 +74,7 @@ public class LoginDialog extends JDialog {
         setResizable(false);
         getContentPane().setBackground(WINDOW_BG);
 
-        // Terminate application if dialog is closed without logging in
+
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
@@ -95,7 +87,6 @@ public class LoginDialog extends JDialog {
         JPanel mainPanel = new JPanel(new GridLayout(1, 2));
         mainPanel.setBackground(WINDOW_BG);
 
-        // 1. LEFT SIDEBAR (Teal Panel with Logo)
         JPanel leftPanel = new JPanel(new GridBagLayout());
         leftPanel.setBackground(THEME_TEAL);
         leftPanel.setBorder(new EmptyBorder(30, 30, 30, 30));
@@ -110,7 +101,7 @@ public class LoginDialog extends JDialog {
             lgb.insets = new Insets(0, 0, 20, 0);
             leftPanel.add(logoLabel, lgb);
         } catch (Exception e) {
-            // Fallback kung sakaling walang logo file
+            System.out.println("Logo not found: " + e.getMessage());
         }
 
         lgb.gridy = 1;
@@ -135,7 +126,6 @@ public class LoginDialog extends JDialog {
 
         leftSwitchBtn.addActionListener(e -> toggleView());
 
-        // 2. RIGHT CONTENT PANEL (CardLayout para sa Sign In at Create Account)
         cardLayout = new CardLayout();
         rightCardContainer = new JPanel(cardLayout);
         rightCardContainer.setBackground(Color.WHITE);
@@ -378,7 +368,6 @@ public class LoginDialog extends JDialog {
         registerBtn.setMaximumSize(new Dimension(378, 30));
         registerBtn.setAlignmentX(Component.LEFT_ALIGNMENT);
         registerBtn.addActionListener(e -> handleRegistration());
-
         JPanel registerButtonHolder = new JPanel(new GridBagLayout());
         registerButtonHolder.setBackground(Color.WHITE);
         registerButtonHolder.setOpaque(true);
@@ -520,7 +509,6 @@ public class LoginDialog extends JDialog {
 
         generatedOTP = String.format("%06d", new Random().nextInt(999999));
         
-        // Custom Theme OTP Input Dialog
         JDialog otpDialog = new JDialog(this, "OTP Verification", true);
         otpDialog.setLayout(new BorderLayout());
         otpDialog.setResizable(false);

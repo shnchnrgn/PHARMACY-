@@ -1,6 +1,10 @@
 package ui;
 
 import facade.MostPurchasedFacade;
+import java.awt.*;
+import java.awt.event.ComponentAdapter;
+import java.awt.event.ComponentEvent;
+import java.util.List;
 import javax.swing.*;
 import javax.swing.border.Border;
 import javax.swing.border.EmptyBorder;
@@ -9,14 +13,9 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import javax.swing.table.TableColumn;
-import java.awt.*;
-import java.awt.event.ComponentAdapter;
-import java.awt.event.ComponentEvent;
-import java.util.List;
 
 public class TopCustomersPanel extends JPanel {
 
-    // Same palette as the rest of the app
     private static final Color PAGE_BG       = new Color(240, 242, 245);
     private static final Color TEXT_DARK     = new Color(40, 45, 50);
     private static final Color TEXT_MUTED    = new Color(110, 120, 130);
@@ -33,11 +32,8 @@ public class TopCustomersPanel extends JPanel {
     private static final int COL_UNITS    = 2;
     private static final int COL_TOTAL    = 3;
 
-    // How much of the table width each column gets (adds up to 1.0)
     private static final double[] COL_RATIO = {0.30, 0.30, 0.16, 0.24};
 
-    // Text columns on the left, numbers centered / on the right.
-    // Header uses the same alignment so it lines up with the cells below it.
     private static final int[] COL_ALIGN = {
             JLabel.LEFT, JLabel.LEFT, JLabel.CENTER, JLabel.RIGHT
     };
@@ -101,12 +97,10 @@ public class TopCustomersPanel extends JPanel {
         table.setSelectionBackground(ROW_SELECTED);
         table.setSelectionForeground(TEXT_DARK);
 
-        // full grid, so every column is clearly separated
         table.setShowGrid(true);
         table.setGridColor(GRID_COLOR);
         table.setIntercellSpacing(new Dimension(1, 1));
 
-        // Columns are fixed: no dragging the borders, no reordering.
         JTableHeader header = table.getTableHeader();
         header.setResizingAllowed(false);
         header.setReorderingAllowed(false);
@@ -119,7 +113,6 @@ public class TopCustomersPanel extends JPanel {
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
         scrollPane.getViewport().setBackground(Color.WHITE);
 
-        // keep the column proportions whenever the window size changes
         scrollPane.addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
@@ -132,7 +125,6 @@ public class TopCustomersPanel extends JPanel {
         tablePanel.setBorder(BorderFactory.createLineBorder(BORDER_COLOR));
         tablePanel.add(scrollPane, BorderLayout.CENTER);
 
-        // Wrapper so the table fills the width but doesn't stretch down the whole page
         JPanel fullWidthWrapper = new JPanel(new BorderLayout());
         fullWidthWrapper.setOpaque(false);
         fullWidthWrapper.add(tablePanel, BorderLayout.NORTH);
@@ -148,7 +140,7 @@ public class TopCustomersPanel extends JPanel {
             col.setHeaderRenderer(new HeaderRenderer(COL_ALIGN[i], i == last));
         }
 
-        applyColumnWidths(900); // starting size, fixed again once the panel is shown
+        applyColumnWidths(900); 
     }
 
     private void applyColumnWidths(int totalWidth) {
@@ -158,7 +150,7 @@ public class TopCustomersPanel extends JPanel {
         int last = table.getColumnCount() - 1;
 
         for (int i = 0; i <= last; i++) {
-            // last column takes whatever is left so there's no gap from rounding
+            
             int w = (i == last) ? totalWidth - used : (int) Math.round(totalWidth * COL_RATIO[i]);
             TableColumn col = table.getColumnModel().getColumn(i);
             col.setPreferredWidth(w);
@@ -167,7 +159,6 @@ public class TopCustomersPanel extends JPanel {
         }
     }
 
-    // Header cell: same alignment and padding as the cells under it
     private static class HeaderRenderer extends DefaultTableCellRenderer {
         private final Border border;
 
@@ -195,7 +186,6 @@ public class TopCustomersPanel extends JPanel {
         }
     }
 
-    // Body cell with alternating row colors. The money column is bold + teal.
     private static class RowRenderer extends DefaultTableCellRenderer {
         private final boolean highlight;
 

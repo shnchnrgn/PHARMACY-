@@ -1,12 +1,11 @@
 package ui;
 
-import models.Medicine;
-
+import java.awt.*;
+import java.util.List;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.plaf.basic.BasicScrollBarUI;
-import java.awt.*;
-import java.util.List;
+import models.Medicine;
 
 public class ExpiredMedicineDialog extends JDialog {
 
@@ -333,7 +332,7 @@ public class ExpiredMedicineDialog extends JDialog {
                 createDetailLabel(
                         "Category",
                         safeText(
-                                medicine.getCategory()
+                                medicine.getMedicineCategory()
                         )
                 );
 
@@ -341,7 +340,7 @@ public class ExpiredMedicineDialog extends JDialog {
                 createDetailLabel(
                         "Quantity",
                         String.valueOf(
-                                medicine.getQuantity()
+                                medicine.getStock()
                         )
                 );
 
@@ -357,7 +356,7 @@ public class ExpiredMedicineDialog extends JDialog {
                 createDetailLabel(
                         "Company",
                         safeText(
-                                medicine.getCompany()
+                                medicine.getCompanyName()
                         )
                 );
 

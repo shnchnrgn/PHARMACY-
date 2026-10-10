@@ -2,7 +2,6 @@ package ui;
 
 import db.Database;
 import db.MedicineDAO;
-import models.Medicine;
 import java.awt.*;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
@@ -12,6 +11,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
 import javax.swing.*;
+import models.Medicine;
 
 public class App extends JFrame {
 
@@ -29,7 +29,7 @@ public class App extends JFrame {
     private JLabel lblSalesArrow;
     private JLabel lblMedicineArrow;
     private JLabel lblWelcome;
-    private JButton btnNotificationRef; // Para sa real-time badge count update
+    private JButton btnNotificationRef; 
 
     private JButton selectedButton;
     private final List<JButton> navigationButtons = new ArrayList<>();
@@ -55,7 +55,7 @@ public class App extends JFrame {
         setLocationRelativeTo(null);
         getContentPane().setBackground(new Color(240, 242, 245));
 
-        // Window listener to stop background timer and force process termination on close
+        
         addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosing(WindowEvent e) {
@@ -96,11 +96,11 @@ public class App extends JFrame {
         add(sidebar, BorderLayout.WEST);
         add(contentContainer, BorderLayout.CENTER);
 
-        // Auto-check timer kada 2 segundo para real-time ang alert at tunog
+        
         notificationTimer = new Timer(2000, e -> {
             int currentCount = getNotificationCount();
             
-            // Kung nadagdagan ang notifications (galing sa stock out o bago), tutunog ito nang automatic
+            
             if (previousNotificationCount != -1 && currentCount > previousNotificationCount) {
                 playAlertSound();
             }
@@ -110,16 +110,16 @@ public class App extends JFrame {
         });
         notificationTimer.start();
 
-        // Kunin ang initial count pagkabukas
+        
         previousNotificationCount = getNotificationCount();
     }
 
     private void playAlertSound() {
         try {
-            // Unang subok: Standard Java Beep
+            
             Toolkit.getDefaultToolkit().beep();
             
-            // Pangalawang paraan para sure na may marinig na tono (System Tone via Toolkit)
+            
             java.awt.Toolkit.getDefaultToolkit().sync();
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -1116,7 +1116,9 @@ public class App extends JFrame {
                 Image scaledImg = originalIcon.getImage().getScaledInstance(17, 17, Image.SCALE_SMOOTH);
                 button.setIcon(new ImageIcon(scaledImg));
                 button.setIconTextGap(11);
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         return button;
@@ -1139,16 +1141,21 @@ public class App extends JFrame {
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridy = 0;
-        gbc.anchor = GridBagConstraints.CENTER;
+
 
         try {
             ImageIcon originalIcon = new ImageIcon(getClass().getResource("/pngs/pos.png"));
             Image scaledImg = originalIcon.getImage().getScaledInstance(17, 17, Image.SCALE_SMOOTH);
             JLabel lblIcon = new JLabel(new ImageIcon(scaledImg));
             gbc.gridx = 0;
+            gbc.weightx = 0.0;
+            gbc.anchor = GridBagConstraints.CENTER;
             gbc.insets = new Insets(0, 0, 0, 11);
             button.add(lblIcon, gbc);
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
 
         JLabel lblText = new JLabel("Sales");
         lblText.setForeground(TEXT_COLOR);
@@ -1156,14 +1163,18 @@ public class App extends JFrame {
         gbc.gridx = 1;
         gbc.weightx = 1.0;
         gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(0, 0, 0, 0);
         button.add(lblText, gbc);
 
-        lblSalesArrow = new JLabel("^");
+
+        lblSalesArrow = new JLabel("^", SwingConstants.CENTER);
         lblSalesArrow.setForeground(ACCENT_COLOR);
         lblSalesArrow.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        lblSalesArrow.setPreferredSize(new Dimension(14, 14));
         gbc.gridx = 2;
         gbc.weightx = 0.0;
         gbc.anchor = GridBagConstraints.EAST;
+        gbc.insets = new Insets(0, 0, 0, 0);
         button.add(lblSalesArrow, gbc);
 
         button.setUI(new javax.swing.plaf.basic.BasicButtonUI() {
@@ -1218,16 +1229,21 @@ public class App extends JFrame {
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.gridy = 0;
-        gbc.anchor = GridBagConstraints.CENTER;
+
 
         try {
-            ImageIcon originalIcon = new ImageIcon(getClass().getResource("/ui/medicine.png"));
+            ImageIcon originalIcon = new ImageIcon(getClass().getResource("/pngs/medicine.png"));
             Image scaledImg = originalIcon.getImage().getScaledInstance(17, 17, Image.SCALE_SMOOTH);
             JLabel lblIcon = new JLabel(new ImageIcon(scaledImg));
             gbc.gridx = 0;
+            gbc.weightx = 0.0;
+            gbc.anchor = GridBagConstraints.CENTER;
             gbc.insets = new Insets(0, 0, 0, 11);
             button.add(lblIcon, gbc);
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
 
         JLabel lblText = new JLabel("Medicine");
         lblText.setForeground(TEXT_COLOR);
@@ -1235,14 +1251,18 @@ public class App extends JFrame {
         gbc.gridx = 1;
         gbc.weightx = 1.0;
         gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(0, 0, 0, 0);          
         button.add(lblText, gbc);
 
-        lblMedicineArrow = new JLabel("^");
+      
+        lblMedicineArrow = new JLabel("^", SwingConstants.CENTER);
         lblMedicineArrow.setForeground(ACCENT_COLOR);
         lblMedicineArrow.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        lblMedicineArrow.setPreferredSize(new Dimension(14, 14)); 
         gbc.gridx = 2;
         gbc.weightx = 0.0;
         gbc.anchor = GridBagConstraints.EAST;
+        gbc.insets = new Insets(0, 0, 0, 0);          
         button.add(lblMedicineArrow, gbc);
 
         button.setUI(new javax.swing.plaf.basic.BasicButtonUI() {
@@ -1324,7 +1344,9 @@ public class App extends JFrame {
                 Image scaledImg = originalIcon.getImage().getScaledInstance(15, 15, Image.SCALE_SMOOTH);
                 button.setIcon(new ImageIcon(scaledImg));
                 button.setIconTextGap(10);
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         return button;

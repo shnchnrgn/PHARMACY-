@@ -27,7 +27,6 @@ import models.Medicine;
 
 public class POSFrame extends JPanel {
 
-    // same palette / spacing as MedicinePanel and TopCustomersPanel
     private static final Color PAGE_BG = new Color(240, 242, 245);
     private static final Color BORDER = new Color(220, 225, 230);
     private static final Color GRID = new Color(228, 232, 237);
@@ -37,49 +36,32 @@ public class POSFrame extends JPanel {
     private static final Color HEADER_BG = new Color(245, 247, 250);
     private static final Color HEADER_TEXT = new Color(70, 80, 90);
     private static final Color ROW_ALT = new Color(250, 251, 253);
-    private static final Color PRIMARY = new Color(26, 143, 136);       // teal
+    private static final Color PRIMARY = new Color(26, 143, 136);
     private static final Color PRIMARY_SOFT = new Color(224, 243, 241);
     private static final Color DANGER = new Color(192, 57, 43);
-    private static final int CELL_PAD = 10;
-
-    // model column indexes of the medicine table
+    private static final int CELL_PAD = 8;
     private static final int M_NAME = 0, M_CATEGORY = 1, M_PRICE = 2, M_STOCK = 3, M_STATUS = 4, M_ID = 5;
-
-    // model column index of the cart table's Total column
     private static final int C_TOTAL = 3;
-
-    // order of the columns as shown on screen (model indexes)
     private static final int[] MED_VIEW_ORDER = {M_CATEGORY, M_NAME, M_PRICE, M_STOCK, M_STATUS, M_ID};
-    // group label above each column (by view position). null = no group, header spans both rows
     private static final String[] MED_HEADER_GROUPS = {null, null, "Price", "Stock", "Stock", null};
-
-    // Text is aligned left, numbers right, short values centered.
-    // The header uses the same alignment so it always lines up with the cells below it.
-    // (indexed by MODEL column)
     private static final int[] MED_ALIGN = {
-            JLabel.LEFT, JLabel.LEFT, JLabel.RIGHT, JLabel.CENTER, JLabel.CENTER, JLabel.LEFT
+            JLabel.CENTER, JLabel.CENTER, JLabel.CENTER, JLabel.CENTER, JLabel.CENTER, JLabel.CENTER
     };
     private static final int[] CART_ALIGN = {
-            JLabel.LEFT, JLabel.RIGHT, JLabel.CENTER, JLabel.RIGHT, JLabel.LEFT
+            JLabel.CENTER, JLabel.CENTER, JLabel.CENTER, JLabel.CENTER, JLabel.CENTER
     };
-
-    // Share of the table width per column (by VIEW position, 0 = hidden ID column).
-    // Columns are fixed, so these are what keep everything evenly spaced.
-    private static final double[] MED_RATIOS = {0.22, 0.32, 0.14, 0.13, 0.19, 0};
-    private static final double[] CART_RATIOS = {0.40, 0.20, 0.12, 0.28, 0};
-
+    private static final double[] MED_RATIOS = {0.23, 0.23, 0.18, 0.16, 0.20, 0};
+    private static final double[] CART_RATIOS = {0.31, 0.24, 0.15, 0.30, 0};
     private JTable medicineTable;
     private JTable cartTable;
     private DefaultTableModel medicineModel;
     private DefaultTableModel cartModel;
     private JTextField searchField;
     private TableRowSorter<DefaultTableModel> medicineRowSorter;
-
     private JLabel lblSubtotalVal;
     private JLabel lblDiscountTitle;
     private JLabel lblDiscountVal;
     private JLabel lblTotalVal;
-
     private Customer activeCheckoutCustomer = null;
 
     public POSFrame() {
@@ -93,8 +75,7 @@ public class POSFrame extends JPanel {
         JPanel leftPanel = buildMedicinePanel();
         JPanel rightPanel = buildCartPanel();
 
-        // The medicine list gets a bit more room than the cart (58 / 42).
-        // Tiny preferred sizes + weights = the extra space is split exactly by the weights.
+    
         leftPanel.setPreferredSize(new Dimension(58, 100));
         rightPanel.setPreferredSize(new Dimension(42, 100));
 
@@ -158,7 +139,6 @@ public class POSFrame extends JPanel {
         );
     }
 
-    // ------------------------------------------------------------------ medicine list (left)
 
     private JPanel buildMedicinePanel() {
 
@@ -188,7 +168,6 @@ public class POSFrame extends JPanel {
         searchPanel.add(searchField, BorderLayout.CENTER);
         leftPanel.add(searchPanel, BorderLayout.NORTH);
 
-        // same header names as the Medicine List page
         String[] medColumns = {
                 "Medicine Name",
                 "Medicine Category",
@@ -217,12 +196,10 @@ public class POSFrame extends JPanel {
         medicineRowSorter = new TableRowSorter<>(medicineModel);
         medicineTable.setRowSorter(medicineRowSorter);
 
-        // two-level header (Price / Stock groups) like the Medicine List page
         JTableHeader medHeader = new GroupHeader(medicineTable.getColumnModel(), MED_HEADER_GROUPS, MED_ALIGN, 56);
         medHeader.setFont(new Font("Segoe UI", Font.BOLD, 11));
         medicineTable.setTableHeader(medHeader);
 
-        // cells: red bold for expired / out of stock rows, teal for "Available"
         for (int v = 0; v < medicineTable.getColumnCount(); v++) {
             TableColumn col = medicineTable.getColumnModel().getColumn(v);
             int mc = col.getModelIndex();
@@ -248,21 +225,19 @@ public class POSFrame extends JPanel {
             });
         }
 
-        // arrange columns visually: Category | Name | Price | Quantity | Status  (ID stays hidden)
         for (int pos = 0; pos < MED_VIEW_ORDER.length; pos++) {
             int from = medicineTable.convertColumnIndexToView(MED_VIEW_ORDER[pos]);
             if (from != pos) medicineTable.moveColumn(from, pos);
         }
         medicineTable.getTableHeader().setReorderingAllowed(false);
-        medicineTable.getTableHeader().setResizingAllowed(false); // columns can't be dragged
+        medicineTable.getTableHeader().setResizingAllowed(false); 
 
-        // hidden ID column
         TableColumn idCol = medicineTable.getColumnModel().getColumn(medicineTable.convertColumnIndexToView(M_ID));
         idCol.setMinWidth(0);
         idCol.setMaxWidth(0);
         idCol.setPreferredWidth(0);
 
-        applyColumnWidths(medicineTable, MED_RATIOS, 520); // starting size, re-fitted once the panel is on screen
+        applyColumnWidths(medicineTable, MED_RATIOS, 520); 
 
         leftPanel.add(scroll(medicineTable, MED_RATIOS), BorderLayout.CENTER);
 
@@ -295,12 +270,10 @@ public class POSFrame extends JPanel {
         if (text.isEmpty()) {
             medicineRowSorter.setRowFilter(null);
         } else {
-            // Pattern.quote so characters like ( or [ do not break the search
             medicineRowSorter.setRowFilter(RowFilter.regexFilter("(?i)" + Pattern.quote(text)));
         }
     }
 
-    // ------------------------------------------------------------------ cart (right)
 
     private JPanel buildCartPanel() {
 
@@ -339,8 +312,7 @@ public class POSFrame extends JPanel {
         };
         styleTable(cartTable);
 
-        // same header look as the medicine table (single row, no groups)
-        JTableHeader cartHeader = new GroupHeader(cartTable.getColumnModel(), new String[cartColumns.length], CART_ALIGN, 40);
+        JTableHeader cartHeader = new GroupHeader(cartTable.getColumnModel(), new String[cartColumns.length], CART_ALIGN, 56);
         cartHeader.setFont(new Font("Segoe UI", Font.BOLD, 11));
         cartTable.setTableHeader(cartHeader);
         cartTable.getTableHeader().setReorderingAllowed(false);
@@ -358,7 +330,6 @@ public class POSFrame extends JPanel {
             });
         }
 
-        // hidden Medicine ID column
         cartTable.getColumnModel().getColumn(4).setMinWidth(0);
         cartTable.getColumnModel().getColumn(4).setMaxWidth(0);
         cartTable.getColumnModel().getColumn(4).setPreferredWidth(0);
@@ -456,9 +427,7 @@ public class POSFrame extends JPanel {
         return summaryWrap;
     }
 
-    // ------------------------------------------------------------------ table helpers
 
-    /** Common look for both tables. */
     private void styleTable(JTable t) {
         t.setRowHeight(36);
         t.setFont(new Font("Segoe UI", Font.PLAIN, 12));
@@ -472,13 +441,11 @@ public class POSFrame extends JPanel {
         t.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
     }
 
-    /** Scroll pane with the same thin scrollbar as the Medicine List page. No sideways scrolling. */
     private JScrollPane scroll(JTable t, double[] ratios) {
         JScrollPane sp = new JScrollPane(t);
         sp.getViewport().setBackground(Color.WHITE);
         sp.setBorder(BorderFactory.createLineBorder(BORDER));
 
-        // columns always fit the panel, so a horizontal scrollbar is never needed
         sp.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 
         JScrollBar bar = sp.getVerticalScrollBar();
@@ -487,7 +454,6 @@ public class POSFrame extends JPanel {
         bar.setBackground(Color.WHITE);
         bar.setUnitIncrement(16);
 
-        // keep the column proportions whenever the window (or the scrollbar) changes the width
         sp.getViewport().addComponentListener(new ComponentAdapter() {
             @Override
             public void componentResized(ComponentEvent e) {
@@ -497,7 +463,6 @@ public class POSFrame extends JPanel {
         return sp;
     }
 
-    /** Gives every visible column its share of the width. Hidden columns (ratio 0) stay at 0. */
     private void applyColumnWidths(JTable t, double[] ratios, int totalWidth) {
         if (totalWidth <= 0) return;
 
@@ -512,7 +477,6 @@ public class POSFrame extends JPanel {
         for (int i = 0; i < cm.getColumnCount(); i++) {
             if (ratios[i] <= 0) continue;
 
-            // last column takes whatever is left so rounding never leaves a gap
             int w = (i == lastVisible) ? totalWidth - used : (int) Math.round(totalWidth * ratios[i]);
             cm.getColumn(i).setPreferredWidth(w);
             cm.getColumn(i).setWidth(w);
@@ -520,7 +484,6 @@ public class POSFrame extends JPanel {
         }
     }
 
-    /** Centered hint when a table has no rows. */
     private static void drawEmptyMessage(Graphics g, JTable t, String message) {
         if (t.getRowCount() > 0) return;
 
@@ -533,7 +496,6 @@ public class POSFrame extends JPanel {
         g2.dispose();
     }
 
-    // ------------------------------------------------------------------ cart / checkout logic
 
     private void addSelectedMedicineToCart() {
 
@@ -870,7 +832,7 @@ public class POSFrame extends JPanel {
                 } else if (isOutOfStock) {
                     status = "Out of Stock";
                 } else {
-                    status = "Available"; // same wording as the Medicine List page
+                    status = "Available"; 
                 }
 
                 medicineModel.addRow(
@@ -968,7 +930,6 @@ public class POSFrame extends JPanel {
         return Double.parseDouble(value.replaceAll("[^0-9.]", "").trim());
     }
 
-    // ------------------------------------------------------------------ small ui helpers
 
     private JButton createButton(String text, Color background, Color foreground) {
 
@@ -983,7 +944,6 @@ public class POSFrame extends JPanel {
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         button.setBorder(new EmptyBorder(8, 14, 8, 14));
 
-        // slightly darker on hover
         Color hover = darken(background, 0.88);
         button.addMouseListener(new MouseAdapter() {
             @Override
@@ -1021,9 +981,7 @@ public class POSFrame extends JPanel {
         return label;
     }
 
-    // ------------------------------------------------------------ search field
 
-    /** Text field with a gray hint when empty and a teal border while typing. */
     private static class SearchField extends JTextField {
         private final String hint;
         private boolean focused = false;
@@ -1072,9 +1030,7 @@ public class POSFrame extends JPanel {
         }
     }
 
-    // ------------------------------------------------------------ body cells
 
-    /** Table cell: padding, zebra stripes, teal selection. Override style() for per-cell tweaks. */
     private static class BodyRenderer extends DefaultTableCellRenderer {
 
         BodyRenderer(int alignment) {
@@ -1091,7 +1047,6 @@ public class POSFrame extends JPanel {
             setForeground(TEXT);
             setBackground(isSelected ? t.getSelectionBackground() : (row % 2 == 0 ? Color.WHITE : ROW_ALT));
 
-            // long names get cut with "..." so show the full text on hover
             setToolTipText(value == null ? null : value.toString());
 
             style(t, value, row, column);
@@ -1099,13 +1054,10 @@ public class POSFrame extends JPanel {
         }
 
         protected void style(JTable t, Object value, int row, int column) {
-            // nothing by default
         }
     }
 
-    // ------------------------------------------------------------ grouped header
 
-    /** Table header: optional group label on top, column names below. Same look as the Medicine List page. */
     private static class GroupHeader extends JTableHeader {
         private final String[] groups;
         private final int[] alignByModel;
@@ -1128,7 +1080,6 @@ public class POSFrame extends JPanel {
             int h = getHeight();
             int half = h / 2;
 
-            // the last visible column doesn't need a divider on its right side
             int lastVisible = -1;
             for (int k = 0; k < n; k++) {
                 if (columnModel.getColumn(k).getWidth() > 0) lastVisible = k;
@@ -1153,13 +1104,11 @@ public class POSFrame extends JPanel {
                     Rectangle b = getHeaderRect(j);
                     int spanW = b.x + b.width - a.x;
 
-                    // group label (top row) with a line under it
                     label(g, grp, a.x, 0, spanW, half, JLabel.CENTER);
                     g.setColor(GRID);
                     g.drawLine(a.x, half - 1, a.x + spanW - 1, half - 1);
                     if (j != lastVisible) divider(g, b.x + b.width - 1, 0, half);
 
-                    // column names (bottom row)
                     for (int k = i; k <= j; k++) {
                         Rectangle r = getHeaderRect(k);
                         if (r.width > 0) {
@@ -1171,7 +1120,6 @@ public class POSFrame extends JPanel {
                 }
             }
 
-            // teal line under the whole header, same as the other pages
             g.setColor(PRIMARY);
             g.fillRect(0, h - 2, getWidth(), 2);
             g.dispose();
@@ -1195,7 +1143,6 @@ public class POSFrame extends JPanel {
             g.setFont(getFont());
             FontMetrics fm = g.getFontMetrics();
 
-            // cut with "..." if the column is too narrow
             int max = w - CELL_PAD * 2;
             String shown = text;
             if (fm.stringWidth(shown) > max) {
@@ -1219,9 +1166,7 @@ public class POSFrame extends JPanel {
         }
     }
 
-    // ------------------------------------------------------------ slim scrollbar
 
-    /** Thin rounded scrollbar: no arrow buttons, no track, just a soft gray thumb. */
     private static class SlimScrollBarUI extends BasicScrollBarUI {
         private static final int SIZE = 12;
         private static final Color THUMB = new Color(176, 184, 192);
@@ -1277,7 +1222,6 @@ public class POSFrame extends JPanel {
         }
     }
 
-    // ------------------------------------------------------------ dialogs
 
     private static class CustomDialog {
 

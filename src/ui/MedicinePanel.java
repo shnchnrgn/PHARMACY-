@@ -20,6 +20,8 @@ import java.awt.datatransfer.StringSelection;
 import java.awt.geom.Path2D;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.File;
@@ -39,49 +41,46 @@ public class MedicinePanel extends JPanel {
 
     private static final Color PAGE_BG = new Color(240, 242, 245);
     private static final Color SURFACE = Color.WHITE;
-    private static final Color BORDER = new Color(220, 225, 230);
-    private static final Color LINE = new Color(226, 231, 236); // table lines (header + body use the same color)
-    private static final Color TEXT = new Color(60, 65, 70);
-    private static final Color MUTED = new Color(108, 117, 125);
-    private static final Color PRIMARY = new Color(13, 148, 136);
-    private static final Color PRIMARY_SOFT = new Color(224, 243, 241);
+    private static final Color TEAL = new Color(13, 148, 136);
+    private static final Color TEAL_DARK = new Color(15, 118, 110);
+    private static final Color TEAL_LIGHT = new Color(204, 240, 236);
+    private static final Color TEAL_TINT = new Color(240, 250, 249);
+    private static final Color DIALOG_TEAL = new Color(26, 143, 136);
+    private static final Color TEXT_DARK = new Color(45, 55, 60);
+    private static final Color TEXT_MUTED = new Color(110, 118, 125);
+    private static final Color BORDER_COLOR = new Color(215, 220, 225);
     private static final Color DANGER = new Color(192, 57, 43);
-    private static final Color GROUP_BG = new Color(246, 249, 250);
-    private static final Color GROUP_HOVER = new Color(233, 244, 242);
-    private static final Color TOTAL_BG = new Color(238, 245, 244);
-    private static final Color TOTAL_LINE = new Color(200, 208, 214);
-    private static final Color HEADER_BG = new Color(248, 250, 252);
-
-    private static final int CELL_PAD = 10; // same left/right padding for header text and cell text
-    private static final int ACTION_WIDTH = 160; // Action column keeps a fixed width
-
-    // Model column indexes (unchanged order + new Total Value column)
+    private static final Color LINE = new Color(226, 231, 236);
+    private static final Color GROUP_BG = new Color(246, 250, 250);  
+    private static final Color GROUP_HOVER = new Color(226, 244, 241);
+    private static final Color TOTAL_BG = new Color(231, 245, 243); 
+    private static final Color TOTAL_LINE = new Color(170, 205, 200);
+    private static final Color HEADER_BG = TEAL_TINT;
+    private static final int CELL_PAD = 10;      
+    private static final int ACTION_WIDTH = 160; 
     private static final int COL_ID = 0, COL_NAME = 1, COL_CATEGORY = 2, COL_BUY = 3, COL_SELL = 4,
             COL_QTY = 5, COL_COMPANY = 6, COL_EXPIRE = 7, COL_STATUS = 8, COL_TOTAL = 9, COL_ACTION = 10;
 
-    // Everything is centered. The header uses this same list, so a header always sits
-    // exactly over its cells. Change an entry to JLabel.LEFT / RIGHT to align one column differently.
-    // (indexed by MODEL column)
+
     private static final int[] ALIGN = {
-        JLabel.CENTER, // ID
-        JLabel.CENTER, // Medicine Name
-        JLabel.CENTER, // Medicine Category
-        JLabel.CENTER, // Buy Price
-        JLabel.CENTER, // Sell Price
-        JLabel.CENTER, // Quantity
-        JLabel.CENTER, // Company Name
-        JLabel.CENTER, // Expire Date
-        JLabel.CENTER, // Status
-        JLabel.CENTER, // Total Value
-        JLabel.CENTER  // Action
+        JLabel.CENTER,
+        JLabel.CENTER, 
+        JLabel.CENTER, 
+        JLabel.CENTER, 
+        JLabel.CENTER, 
+        JLabel.CENTER, 
+        JLabel.CENTER, 
+        JLabel.CENTER, 
+        JLabel.CENTER, 
+        JLabel.CENTER, 
+        JLabel.CENTER  
     };
 
-    // Order of columns as shown on screen (model indexes)
     private static final int[] VIEW_ORDER = {
         COL_CATEGORY, COL_NAME, COL_ID, COL_COMPANY, COL_BUY, COL_SELL,
         COL_QTY, COL_STATUS, COL_EXPIRE, COL_TOTAL, COL_ACTION
     };
-    // Group label above each column (by view position). null = no group, header spans both rows
+
     private static final String[] HEADER_GROUPS = {
         null, null, null, null, "Price", "Price", "Stock", "Stock", null, null, null
     };
@@ -97,30 +96,49 @@ public class MedicinePanel extends JPanel {
     private final Map<JTable, int[]> naturalWidths = new HashMap<>();
 
     public MedicinePanel() {
-        UIManager.put("TabbedPane.highlight", new Color(200, 205, 210));
-        UIManager.put("TabbedPane.lightHighlight", new Color(220, 224, 230));
-        UIManager.put("TabbedPane.selected", new Color(230, 235, 240));
-        UIManager.put("TabbedPane.selectHighlight", new Color(200, 205, 210));
-        UIManager.put("TabbedPane.focus", new Color(200, 205, 210));
-        UIManager.put("TabbedPane.borderHighlightColor", new Color(200, 205, 210));
-        UIManager.put("TabbedPane.darkShadow", new Color(180, 185, 190));
-        UIManager.put("TabbedPane.shadow", new Color(180, 185, 190));
-
-        setLayout(new BorderLayout(0, 15));
+        setLayout(new BorderLayout());
         setBackground(PAGE_BG);
-        setBorder(new EmptyBorder(16, 18, 16, 18));
+        setBorder(new EmptyBorder(25, 40, 30, 40));
 
-        JLabel lblTitle = new JLabel("Medicine List");
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 20));
-        lblTitle.setForeground(TEXT);
-        add(lblTitle, BorderLayout.NORTH);
+        JPanel pageHeader = new JPanel();
+        pageHeader.setLayout(new BoxLayout(pageHeader, BoxLayout.Y_AXIS));
+        pageHeader.setOpaque(false);
+        pageHeader.setBorder(new EmptyBorder(0, 0, 18, 0));
+
+        JLabel pageTitle = new JLabel("Medicine List");
+        pageTitle.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        pageTitle.setForeground(TEAL_DARK);
+        pageTitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        JLabel pageSubtitle = new JLabel("Browse, search, and manage your medicine inventory");
+        pageSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        pageSubtitle.setForeground(TEXT_MUTED);
+        pageSubtitle.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+        pageHeader.add(pageTitle);
+        pageHeader.add(Box.createVerticalStrut(2));
+        pageHeader.add(pageSubtitle);
+        add(pageHeader, BorderLayout.NORTH);
+
+        JPanel card = new JPanel(new BorderLayout());
+        card.setBackground(Color.WHITE);
+        card.setBorder(BorderFactory.createLineBorder(BORDER_COLOR));
+
+        JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 12));
+        headerPanel.setBackground(TEAL_TINT);
+        headerPanel.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 2, 0, TEAL),
+                BorderFactory.createMatteBorder(0, 5, 0, 0, TEAL)
+        ));
+        JLabel lblHeader = new JLabel("+ Medicine Inventory");
+        lblHeader.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblHeader.setForeground(TEAL_DARK);
+        headerPanel.add(lblHeader);
+        card.add(headerPanel, BorderLayout.NORTH);
 
         JPanel contentPanel = new JPanel(new BorderLayout(0, 10));
         contentPanel.setBackground(Color.WHITE);
-        contentPanel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER, 1),
-            new EmptyBorder(15, 15, 15, 15)
-        ));
+        contentPanel.setBorder(new EmptyBorder(15, 15, 15, 15));
 
         JPanel topBar = new JPanel(new BorderLayout());
         topBar.setOpaque(false);
@@ -134,13 +152,7 @@ public class MedicinePanel extends JPanel {
         JButton btnPrint = new JButton("Print");
 
         for (JButton b : new JButton[]{btnCopy, btnCsv, btnExcel, btnPdf, btnPrint}) {
-            b.setFont(new Font("Segoe UI", Font.PLAIN, 11));
-            b.setFocusPainted(false);
-            b.setBackground(SURFACE);
-            b.setForeground(TEXT);
-            b.setBorder(BorderFactory.createLineBorder(BORDER));
-            b.setPreferredSize(new Dimension(62, 30));
-            b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            styleToolButton(b);
         }
 
         btnCopy.addActionListener(e -> {
@@ -236,14 +248,31 @@ public class MedicinePanel extends JPanel {
         });
 
         txtSearch = new JTextField(18);
-        txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        txtSearch.setFont(new Font("Segoe UI", Font.PLAIN, 13));
         txtSearch.setBackground(SURFACE);
-        txtSearch.setForeground(TEXT);
+        txtSearch.setForeground(TEXT_DARK);
         txtSearch.setPreferredSize(new Dimension(220, 32));
-        txtSearch.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER),
-            BorderFactory.createEmptyBorder(4, 6, 4, 6)
-        ));
+        final Border searchNormal = BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(200, 205, 210), 1),
+                BorderFactory.createEmptyBorder(0, 8, 0, 8));
+        final Border searchFocused = BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(TEAL, 1),
+                BorderFactory.createEmptyBorder(0, 8, 0, 8));
+        txtSearch.setBorder(searchNormal);
+        txtSearch.setSelectionColor(TEAL_LIGHT);
+        txtSearch.setSelectedTextColor(TEAL_DARK);
+        txtSearch.setCaretColor(TEAL);
+        txtSearch.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                txtSearch.setBorder(searchFocused);
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                txtSearch.setBorder(searchNormal);
+            }
+        });
         txtSearch.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             @Override public void insertUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
             @Override public void removeUpdate(javax.swing.event.DocumentEvent e) { applyFilter(); }
@@ -251,8 +280,8 @@ public class MedicinePanel extends JPanel {
         });
 
         JLabel lblSearch = new JLabel("Search:");
-        lblSearch.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        lblSearch.setForeground(MUTED);
+        lblSearch.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        lblSearch.setForeground(TEXT_DARK);
 
         rightTopPanel.add(btnCopy);
         rightTopPanel.add(btnCsv);
@@ -281,7 +310,7 @@ public class MedicinePanel extends JPanel {
         DefaultTableCellRenderer cellRenderer = new DefaultTableCellRenderer() {
             @Override
             public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected,
-                                                           boolean hasFocus, int row, int column) {
+                                                        boolean hasFocus, int row, int column) {
                 super.getTableCellRendererComponent(table, value, isSelected, false, row, column);
                 int mc = table.convertColumnIndexToModel(column);
                 int mr = table.convertRowIndexToModel(row);
@@ -291,16 +320,13 @@ public class MedicinePanel extends JPanel {
                 boolean lastColumn = column == table.getColumnCount() - 1;
                 boolean nextIsGroup = row == table.getRowCount() - 1
                         || isGroup(mdl, table.convertRowIndexToModel(row + 1));
-
-                // Inside a category the (blank) category cell has no line between medicine rows,
-                // so the whole category reads as one block. It closes at the last medicine row.
                 boolean bottomLine = group || mc != COL_CATEGORY || nextIsGroup;
 
                 setIcon(null);
                 setBorder(lineBorder(total, bottomLine, !lastColumn, true));
                 setHorizontalAlignment(ALIGN[mc]);
                 setFont(new Font("Segoe UI", group ? Font.BOLD : Font.PLAIN, 12));
-                setForeground(TEXT);
+                setForeground(group ? TEAL_DARK : TEXT_DARK);
 
                 if (group && mc == COL_CATEGORY && value instanceof CategoryLabel) {
                     CategoryLabel c = (CategoryLabel) value;
@@ -308,11 +334,10 @@ public class MedicinePanel extends JPanel {
                     setIcon(new ChevronIcon(open));
                     setIconTextGap(8);
                     setText("<html>" + escapeHtml(c.name)
-                        + " <span style='color:#6c757d;font-weight:normal'>(" + c.count + ")</span></html>");
+                        + " <span style='color:#6e767d;font-weight:normal'>(" + c.count + ")</span></html>");
                 }
 
                 if (!group) {
-                    // category name is shown only on the group row (like the sample table)
                     if (mc == COL_CATEGORY) setText("");
                     try {
                         int qty = Integer.parseInt(mdl.getValueAt(mr, COL_QTY).toString().replaceAll("[^0-9\\-]", ""));
@@ -333,19 +358,13 @@ public class MedicinePanel extends JPanel {
             tableData.put(t, new ArrayList<>());
             collapsed.put(t, new HashSet<>());
 
-            t.setSelectionBackground(PRIMARY_SOFT);
-            t.setSelectionForeground(TEXT);
+            t.setSelectionBackground(TEAL_LIGHT);
+            t.setSelectionForeground(TEXT_DARK);
             t.setRowHeight(33);
-
-            // The lines are drawn by the cell borders (see lineBorder) instead of the JTable grid,
-            // so header and body share the exact same line color and position.
             t.setShowGrid(false);
             t.setIntercellSpacing(new Dimension(0, 0));
-
             t.setFont(new Font("Segoe UI", Font.PLAIN, 12));
             t.setFillsViewportHeight(true);
-
-            // two-level header
             JTableHeader header = new GroupHeader(t.getColumnModel(), HEADER_GROUPS);
             header.setFont(new Font("Segoe UI", Font.BOLD, 11));
             t.setTableHeader(header);
@@ -362,15 +381,13 @@ public class MedicinePanel extends JPanel {
             t.getColumnModel().getColumn(COL_ACTION).setCellRenderer(actionPanel);
             t.getColumnModel().getColumn(COL_ACTION).setCellEditor(actionPanel);
 
-            // arrange columns visually: Category | Name | ID | Company | Price | Stock | Expire | Total | Action
             for (int pos = 0; pos < VIEW_ORDER.length; pos++) {
                 int from = t.convertColumnIndexToView(VIEW_ORDER[pos]);
                 if (from != pos) t.moveColumn(from, pos);
             }
             t.getTableHeader().setReorderingAllowed(false);
-            t.getTableHeader().setResizingAllowed(false); // columns can't be dragged
+            t.getTableHeader().setResizingAllowed(false);
 
-            // hand cursor + highlight while the mouse is over a category row
             MouseAdapter hover = new MouseAdapter() {
                 @Override
                 public void mouseMoved(MouseEvent e) {
@@ -400,7 +417,6 @@ public class MedicinePanel extends JPanel {
             t.addMouseMotionListener(hover);
             t.addMouseListener(hover);
 
-            // click a category row to expand / collapse
             t.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mouseClicked(MouseEvent e) {
@@ -427,7 +443,6 @@ public class MedicinePanel extends JPanel {
         expiredRowSorter = new TableRowSorter<>(expiredModel);
         expiredTable.setRowSorter(expiredRowSorter);
 
-        // sorting is disabled because rows are grouped by category
         for (TableRowSorter<DefaultTableModel> s : List.of(activeRowSorter, outOfStockRowSorter, expiredRowSorter)) {
             for (int i = 0; i < columns.length; i++) s.setSortable(i, false);
         }
@@ -436,22 +451,38 @@ public class MedicinePanel extends JPanel {
 
         tabbedPane = new JTabbedPane();
         tabbedPane.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        tabbedPane.setBackground(new Color(245, 247, 250));
+        tabbedPane.setBackground(Color.WHITE);
         tabbedPane.setFocusable(false);
-        tabbedPane.setBorder(BorderFactory.createLineBorder(new Color(225, 229, 234), 1));
+        tabbedPane.setBorder(BorderFactory.createEmptyBorder());
         tabbedPane.setUI(new BasicTabbedPaneUI() {
             @Override
             protected void paintTabBackground(Graphics g, int tabPlacement, int tabIndex, int x, int y, int w, int h, boolean isSelected) {
-                g.setColor(isSelected ? PRIMARY_SOFT : Color.WHITE);
+                g.setColor(isSelected ? TEAL_TINT : Color.WHITE);
                 g.fillRect(x, y, w, h);
             }
+
             @Override
             protected void paintTabBorder(Graphics g, int tabPlacement, int tabIndex, int x, int y, int w, int h, boolean isSelected) {
-                g.setColor(BORDER);
+                g.setColor(BORDER_COLOR);
                 g.drawRect(x, y, w, h);
+                if (isSelected) {
+                    g.setColor(TEAL);
+                    g.fillRect(x, y, w + 1, 3);
+                }
             }
+
+            @Override
+            protected void paintText(Graphics g, int tabPlacement, Font font, FontMetrics metrics, int tabIndex, String title, Rectangle textRect, boolean isSelected) {
+                Graphics2D g2 = (Graphics2D) g;
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                g2.setFont(font);
+                g2.setColor(isSelected ? TEAL_DARK : TEXT_MUTED);
+                g2.drawString(title, textRect.x, textRect.y + metrics.getAscent());
+            }
+
             @Override
             protected void paintFocusIndicator(Graphics g, int tabPlacement, Rectangle[] rects, int tabIndex, Rectangle iconRect, Rectangle textRect, boolean isSelected) { }
+
             @Override
             protected void paintContentBorder(Graphics g, int tabPlacement, int selectedIndex) {
                 int width = tabPane.getWidth();
@@ -462,7 +493,7 @@ public class MedicinePanel extends JPanel {
                 int w = width - insets.right - insets.left;
                 int h = height - insets.top - insets.bottom;
                 int tabH = calculateTabAreaHeight(tabPlacement, runCount, maxTabHeight);
-                g.setColor(BORDER);
+                g.setColor(BORDER_COLOR);
                 g.drawRect(x, y + tabH, w - 1, h - tabH - 1);
             }
         });
@@ -472,7 +503,8 @@ public class MedicinePanel extends JPanel {
         tabbedPane.addTab("Expired Medicines", scroll(expiredTable));
 
         contentPanel.add(tabbedPane, BorderLayout.CENTER);
-        add(contentPanel, BorderLayout.CENTER);
+        card.add(contentPanel, BorderLayout.CENTER);
+        add(card, BorderLayout.CENTER);
 
         this.addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override
@@ -482,21 +514,49 @@ public class MedicinePanel extends JPanel {
         });
     }
 
-    // ------------------------------------------------------------------ helpers
+
+    private void styleToolButton(JButton b) {
+        final Border normal = BorderFactory.createLineBorder(new Color(200, 205, 210));
+        final Border hovered = BorderFactory.createLineBorder(TEAL);
+
+        b.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        b.setFocusPainted(false);
+        b.setBackground(SURFACE);
+        b.setForeground(TEXT_DARK);
+        b.setBorder(normal);
+        b.setPreferredSize(new Dimension(64, 32));
+        b.setCursor(new Cursor(Cursor.HAND_CURSOR));
+
+        b.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                b.setBackground(TEAL_TINT);
+                b.setForeground(TEAL_DARK);
+                b.setBorder(hovered);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                b.setBackground(SURFACE);
+                b.setForeground(TEXT_DARK);
+                b.setBorder(normal);
+            }
+        });
+    }
 
     private JScrollPane scroll(JTable t) {
-        JScrollPane sp = new JScrollPane(t);
+        JScrollPane sp = new JScrollPane(t,
+                JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED,
+                JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         sp.getViewport().setBackground(Color.WHITE);
-        sp.setBorder(BorderFactory.createLineBorder(new Color(220, 224, 230)));
-        for (JScrollBar bar : new JScrollBar[]{sp.getVerticalScrollBar(), sp.getHorizontalScrollBar()}) {
-            bar.setUI(new SlimScrollBarUI());
-            bar.setOpaque(true);
-            bar.setBackground(Color.WHITE);
-            bar.setUnitIncrement(16);
-        }
-        JPanel corner = new JPanel();
-        corner.setBackground(Color.WHITE);
-        sp.setCorner(JScrollPane.LOWER_RIGHT_CORNER, corner);
+        sp.setBorder(BorderFactory.createEmptyBorder());
+
+        JScrollBar vBar = sp.getVerticalScrollBar();
+        vBar.setUI(new SlimScrollBarUI());
+        vBar.setOpaque(true);
+        vBar.setBackground(Color.WHITE);
+        vBar.setUnitIncrement(16);
+
         sp.getViewport().addComponentListener(new java.awt.event.ComponentAdapter() {
             @Override
             public void componentResized(java.awt.event.ComponentEvent e) {
@@ -515,7 +575,6 @@ public class MedicinePanel extends JPanel {
         };
     }
 
-    /** Category rows and the Total row have an empty ID cell. */
     private static boolean isGroup(DefaultTableModel m, int modelRow) {
         Object v = m.getValueAt(modelRow, COL_ID);
         return v == null || v.toString().isEmpty();
@@ -525,10 +584,7 @@ public class MedicinePanel extends JPanel {
         return "\u20B1" + String.format("%.2f", v);
     }
 
-    /**
-     * Border that draws a cell's bottom / right line (plus the padding when asked).
-     * The Total row also gets a darker line on top.
-     */
+    /** Border that draws a cell's bottom / right line (+ padding). The Total row also gets a line on top. */
     private static Border lineBorder(boolean totalRow, boolean bottom, boolean right, boolean padded) {
         Border line = BorderFactory.createMatteBorder(0, 0, bottom ? 1 : 0, right ? 1 : 0, LINE);
         Border inner = padded
@@ -546,7 +602,7 @@ public class MedicinePanel extends JPanel {
                 @Override
                 public boolean include(Entry<? extends DefaultTableModel, ? extends Object> entry) {
                     Object id = entry.getValue(COL_ID);
-                    if (id == null || id.toString().isEmpty()) return true; // keep category / total rows
+                    if (id == null || id.toString().isEmpty()) return true; 
                     for (int i = 0; i < entry.getValueCount(); i++) {
                         if (entry.getStringValue(i).toLowerCase().contains(text)) return true;
                     }
@@ -565,7 +621,6 @@ public class MedicinePanel extends JPanel {
         return h;
     }
 
-    /** Only real medicine rows (no category / total rows, no Action column). */
     private List<String[]> exportRows(JTable t) {
         DefaultTableModel mdl = (DefaultTableModel) t.getModel();
         List<String[]> rows = new ArrayList<>();
@@ -573,8 +628,7 @@ public class MedicinePanel extends JPanel {
             if (isGroup(mdl, t.convertRowIndexToModel(i))) continue;
             String[] r = new String[t.getColumnCount() - 1];
             for (int j = 0; j < r.length; j++) {
-                int mc = t.convertColumnIndexToModel(j);
-                // category cell is blank on screen, but export it
+                int mc = t.convertColumnIndexToModel(j);               
                 r[j] = String.valueOf(mdl.getValueAt(t.convertRowIndexToModel(i), mc));
             }
             rows.add(r);
@@ -624,11 +678,7 @@ public class MedicinePanel extends JPanel {
         rebuild(expiredTable);
     }
 
-    /**
-     * Rebuild one table: category rows (collapsible) + medicine rows + grand total row.
-     * The category row only shows its subtotal (Quantity / Total Value) while collapsed,
-     * so the numbers are not repeated when the medicine rows are visible.
-     */
+
     private void rebuild(JTable table) {
         DefaultTableModel model = (DefaultTableModel) table.getModel();
         Set<String> closed = collapsed.get(table);
@@ -660,9 +710,9 @@ public class MedicinePanel extends JPanel {
             boolean open = !closed.contains(cat);
             model.addRow(new Object[]{
                 "", "", new CategoryLabel(cat, entry.getValue().size()), "", "",
-                open ? "" : (Object) catQty,          // Quantity subtotal only when collapsed
+                open ? "" : (Object) catQty,   
                 "", "", "",
-                open ? "" : money(catValue),          // Total Value subtotal only when collapsed
+                open ? "" : money(catValue),   
                 ""
             });
 
@@ -673,7 +723,7 @@ public class MedicinePanel extends JPanel {
                     m.getId(),
                     m.getName(),
                     m.getMedicineCategory(),
-                    money(m.getBuyPrice()),    // always 2 decimals so the amounts line up
+                    money(m.getBuyPrice()),    
                     money(m.getSellPrice()),
                     m.getStock(),
                     m.getCompanyName(),
@@ -691,7 +741,6 @@ public class MedicinePanel extends JPanel {
         layoutColumns(table);
     }
 
-    /** Measure the natural width of every column (its longest value) so nothing gets cut off. */
     private void measureColumns(JTable t) {
         DefaultTableModel model = (DefaultTableModel) t.getModel();
         FontMetrics fm = t.getFontMetrics(new Font("Segoe UI", Font.BOLD, 12));
@@ -708,23 +757,18 @@ public class MedicinePanel extends JPanel {
 
             int w = fm.stringWidth(String.valueOf(col.getHeaderValue()));
             for (int r = 0; r < model.getRowCount(); r++) {
-                // the category cell is blank on medicine rows, so only measure the category rows
+                
                 if (mc == COL_CATEGORY && !isGroup(model, r)) continue;
                 Object val = model.getValueAt(r, mc);
                 if (val != null) w = Math.max(w, fm.stringWidth(val.toString()));
             }
-            if (mc == COL_CATEGORY) w += 60; // room for chevron + item count
+            if (mc == COL_CATEGORY) w += 60; 
             natural[v] = w + CELL_PAD * 2 + 6;
         }
         naturalWidths.put(t, natural);
     }
 
-    /**
-     * Lay the columns out. When there is spare room, it is shared between the columns in
-     * proportion to their natural width (so the spacing stays even). When the window is too
-     * narrow, columns keep their natural width and the table scrolls sideways instead.
-     * The Action column always stays at a fixed width.
-     */
+
     private void layoutColumns(JTable t) {
         if (naturalWidths.get(t) == null) measureColumns(t);
         int[] natural = naturalWidths.get(t);
@@ -747,8 +791,8 @@ public class MedicinePanel extends JPanel {
 
         Container vp = SwingUtilities.getAncestorOfClass(JViewport.class, t);
         int avail = vp == null ? 0 : vp.getWidth();
-        int target = Math.max(avail, flexTotal + fixedTotal);
-        double scale = (double) (target - fixedTotal) / flexTotal;
+        int target = avail > 0 ? avail : flexTotal + fixedTotal;
+        double scale = Math.max(0.1, (double) (target - fixedTotal) / flexTotal);
 
         t.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
@@ -759,7 +803,7 @@ public class MedicinePanel extends JPanel {
             if (col.getModelIndex() == COL_ACTION) {
                 w = natural[v];
             } else if (v == lastFlex) {
-                w = target - fixedTotal - used; // whatever is left, so rounding never leaves a gap
+                w = target - fixedTotal - used; 
             } else {
                 w = (int) Math.round(natural[v] * scale);
                 used += w;
@@ -776,9 +820,7 @@ public class MedicinePanel extends JPanel {
         loadTableData();
     }
 
-    // ------------------------------------------------------------ category row look
 
-    /** Background for a row: white for medicines, soft tint for category / total rows, hover + selection aware. */
     private Color rowBackground(JTable table, int viewRow, boolean selected) {
         if (selected) return table.getSelectionBackground();
         DefaultTableModel m = (DefaultTableModel) table.getModel();
@@ -793,7 +835,6 @@ public class MedicinePanel extends JPanel {
         return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }
 
-    /** Value stored in the category cell of a group row (name + how many medicines it holds). */
     private static class CategoryLabel {
         final String name;
         final int count;
@@ -809,7 +850,6 @@ public class MedicinePanel extends JPanel {
         }
     }
 
-    /** Small chevron drawn with vector lines: points down when open, right when collapsed. */
     private static class ChevronIcon implements Icon {
         private static final int SIZE = 14;
         private final boolean open;
@@ -823,15 +863,15 @@ public class MedicinePanel extends JPanel {
             Graphics2D g2 = (Graphics2D) g.create();
             g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g2.setRenderingHint(RenderingHints.KEY_STROKE_CONTROL, RenderingHints.VALUE_STROKE_PURE);
-            g2.setColor(PRIMARY);
+            g2.setColor(TEAL);
             g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
             g2.translate(x, y);
             Path2D.Float p = new Path2D.Float();
-            if (open) {            // v
+            if (open) {
                 p.moveTo(3, 5);
                 p.lineTo(7, 9);
                 p.lineTo(11, 5);
-            } else {               // >
+            } else {
                 p.moveTo(5, 3);
                 p.lineTo(9, 7);
                 p.lineTo(5, 11);
@@ -851,9 +891,7 @@ public class MedicinePanel extends JPanel {
         }
     }
 
-    // ------------------------------------------------------------ grouped header
 
-    /** Two-row table header: group label on top, column names below. */
     private static class GroupHeader extends JTableHeader {
         private final String[] groups;
 
@@ -874,7 +912,6 @@ public class MedicinePanel extends JPanel {
             int h = getHeight();
             int half = h / 2;
 
-            // the last column has no divider on its right (the scroll pane border is there)
             int last = n - 1;
 
             int i = 0;
@@ -891,13 +928,11 @@ public class MedicinePanel extends JPanel {
                     Rectangle a = getHeaderRect(i), b = getHeaderRect(j);
                     int spanW = b.x + b.width - a.x;
 
-                    // group label (top row) with a line under it
                     label(g, grp, a.x, 0, spanW, half, JLabel.CENTER);
                     g.setColor(LINE);
                     g.drawLine(a.x, half - 1, a.x + spanW - 1, half - 1);
                     if (j != last) divider(g, b.x + b.width - 1, 0, half);
 
-                    // column names (bottom row)
                     for (int k = i; k <= j; k++) {
                         Rectangle r = getHeaderRect(k);
                         label(g, title(k), r.x, half, r.width, h - half, align(k));
@@ -907,9 +942,8 @@ public class MedicinePanel extends JPanel {
                 }
             }
 
-            // bottom line of the header
-            g.setColor(LINE);
-            g.drawLine(0, h - 1, getWidth(), h - 1);
+            g.setColor(TEAL);
+            g.fillRect(0, h - 2, getWidth(), 2);
             g.dispose();
         }
 
@@ -921,18 +955,16 @@ public class MedicinePanel extends JPanel {
             return ALIGN[columnModel.getColumn(viewCol).getModelIndex()];
         }
 
-        // drawn on the same pixel column as the vertical line of the cells below
         private void divider(Graphics2D g, int x, int y1, int y2) {
             g.setColor(LINE);
             g.drawLine(x, y1, x, y2);
         }
 
         private void label(Graphics2D g, String text, int x, int y, int w, int h, int alignment) {
-            g.setColor(MUTED);
+            g.setColor(TEAL_DARK);
             g.setFont(getFont());
             FontMetrics fm = g.getFontMetrics();
 
-            // same padding as the cells (the 1px line is on the right edge)
             int max = w - 1 - CELL_PAD * 2;
             String shown = text;
             if (fm.stringWidth(shown) > max) {
@@ -956,13 +988,11 @@ public class MedicinePanel extends JPanel {
         }
     }
 
-    // ------------------------------------------------------------ slim scrollbar
 
-    /** Thin rounded scrollbar: no arrow buttons, no track, just a soft gray thumb. */
     private static class SlimScrollBarUI extends BasicScrollBarUI {
         private static final int SIZE = 12;
-        private static final Color THUMB = new Color(176, 184, 192);
-        private static final Color THUMB_HOVER = new Color(150, 159, 168);
+        private static final Color THUMB = new Color(160, 200, 196);
+        private static final Color THUMB_HOVER = TEAL;
 
         @Override
         protected void configureScrollBarColors() {
@@ -1014,7 +1044,6 @@ public class MedicinePanel extends JPanel {
         }
     }
 
-    // ------------------------------------------------------------ action buttons
 
     class ActionButtonPanel extends AbstractCellEditor implements TableCellRenderer, TableCellEditor {
 
@@ -1023,27 +1052,50 @@ public class MedicinePanel extends JPanel {
         private JButton btnEdit, btnDelete;
 
         public ActionButtonPanel() {
-            // row is 33px tall, minus the 1px bottom line = 32 -> 3 + 26 + 3 keeps the buttons centered
             panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 4, 3));
             panel.setOpaque(true);
             blank = new JPanel();
             blank.setOpaque(true);
 
             btnEdit = new JButton("Edit");
-            btnEdit.setBackground(PRIMARY);
+            btnEdit.setBackground(TEAL);
             btnEdit.setForeground(Color.WHITE);
             btnEdit.setFocusPainted(false);
+            btnEdit.setBorder(BorderFactory.createEmptyBorder());
             btnEdit.setFont(new Font("Segoe UI", Font.BOLD, 11));
             btnEdit.setPreferredSize(new Dimension(70, 26));
             btnEdit.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            btnEdit.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    btnEdit.setBackground(TEAL_DARK);
+                }
+
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    btnEdit.setBackground(TEAL);
+                }
+            });
 
             btnDelete = new JButton("Delete");
             btnDelete.setBackground(DANGER);
             btnDelete.setForeground(Color.WHITE);
             btnDelete.setFocusPainted(false);
+            btnDelete.setBorder(BorderFactory.createEmptyBorder());
             btnDelete.setFont(new Font("Segoe UI", Font.BOLD, 11));
             btnDelete.setPreferredSize(new Dimension(70, 26));
             btnDelete.setCursor(new Cursor(Cursor.HAND_CURSOR));
+            btnDelete.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    btnDelete.setBackground(new Color(165, 45, 33));
+                }
+
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    btnDelete.setBackground(DANGER);
+                }
+            });
 
             panel.add(btnEdit);
             panel.add(btnDelete);
@@ -1141,20 +1193,19 @@ public class MedicinePanel extends JPanel {
         }
     }
 
-    // ------------------------------------------------------------ dialogs
 
     private static class CustomDialog {
 
         private static boolean confirmResult = false;
 
-        private static JDialog buildDialog(Component parent, String message, String title, JButton... buttons) {
+        private static JDialog buildDialog(Component parent, String message, String title, boolean error, JButton... buttons) {
             JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(parent), title, true);
             dialog.setLayout(new BorderLayout());
             dialog.setResizable(false);
 
             JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 20, 25));
             centerPanel.setBackground(Color.WHITE);
-            JLabel lblMsg = new JLabel("<html><font color='#C0392B'><b>" + title + ":</b></font> " + message + "</html>");
+            JLabel lblMsg = new JLabel("<html><font color='" + (error ? "#C0392B" : "#0D9488") + "'><b>" + title + ":</b></font> " + message + "</html>");
             lblMsg.setFont(new Font("Segoe UI", Font.PLAIN, 13));
             lblMsg.setForeground(new Color(70, 75, 80));
             centerPanel.add(lblMsg);
@@ -1178,23 +1229,23 @@ public class MedicinePanel extends JPanel {
             b.setBackground(bg);
             b.setForeground(Color.WHITE);
             b.setFocusPainted(false);
-            b.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
+            b.setBorder(BorderFactory.createEmptyBorder(7, 22, 7, 22));
             b.setCursor(new Cursor(Cursor.HAND_CURSOR));
             return b;
         }
 
-        public static void showMessage(Component parent, String message, String title, boolean isWarning) {
-            JButton btnOk = button("OK", new Color(26, 143, 136));
-            JDialog dialog = buildDialog(parent, message, title, btnOk);
+        public static void showMessage(Component parent, String message, String title, boolean isError) {
+            JButton btnOk = button("OK", DIALOG_TEAL);
+            JDialog dialog = buildDialog(parent, message, title, isError, btnOk);
             btnOk.addActionListener(e -> dialog.dispose());
             dialog.setVisible(true);
         }
 
         public static boolean showConfirm(Component parent, String message, String title) {
             confirmResult = false;
-            JButton btnYes = button("Yes", new Color(26, 143, 136));
-            JButton btnNo = button("No", new Color(192, 57, 43));
-            JDialog dialog = buildDialog(parent, message, title, btnYes, btnNo);
+            JButton btnYes = button("Yes", DIALOG_TEAL);
+            JButton btnNo = button("No", DANGER);
+            JDialog dialog = buildDialog(parent, message, title, true, btnYes, btnNo);
             btnYes.addActionListener(e -> { confirmResult = true; dialog.dispose(); });
             btnNo.addActionListener(e -> { confirmResult = false; dialog.dispose(); });
             dialog.setVisible(true);

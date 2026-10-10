@@ -18,7 +18,6 @@ public class Database {
         return conn;
     }
 
-    // Idagdag ito para gumana ang getConnection() na tinatawag ng UserDAO
     public static Connection getConnection() {
         return connect();
     }

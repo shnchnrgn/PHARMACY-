@@ -1,7 +1,6 @@
 package ui;
 
 import facade.MostPurchasedFacade;
-
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -19,16 +18,20 @@ public class MostPurchasedPanel extends JPanel {
 
     private static final Color PAGE_BG = new Color(240, 242, 245);
     private static final Color SURFACE = Color.WHITE;
-    private static final Color BORDER = new Color(220, 225, 230);
-    private static final Color BORDER_LIGHT = new Color(235, 238, 242);
-    private static final Color TEXT = new Color(60, 65, 70);
-    private static final Color MUTED = new Color(108, 117, 125);
-    private static final Color BAR_COLOR = new Color(13, 148, 136);
-    private static final Color PRIMARY_SOFT = new Color(224, 243, 241);
+    private static final Color BORDER = new Color(215, 220, 225);
+    private static final Color BORDER_LIGHT = new Color(228, 232, 236);
+    private static final Color TEXT = new Color(45, 55, 60);
+    private static final Color MUTED = new Color(110, 118, 125);
+    private static final Color TEAL = new Color(13, 148, 136);
+    private static final Color TEAL_DARK = new Color(15, 118, 110);
+    private static final Color TEAL_LIGHT = new Color(204, 240, 236);
+    private static final Color TEAL_TINT = new Color(240, 250, 249);
+    private static final Color BAR_COLOR = TEAL;
+    private static final Color BAR_COLOR_BOTTOM = new Color(94, 196, 186);
+    private static final Color ROW_ALT = new Color(250, 252, 252);
     private static final Font SECTION = new Font("Segoe UI", Font.BOLD, 13);
-
-    private static final int CELL_PAD = 10; // same padding as the Medicine List page
-    private static final int NUMBER_COL = 2; // quantity / units column (centered) in both tables
+    private static final int CELL_PAD = 10; 
+    private static final int NUMBER_COL = 2; 
 
     private DefaultTableModel overallModel;
     private DefaultTableModel companyModel;
@@ -41,23 +44,21 @@ public class MostPurchasedPanel extends JPanel {
     public MostPurchasedPanel() {
         setLayout(new BorderLayout());
         setBackground(PAGE_BG);
-        setBorder(new EmptyBorder(16, 18, 16, 18));
+        setBorder(new EmptyBorder(20, 25, 16, 25));
 
         JPanel container = new JPanel();
         container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
         container.setBorder(new EmptyBorder(2, 2, 10, 2));
         container.setOpaque(false);
 
-        // Header section
         JPanel pageHeader = new JPanel(new BorderLayout());
         pageHeader.setOpaque(false);
         JLabel pageTitle = new JLabel("Most Purchased Medicine");
-        pageTitle.setFont(new Font("Segoe UI", Font.BOLD, 21));
-        pageTitle.setForeground(TEXT);
+        pageTitle.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        pageTitle.setForeground(TEAL_DARK);
         JLabel pageSubtitle = new JLabel("Sales analytics by popularity, overall trend, and manufacturer");
-        pageSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        pageSubtitle.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         pageSubtitle.setForeground(MUTED);
-
         JPanel pageText = new JPanel();
         pageText.setOpaque(false);
         pageText.setLayout(new BoxLayout(pageText, BoxLayout.Y_AXIS));
@@ -65,11 +66,10 @@ public class MostPurchasedPanel extends JPanel {
         pageText.add(Box.createVerticalStrut(2));
         pageText.add(pageSubtitle);
         pageHeader.add(pageText, BorderLayout.WEST);
-        pageHeader.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
+        pageHeader.setMaximumSize(new Dimension(Integer.MAX_VALUE, 56));
         container.add(pageHeader);
-        container.add(Box.createVerticalStrut(14));
+        container.add(Box.createVerticalStrut(18));
 
-        // 1. Overall Table Card
         String[] overallCols = {"Medicine Name", "Company", "Total Quantity Sold"};
         overallModel = new DefaultTableModel(overallCols, 0) {
             @Override
@@ -79,17 +79,14 @@ public class MostPurchasedPanel extends JPanel {
         };
         overallTable = createStyledTable(overallModel);
         container.add(createTableCard("Top Purchased Medicines (Overall)", overallTable));
-        container.add(Box.createVerticalStrut(14));
+        container.add(Box.createVerticalStrut(15));
 
-        // 2. Middle Panel (Bar Graph & Company Split View)
-        JPanel middlePanel = new JPanel(new GridLayout(1, 2, 14, 0));
+        JPanel middlePanel = new JPanel(new GridLayout(1, 2, 15, 0));
         middlePanel.setOpaque(false);
 
-        // Bar Graph Panel
         barChartPanel = new BarChartPanel();
         middlePanel.add(createCustomCard("Top Purchased Medicines Chart", barChartPanel));
 
-        // Company Table
         String[] compCols = {"Company", "Top Medicine", "Units Sold"};
         companyModel = new DefaultTableModel(compCols, 0) {
             @Override
@@ -117,7 +114,6 @@ public class MostPurchasedPanel extends JPanel {
         overallModel.setRowCount(0);
         companyModel.setRowCount(0);
 
-        // Fetch overall data through Facade
         List<String[]> overallData = salesFacade.getTopPurchasedMedicines(10);
         List<BarChartData> chartDataList = new ArrayList<>();
 
@@ -135,7 +131,6 @@ public class MostPurchasedPanel extends JPanel {
         }
         barChartPanel.setData(chartDataList);
 
-        // Fetch company table data through Facade
         List<String[]> companyData = salesFacade.getTopMedicinesByCompany();
         for (String[] row : companyData) {
             companyModel.addRow(row);
@@ -153,7 +148,6 @@ public class MostPurchasedPanel extends JPanel {
         scrollPane.getViewport().setBackground(SURFACE);
         scrollPane.setPreferredSize(new Dimension(0, 220));
 
-        // same thin scrollbars as the Medicine List page
         for (JScrollBar bar : new JScrollBar[]{scrollPane.getVerticalScrollBar(), scrollPane.getHorizontalScrollBar()}) {
             bar.setUI(new SlimScrollBarUI());
             bar.setOpaque(true);
@@ -179,13 +173,15 @@ public class MostPurchasedPanel extends JPanel {
         card.setBorder(cardBorder());
 
         JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(SURFACE);
+        header.setBackground(TEAL_TINT);
         header.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_LIGHT),
-                new EmptyBorder(10, 14, 10, 14)));
+                BorderFactory.createCompoundBorder(
+                        BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER_LIGHT),
+                        BorderFactory.createMatteBorder(0, 4, 0, 0, TEAL)),
+                new EmptyBorder(11, 14, 11, 14)));
         JLabel title = new JLabel(cardTitle);
         title.setFont(SECTION);
-        title.setForeground(TEXT);
+        title.setForeground(TEAL_DARK);
         header.add(title, BorderLayout.WEST);
         card.add(header, BorderLayout.NORTH);
 
@@ -193,25 +189,23 @@ public class MostPurchasedPanel extends JPanel {
         return card;
     }
 
-    /** Table with the same look as the Medicine List page: fixed columns, padded cells, boxed header. */
     private JTable createStyledTable(DefaultTableModel model) {
         JTable table = new JTable(model);
         table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         table.setForeground(TEXT);
         table.setBackground(SURFACE);
-        table.setRowHeight(33);
+        table.setRowHeight(34);
         table.setShowVerticalLines(true);
         table.setShowHorizontalLines(true);
         table.setGridColor(BORDER_LIGHT);
-        table.setSelectionBackground(PRIMARY_SOFT);
-        table.setSelectionForeground(TEXT);
+        table.setSelectionBackground(TEAL_LIGHT);
+        table.setSelectionForeground(TEAL_DARK);
         table.setFillsViewportHeight(true);
 
-        JTableHeader header = new StyledHeader(table.getColumnModel(), 36);
+        JTableHeader header = new StyledHeader(table.getColumnModel(), 38);
         header.setFont(new Font("Segoe UI", Font.BOLD, 11));
         table.setTableHeader(header);
 
-        // fixed columns: can't be dragged to resize or reorder
         table.getTableHeader().setResizingAllowed(false);
         table.getTableHeader().setReorderingAllowed(false);
 
@@ -221,15 +215,16 @@ public class MostPurchasedPanel extends JPanel {
                                                            boolean hasFocus, int row, int column) {
                 super.getTableCellRendererComponent(t, value, isSelected, false, row, column);
                 int mc = t.convertColumnIndexToModel(column);
+                boolean isNumber = mc == NUMBER_COL;
                 setBorder(new EmptyBorder(0, CELL_PAD, 0, CELL_PAD));
-                setHorizontalAlignment(mc == NUMBER_COL ? JLabel.CENTER : JLabel.LEFT);
-                setFont(new Font("Segoe UI", Font.PLAIN, 12));
-                setForeground(TEXT);
+                setHorizontalAlignment(isNumber ? JLabel.CENTER : JLabel.LEFT);
+                setFont(new Font("Segoe UI", isNumber ? Font.BOLD : Font.PLAIN, 12));
                 if (isSelected) {
                     setBackground(t.getSelectionBackground());
                     setForeground(t.getSelectionForeground());
                 } else {
-                    setBackground(Color.WHITE);
+                    setBackground(row % 2 == 0 ? Color.WHITE : ROW_ALT);
+                    setForeground(isNumber ? TEAL : TEXT);
                 }
                 return this;
             }
@@ -240,7 +235,6 @@ public class MostPurchasedPanel extends JPanel {
         return table;
     }
 
-    /** Size every column to its longest value so nothing is cut off. */
     private void fitColumns(JTable t) {
         DefaultTableModel model = (DefaultTableModel) t.getModel();
         FontMetrics fm = t.getFontMetrics(new Font("Segoe UI", Font.BOLD, 12));
@@ -260,7 +254,6 @@ public class MostPurchasedPanel extends JPanel {
         }
     }
 
-    /** Fill the width when there is room, scroll sideways when the columns do not fit. */
     private void updateResizeMode(JTable t) {
         int total = 0;
         TableColumnModel cm = t.getColumnModel();
@@ -305,9 +298,7 @@ public class MostPurchasedPanel extends JPanel {
         });
     }
 
-    // ------------------------------------------------------------ header
 
-    /** Table header with the same look as the Medicine List page (single row, no groups). */
     private static class StyledHeader extends JTableHeader {
 
         StyledHeader(TableColumnModel cm, int height) {
@@ -319,7 +310,7 @@ public class MostPurchasedPanel extends JPanel {
         protected void paintComponent(Graphics g0) {
             Graphics2D g = (Graphics2D) g0;
             g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-            g.setColor(new Color(248, 250, 252));
+            g.setColor(TEAL_TINT);
             g.fillRect(0, 0, getWidth(), getHeight());
 
             int h = getHeight();
@@ -329,27 +320,28 @@ public class MostPurchasedPanel extends JPanel {
                 String text = String.valueOf(columnModel.getColumn(i).getHeaderValue());
                 boolean centered = columnModel.getColumn(i).getModelIndex() == NUMBER_COL;
 
-                g.setColor(new Color(248, 250, 252));
+                g.setColor(TEAL_TINT);
                 g.fillRect(r.x, 0, r.width, h);
-                g.setColor(BORDER);
+                g.setColor(BORDER_LIGHT);
                 g.drawRect(r.x, 0, r.width - 1, h - 1);
-                g.setColor(MUTED);
+                g.setColor(TEAL_DARK);
                 g.setFont(getFont());
                 FontMetrics fm = g.getFontMetrics();
                 int tx = centered ? r.x + (r.width - fm.stringWidth(text)) / 2 : r.x + CELL_PAD;
                 int ty = (h + fm.getAscent() - fm.getDescent()) / 2;
                 g.drawString(text, tx, ty);
             }
+
+            g.setColor(TEAL);
+            g.fillRect(0, h - 2, getWidth(), 2);
         }
     }
 
-    // ------------------------------------------------------------ slim scrollbar
 
-    /** Thin rounded scrollbar: no arrow buttons, no track, just a soft gray thumb. */
     private static class SlimScrollBarUI extends BasicScrollBarUI {
         private static final int SIZE = 12;
         private static final Color THUMB = new Color(176, 184, 192);
-        private static final Color THUMB_HOVER = new Color(150, 159, 168);
+        private static final Color THUMB_HOVER = TEAL;
 
         @Override
         protected void configureScrollBarColors() {
@@ -401,7 +393,6 @@ public class MostPurchasedPanel extends JPanel {
         }
     }
 
-    // ------------------------------------------------------------ bar chart
 
     private static class BarChartData {
         String label;
@@ -450,7 +441,6 @@ public class MostPurchasedPanel extends JPanel {
             int paddingRight = 20;
             int paddingTop = 25;
             int paddingBottom = 40;
-
             int chartWidth = width - paddingLeft - paddingRight;
             int chartHeight = height - paddingTop - paddingBottom;
 
@@ -461,7 +451,6 @@ public class MostPurchasedPanel extends JPanel {
                 }
             }
             if (maxValue == 0) maxValue = 1;
-
             g2.setColor(BORDER_LIGHT);
             g2.setFont(new Font("Segoe UI", Font.PLAIN, 10));
             int gridCount = 4;
@@ -480,22 +469,18 @@ public class MostPurchasedPanel extends JPanel {
             int itemCount = data.size();
             int barWidth = Math.max(12, Math.min(36, (chartWidth / itemCount) - 12));
             int gap = (chartWidth - (barWidth * itemCount)) / (itemCount + 1);
-
             for (int i = 0; i < itemCount; i++) {
                 BarChartData item = data.get(i);
                 int barHeight = (int) (((double) item.value / maxValue) * chartHeight);
                 int x = paddingLeft + gap + i * (barWidth + gap);
                 int y = paddingTop + (chartHeight - barHeight);
-
-                g2.setColor(BAR_COLOR);
-                g2.fillRoundRect(x, y, barWidth, barHeight, 4, 4);
-
-                g2.setColor(TEXT);
+                g2.setPaint(new GradientPaint(x, y, BAR_COLOR, x, y + Math.max(1, barHeight), BAR_COLOR_BOTTOM));
+                g2.fillRoundRect(x, y, barWidth, barHeight, 6, 6);
+                g2.setColor(TEAL_DARK);
                 g2.setFont(new Font("Segoe UI", Font.BOLD, 10));
                 FontMetrics fm = g2.getFontMetrics();
                 String valStr = String.valueOf(item.value);
                 g2.drawString(valStr, x + (barWidth - fm.stringWidth(valStr)) / 2, y - 4);
-
                 g2.setColor(MUTED);
                 g2.setFont(new Font("Segoe UI", Font.PLAIN, 10));
                 fm = g2.getFontMetrics();

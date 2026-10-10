@@ -31,8 +31,7 @@ public class DashboardPanel extends JPanel {
     private static final Font SECTION = new Font("Segoe UI", Font.BOLD, 13);
     private static final Font SMALL = new Font("Segoe UI", Font.PLAIN, 11);
 
-    private static final int CELL_PAD = 10; // same padding as the Medicine List page
-
+    private static final int CELL_PAD = 10; 
     private static DefaultTableModel tableModel;
     private static JTable latestSalesTable;
     private static JLabel lblSalesVal;
@@ -352,7 +351,6 @@ public class DashboardPanel extends JPanel {
         scrollPane.setBorder(null);
         scrollPane.getViewport().setBackground(SURFACE);
 
-        // same thin scrollbars as the Medicine List page
         for (JScrollBar bar : new JScrollBar[]{scrollPane.getVerticalScrollBar(), scrollPane.getHorizontalScrollBar()}) {
             bar.setUI(new SlimScrollBarUI());
             bar.setOpaque(true);
@@ -377,7 +375,6 @@ public class DashboardPanel extends JPanel {
         return BorderFactory.createLineBorder(BORDER, 1);
     }
 
-    /** Table with the same look as the Medicine List page: fixed columns, padded cells, boxed header. */
     private void styleTable(JTable table) {
         table.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         table.setForeground(TEXT);
@@ -394,7 +391,6 @@ public class DashboardPanel extends JPanel {
         header.setFont(new Font("Segoe UI", Font.BOLD, 11));
         table.setTableHeader(header);
 
-        // fixed columns: can't be dragged to resize or reorder
         table.getTableHeader().setResizingAllowed(false);
         table.getTableHeader().setReorderingAllowed(false);
 
@@ -427,12 +423,10 @@ public class DashboardPanel extends JPanel {
         }
     }
 
-    /** Order No, Date and Amount are centered; Customer Name is left aligned. */
     private static boolean isCenteredColumn(int modelCol) {
         return modelCol <= 2;
     }
 
-    /** Size every column to its longest value so nothing is cut off. */
     private static void fitColumns(JTable t) {
         DefaultTableModel model = (DefaultTableModel) t.getModel();
         FontMetrics fm = t.getFontMetrics(new Font("Segoe UI", Font.BOLD, 12));
@@ -452,7 +446,6 @@ public class DashboardPanel extends JPanel {
         }
     }
 
-    /** Fill the width when there is room, scroll sideways when the columns do not fit. */
     private static void updateResizeMode(JTable t) {
         int total = 0;
         TableColumnModel cm = t.getColumnModel();
@@ -495,9 +488,7 @@ public class DashboardPanel extends JPanel {
         );
     }
 
-    // ------------------------------------------------------------ header
 
-    /** Table header with the same look as the Medicine List page (single row, no groups). */
     private static class StyledHeader extends JTableHeader {
 
         StyledHeader(TableColumnModel cm, int height) {
@@ -533,9 +524,7 @@ public class DashboardPanel extends JPanel {
         }
     }
 
-    // ------------------------------------------------------------ slim scrollbar
 
-    /** Thin rounded scrollbar: no arrow buttons, no track, just a soft gray thumb. */
     private static class SlimScrollBarUI extends BasicScrollBarUI {
         private static final int SIZE = 12;
         private static final Color THUMB = new Color(176, 184, 192);

@@ -38,7 +38,6 @@ public class User {
         this.securityAnswer2 = securityAnswer2;
     }
 
-    // Getters and Setters
     public int getId() { return id; }
     public void setId(int id) { this.id = id; }
 
